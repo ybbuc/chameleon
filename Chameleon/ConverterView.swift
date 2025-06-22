@@ -826,7 +826,7 @@ struct ConverterView: View {
                     RecentConversionsView(historyManager: historyManager)
                         .frame(
                             width: 400,
-                            height: historyManager.recentConversions.isEmpty ? 150 : 
+                            height: historyManager.recentConversions.isEmpty ? 300 : 
                                    min(500, max(200, CGFloat(historyManager.recentConversions.count * 60) + 100))
                         )
                 }

@@ -44,7 +44,7 @@ struct RecentConversionsView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
                     
-                    Text("Completed conversions will appear here")
+                    Text("Saved conversions will appear here.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
