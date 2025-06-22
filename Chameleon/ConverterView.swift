@@ -545,11 +545,14 @@ struct ConverterView: View {
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
     @State private var isTargeted = false
+    @State private var showingRecentConversions = false
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
     @State private var imageMagickWrapper: ImageMagickWrapper?
     @State private var imageMagickInitError: String?
+    
+    @StateObject private var historyManager = ConversionHistoryManager()
     
     var body: some View {
         HStack(spacing: 0) {
@@ -758,7 +761,7 @@ struct ConverterView: View {
                                 SaveAllButton(
                                     label: "Save"
                                 ) {
-                                    saveFile(data: file.data, fileName: file.fileName)
+                                    saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
                                 }
                             }
                             .padding()
@@ -770,7 +773,7 @@ struct ConverterView: View {
                                             ConvertedFileRow(
                                                 file: file,
                                                 onSave: {
-                                                    saveFile(data: file.data, fileName: file.fileName)
+                                                    saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
                                                 }
                                             )
                                         }
@@ -810,6 +813,24 @@ struct ConverterView: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingRecentConversions.toggle()
+                } label: {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .help("Recent Conversions")
+                }
+                .popover(isPresented: $showingRecentConversions, arrowEdge: .bottom) {
+                    RecentConversionsView(historyManager: historyManager)
+                        .frame(
+                            width: 400,
+                            height: historyManager.recentConversions.isEmpty ? 150 : 
+                                   min(500, max(200, CGFloat(historyManager.recentConversions.count * 60) + 100))
+                        )
+                }
+            }
         }
         .frame(minWidth: 800, minHeight: 400)
         .onAppear {
@@ -1060,7 +1081,7 @@ struct ConverterView: View {
         isConverting = false
     }
     
-    private func saveFile(data: Data, fileName: String) {
+    private func saveFile(data: Data, fileName: String, originalURL: URL) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = fileName
         panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
@@ -1068,6 +1089,16 @@ struct ConverterView: View {
         if panel.runModal() == .OK, let url = panel.url {
             do {
                 try data.write(to: url)
+                
+                // Add to conversion history
+                let inputFormat = originalURL.pathExtension.uppercased()
+                let outputFormat = url.pathExtension.uppercased()
+                historyManager.addConversion(
+                    inputFileName: originalURL.lastPathComponent,
+                    inputFormat: inputFormat,
+                    outputFormat: outputFormat,
+                    outputFileURL: url
+                )
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -1086,6 +1117,16 @@ struct ConverterView: View {
                 let fileURL = folderURL.appendingPathComponent(file.fileName)
                 do {
                     try file.data.write(to: fileURL)
+                    
+                    // Add to conversion history
+                    let inputFormat = file.originalURL.pathExtension.uppercased()
+                    let outputFormat = fileURL.pathExtension.uppercased()
+                    historyManager.addConversion(
+                        inputFileName: file.originalURL.lastPathComponent,
+                        inputFormat: inputFormat,
+                        outputFormat: outputFormat,
+                        outputFileURL: fileURL
+                    )
                 } catch {
                     errorMessage = "Failed to save \(file.fileName): \(error.localizedDescription)"
                     return
