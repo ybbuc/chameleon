@@ -794,15 +794,16 @@ struct ConverterView: View {
                         }
                     } else {
                         VStack(spacing: 12) {
-                            Image(systemName: "arrow.up.doc")
+                            Image("document.badge.sparkles")
                                 .font(.system(size: 48))
                                 .foregroundStyle(.quaternary)
                             
-                            Text("Converted files will appear here")
+                            Text("Converted Files")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
                         }
                         .padding()
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -810,7 +811,7 @@ struct ConverterView: View {
             .padding()
             .frame(maxWidth: .infinity)
         }
-        .frame(minWidth: 800, minHeight: 500)
+        .frame(minWidth: 800, minHeight: 400)
         .onAppear {
             initializePandoc()
             initializeImageMagick()
