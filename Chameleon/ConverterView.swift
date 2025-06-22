@@ -158,8 +158,14 @@ struct ConvertedFileRow: View {
             Spacer()
             
             if isHoveringRow {
-                SaveButton {
-                    onSave()
+                HStack(spacing: 4) {
+                    QuickLookButton {
+                        QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
+                    }
+                    
+                    SaveButton {
+                        onSave()
+                    }
                 }
                 .transition(.opacity.combined(with: .scale))
             }
@@ -762,10 +768,16 @@ struct ConverterView: View {
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
                                 
-                                SaveAllButton(
-                                    label: "Save"
-                                ) {
-                                    saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
+                                HStack(spacing: 12) {
+                                    QuickLookButton {
+                                        QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
+                                    }
+                                    
+                                    SaveAllButton(
+                                        label: "Save"
+                                    ) {
+                                        saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
+                                    }
                                 }
                             }
                             .padding()

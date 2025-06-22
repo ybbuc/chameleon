@@ -120,6 +120,18 @@ struct RecentConversionRow: View {
                 HStack(spacing: 6) {
                     if record.isFileAccessible {
                         Button {
+                            QuickLookManager.shared.previewFile(at: record.outputFileURL)
+                        } label: {
+                            Image(systemName: "eye")
+                                .font(.system(size: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(6)
+                        .background(Color.secondary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .help("Quick Look")
+                        
+                        Button {
                             historyManager.openFile(record)
                         } label: {
                             Image(systemName: "arrowshape.turn.up.right")
@@ -160,6 +172,10 @@ struct RecentConversionRow: View {
         }
         .contextMenu {
             if record.isFileAccessible {
+                Button("Quick Look") {
+                    QuickLookManager.shared.previewFile(at: record.outputFileURL)
+                }
+                
                 Button("Open") {
                     historyManager.openFile(record)
                 }

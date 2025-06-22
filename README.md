@@ -38,6 +38,7 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 - Document conversion between multiple formats
 - Image conversion with ImageMagick integration
 - Drag-and-drop interface
+- Quick Look preview for converted files before saving
 - Recent conversions history with quick access
 - Native SwiftUI design
 - Supports: Markdown, HTML, DOCX, LaTeX, PDF (with LaTeX), RTF, EPUB, image formats (JPEG, PNG, TIFF, etc.), and more
