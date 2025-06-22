@@ -372,6 +372,7 @@ struct SearchableFormatPicker: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .background(Color(NSColor.quaternaryLabelColor).opacity(0.4))
