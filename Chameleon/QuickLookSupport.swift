@@ -13,21 +13,38 @@ import AppKit
 
 struct QuickLookButton: View {
     let action: () -> Void
+    var iconSize: CGFloat = 16
+    var style: ButtonStyle = .compact
     @State private var isHovering = false
     @State private var isPressed = false
+    
+    enum ButtonStyle {
+        case compact
+        case full
+    }
     
     var body: some View {
         Button {
             action()
         } label: {
-            Image(systemName: isPressed ? "eye.fill" : "eye")
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
-                .padding(6)
-                .contentShape(Rectangle())
+            switch style {
+            case .compact:
+                Image(systemName: isPressed ? "eye.fill" : "eye")
+                    .font(.system(size: iconSize))
+                    .foregroundStyle(.secondary)
+                    .padding(6)
+                    .contentShape(Rectangle())
+            case .full:
+                Label("Preview", systemImage: isPressed ? "eye.fill" : "eye")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+            }
         }
         .buttonStyle(.plain)
-        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
+        .background(isHovering ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .onHover { hovering in
             isHovering = hovering

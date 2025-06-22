@@ -159,9 +159,9 @@ struct ConvertedFileRow: View {
             
             if isHoveringRow {
                 HStack(spacing: 4) {
-                    QuickLookButton {
+                    QuickLookButton(action: {
                         QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
-                    }
+                    }, iconSize: 12)
                     
                     SaveButton {
                         onSave()
@@ -769,9 +769,9 @@ struct ConverterView: View {
                                     .multilineTextAlignment(.center)
                                 
                                 HStack(spacing: 12) {
-                                    QuickLookButton {
+                                    QuickLookButton(action: {
                                         QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
-                                    }
+                                    }, style: .full)
                                     
                                     SaveAllButton(
                                         label: "Save"
