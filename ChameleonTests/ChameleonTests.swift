@@ -164,6 +164,125 @@ struct ChameleonTests {
         #expect(conversionFailedError.errorDescription?.contains("Test error message") == true)
     }
     
+    // MARK: - ConversionHistoryManager Tests
+    
+    func createTestManager() -> ConversionHistoryManager {
+        let manager = ConversionHistoryManager()
+        manager.clearHistory() // Start with clean state
+        return manager
+    }
+    
+    @Test func testConversionHistoryManagerInit() async throws {
+        let manager = createTestManager()
+        #expect(manager.recentConversions.isEmpty)
+    }
+    
+    @Test func testAddConversion() async throws {
+        let manager = createTestManager()
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test.pdf")
+        
+        // Create a temporary file for testing
+        try "Test content".write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        
+        manager.addConversion(
+            inputFileName: "test.md",
+            inputFormat: "markdown",
+            outputFormat: "pdf",
+            outputFileURL: tempURL
+        )
+        
+        #expect(manager.recentConversions.count == 1)
+        let record = manager.recentConversions.first!
+        #expect(record.inputFileName == "test.md")
+        #expect(record.inputFormat == "markdown")
+        #expect(record.outputFormat == "pdf")
+        #expect(record.outputFileName == "test.pdf")
+    }
+    
+    @Test func testRemoveConversion() async throws {
+        let manager = createTestManager()
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test.pdf")
+        
+        try "Test content".write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        
+        manager.addConversion(
+            inputFileName: "test.md",
+            inputFormat: "markdown",
+            outputFormat: "pdf",
+            outputFileURL: tempURL
+        )
+        
+        let record = manager.recentConversions.first!
+        manager.removeConversion(record)
+        
+        #expect(manager.recentConversions.isEmpty)
+    }
+    
+    @Test func testClearHistory() async throws {
+        let manager = createTestManager()
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test.pdf")
+        
+        try "Test content".write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        
+        // Add multiple conversions
+        manager.addConversion(inputFileName: "test1.md", inputFormat: "markdown", outputFormat: "pdf", outputFileURL: tempURL)
+        manager.addConversion(inputFileName: "test2.md", inputFormat: "markdown", outputFormat: "html", outputFileURL: tempURL)
+        
+        #expect(manager.recentConversions.count == 2)
+        
+        manager.clearHistory()
+        #expect(manager.recentConversions.isEmpty)
+    }
+    
+    @Test func testConversionRecordProperties() async throws {
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test.pdf")
+        try "Test content".write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        
+        let timestamp = Date()
+        let record = ConversionRecord(
+            inputFileName: "test.md",
+            inputFormat: "markdown",
+            outputFormat: "pdf",
+            outputFileName: "test.pdf",
+            outputFileURL: tempURL,
+            timestamp: timestamp,
+            fileSize: 12
+        )
+        
+        #expect(record.inputFileName == "test.md")
+        #expect(record.isFileAccessible == true)
+        #expect(record.formattedFileSize.contains("bytes")) // Should contain bytes unit
+        #expect(!record.formattedDate.isEmpty)
+    }
+    
+    @Test func testHistoryMaxLimit() async throws {
+        let manager = createTestManager()
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test.pdf")
+        
+        try "Test content".write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        
+        // Add 55 conversions (more than the 50 limit)
+        for i in 1...55 {
+            manager.addConversion(
+                inputFileName: "test\(i).md",
+                inputFormat: "markdown",
+                outputFormat: "pdf",
+                outputFileURL: tempURL
+            )
+        }
+        
+        // Should be limited to 50
+        #expect(manager.recentConversions.count == 50)
+        // Most recent should be first
+        #expect(manager.recentConversions.first?.inputFileName == "test55.md")
+        #expect(manager.recentConversions.last?.inputFileName == "test6.md")
+    }
+    
     // MARK: - Integration Tests
     
     @Test func testFileExtensionHandling() async throws {
