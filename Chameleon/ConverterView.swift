@@ -191,7 +191,7 @@ struct ConvertedFile: Identifiable {
 struct SearchableFormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
-    @State private var isExpanded = false
+    @Binding var isExpanded: Bool
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
     @State private var highlightedIndex: Int = 0
@@ -467,7 +467,7 @@ struct SearchableFormatPicker: View {
                 .background(Color(NSColor.controlBackgroundColor))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.blue, lineWidth: 1)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
                 )
                 .cornerRadius(6)
                 .shadow(radius: 4)
@@ -546,6 +546,7 @@ struct ConverterView: View {
     @State private var errorMessage: String?
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
+    @State private var isFormatPickerExpanded = false
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
@@ -600,6 +601,7 @@ struct ConverterView: View {
                                     inputFileURLs = []
                                     convertedFiles = []
                                     errorMessage = nil
+                                    isFormatPickerExpanded = false
                                 }
                             }
                             .padding()
@@ -615,6 +617,7 @@ struct ConverterView: View {
                                                     if inputFileURLs.isEmpty {
                                                         convertedFiles = []
                                                         errorMessage = nil
+                                                        isFormatPickerExpanded = false
                                                     }
                                                 }
                                             )
@@ -634,6 +637,7 @@ struct ConverterView: View {
                                         inputFileURLs = []
                                         convertedFiles = []
                                         errorMessage = nil
+                                        isFormatPickerExpanded = false
                                     }
                                     .padding(.horizontal)
                                     .padding(.vertical, 6)
@@ -688,7 +692,7 @@ struct ConverterView: View {
             
             // Convert pane (middle)
             VStack {
-                SearchableFormatPicker(selectedService: $outputService, inputFileURLs: inputFileURLs)
+                SearchableFormatPicker(selectedService: $outputService, inputFileURLs: inputFileURLs, isExpanded: $isFormatPickerExpanded)
                     .padding(.top)
                     .disabled(inputFileURLs.isEmpty)
                 
