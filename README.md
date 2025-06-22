@@ -30,7 +30,6 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 ## Project Structure
 
 - `Chameleon/` - Main application source code
-- `Scripts/` - Build and setup scripts
 - `ChameleonTests/` - Unit tests
 - `ChameleonUITests/` - UI tests
 
