@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build:
     name: Build and analyse default scheme using xcodebuild command
-    runs-on: macos-latest
+    runs-on: macos-15
 
     steps:
       - name: Checkout
