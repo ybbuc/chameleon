@@ -8,7 +8,7 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 - Xcode 16.4+
 - Pandoc (required): `brew install pandoc`
 - ImageMagick (required): `brew install imagemagick`
-- LaTeX (optional, for PDF export): `brew install --cask basictex`
+- LaTeX (optional, for PDF export): `brew install --cask mactex-no-gui`
 
 ## Setup
 
@@ -22,7 +22,7 @@ A macOS application with integrated pandoc and ImageMagick support for document 
    brew install imagemagick
    
    # Install LaTeX for PDF support (optional)
-   brew install --cask basictex
+   brew install --cask mactex-no-gui
    ```
 3. Open `Chameleon.xcodeproj` in Xcode
 4. Build and run
@@ -35,6 +35,7 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 
 ## Features
 
+- **Guided Setup** - Interactive onboarding walks you through installing dependencies
 - Document conversion between multiple formats
 - Image conversion with ImageMagick integration
 - Drag-and-drop interface
