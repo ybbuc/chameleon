@@ -1,11 +1,11 @@
 <div align="center">
-<img src="./Chameleon/Assets.xcassets/AppIcon.appiconset/AppIcon_0256.png" alt="Chameleon icon" width="256" height="256"/>
+
+![Chameleon icon](./Chameleon/Assets.xcassets/AppIcon.appiconset/AppIcon_0256.png)
 
 # Chameleon
-<br />
-</div>
 
 A macOS application with integrated pandoc and ImageMagick support for document and image conversion.
+</div>
 
 ## Requirements
 
