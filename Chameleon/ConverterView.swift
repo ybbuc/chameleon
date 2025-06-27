@@ -974,9 +974,16 @@ struct ConverterView: View {
                                 .font(.system(size: 48))
                                 .foregroundStyle(.quaternary)
                             
-                            Text("Converted Files")
+                            Text("Converted Files Appear Here")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
+                            
+                            Button("") {
+                                // Invisible button for alignment
+                            }
+                            .buttonStyle(.bordered)
+                            .opacity(0)
+                            .disabled(true)
                         }
                         .padding()
                         .frame(maxWidth: .infinity)
