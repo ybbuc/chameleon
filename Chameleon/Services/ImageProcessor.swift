@@ -30,9 +30,26 @@ class ImageProcessor {
             throw ImageProcessorError.failedToReadImage
         }
         
-        // Get image properties to extract orientation
+        // Get image properties including EXIF data
         let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [String: Any]
-        let orientation = imageProperties?[kCGImagePropertyOrientation as String] as? Int ?? 1
+        
+        // Try to get orientation from multiple possible locations
+        var orientation: Int = 1
+        
+        // First check the main properties
+        if let mainOrientation = imageProperties?[kCGImagePropertyOrientation as String] as? Int {
+            orientation = mainOrientation
+        }
+        // Then check EXIF dictionary
+        else if let exifDict = imageProperties?[kCGImagePropertyExifDictionary as String] as? [String: Any],
+                let exifOrientation = exifDict["Orientation"] as? Int {
+            orientation = exifOrientation
+        }
+        // Also check TIFF dictionary (common for TIFF files)
+        else if let tiffDict = imageProperties?[kCGImagePropertyTIFFDictionary as String] as? [String: Any],
+                let tiffOrientation = tiffDict["Orientation"] as? Int {
+            orientation = tiffOrientation
+        }
         
         // Get the image format
         guard let uti = CGImageSourceGetType(imageSource) else {
@@ -44,10 +61,24 @@ class ImageProcessor {
             throw ImageProcessorError.failedToCreateDestination
         }
         
-        // Create properties dictionary with only orientation
-        let preservedProperties: [String: Any] = [
+        // Create properties dictionary with orientation preserved in all relevant locations
+        var preservedProperties: [String: Any] = [
             kCGImagePropertyOrientation as String: orientation
         ]
+        
+        // For JPEG/HEIF, also add orientation to EXIF dictionary
+        if fileExtension == "jpg" || fileExtension == "jpeg" || fileExtension == "heic" || fileExtension == "heif" {
+            preservedProperties[kCGImagePropertyExifDictionary as String] = [
+                "Orientation": orientation
+            ]
+        }
+        
+        // For TIFF, add orientation to TIFF dictionary
+        if fileExtension == "tiff" || fileExtension == "tif" {
+            preservedProperties[kCGImagePropertyTIFFDictionary as String] = [
+                "Orientation": orientation
+            ]
+        }
         
         // Add image with only orientation metadata
         CGImageDestinationAddImage(destination, cgImage, preservedProperties as CFDictionary)
