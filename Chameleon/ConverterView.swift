@@ -498,7 +498,6 @@ struct FormatPicker: View {
             }
         }
         .pickerStyle(.menu)
-        .frame(width: 300)
         .disabled(inputFileURLs.isEmpty)
     }
     
@@ -545,10 +544,11 @@ struct ConverterView: View {
     @State private var conversionProgress = (current: 0, total: 0)
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
-    @State private var imageQuality: Double = 85
+    @AppStorage("imageQuality") private var imageQuality: Double = 85
+    @AppStorage("useLossyCompression") private var useLossyCompression: Bool = true
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
-    @AppStorage("pdfToDpi") private var pdfToDpi: Int = 150
+    @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
@@ -557,9 +557,9 @@ struct ConverterView: View {
     
     @StateObject private var historyManager = ConversionHistoryManager()
     
+    // MARK: - Input pane
     var body: some View {
         HStack(spacing: 0) {
-            // Input pane
             VStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
@@ -733,12 +733,12 @@ struct ConverterView: View {
                                 value: Binding(
                                     get: { Double(pdfToDpiIndex) },
                                     set: { newValue in
-                                        let dpiValues = [72, 150, 300, 600]
+                                        let dpiValues = [72, 150, 300, 600, 1200]
                                         let index = Int(newValue)
                                         pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
                                     }
                                 ),
-                                in: 0...3,
+                                in: 0...5,
                                 step: 1
                             )
                         }
@@ -749,15 +749,23 @@ struct ConverterView: View {
                     .animation(.easeInOut(duration: 0.2), value: shouldShowDpiSelector)
                 }
                 
-                // Show quality slider for lossy image conversions
+                // Show quality controls for lossy image conversions
                 if case .imagemagick(let format) = outputService, !inputFileURLs.isEmpty, format.isLossy {
                     VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Spacer()
+                            Toggle("Lossy Compression", isOn: $useLossyCompression)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                            
+                        }
+                        
                         HStack {
                             Text("Image Quality")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("\(Int(imageQuality))")
+                            Text(useLossyCompression ? "\(Int(imageQuality))" : "Default")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .monospacedDigit()
@@ -773,6 +781,7 @@ struct ConverterView: View {
                                     }
                                 )
                             .labelsHidden()
+                            .disabled(!useLossyCompression)
                         }
                     }
                     .padding(.top, 8)
@@ -804,7 +813,7 @@ struct ConverterView: View {
             .padding()
             .frame(width: 300)
             
-            // Output pane
+            // MARK: - Output pane
             VStack {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
@@ -963,7 +972,7 @@ struct ConverterView: View {
                     RecentConversionsView(historyManager: historyManager)
                         .frame(
                             width: 400,
-                            height: historyManager.recentConversions.isEmpty ? 300 : 
+                            height: historyManager.recentConversions.isEmpty ? 300 :
                                    min(500, max(200, CGFloat(historyManager.recentConversions.count * 60) + 100))
                         )
                 }
@@ -1048,7 +1057,7 @@ struct ConverterView: View {
                         
                         // Allow if new file type matches existing file types
                         // Special case: PDFs can be treated as both documents and images
-                        let isPDFMixing = url.pathExtension.lowercased() == "pdf" && 
+                        let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
                                          self.inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                         
                         if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
@@ -1134,7 +1143,7 @@ struct ConverterView: View {
                 
                 // Allow if new file type matches existing file types
                 // Special case: PDFs can be treated as both documents and images
-                let isPDFMixing = url.pathExtension.lowercased() == "pdf" && 
+                let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
                                  inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                 
                 if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
@@ -1159,9 +1168,9 @@ struct ConverterView: View {
     }
     
     private func convertFile() async {
-        guard !inputFileURLs.isEmpty else { 
+        guard !inputFileURLs.isEmpty else {
             print("convertFile: no input files")
-            return 
+            return
         }
         
         // Check which service we need
@@ -1225,7 +1234,7 @@ struct ConverterView: View {
                         inputURL: inputURL,
                         outputURL: tempURL,
                         to: format,
-                        quality: Int(imageQuality),
+                        quality: useLossyCompression ? Int(imageQuality) : 100,
                         dpi: pdfToDpi
                     )
                     
@@ -1444,6 +1453,8 @@ struct ConverterView: View {
         case 150: return 1
         case 300: return 2
         case 600: return 3
+        case 1200: return 4
+        case 2400: return 5
         default: return 1
         }
     }
@@ -1464,9 +1475,9 @@ extension PandocFormat {
     var fileExtension: String {
         switch self {
         // Common formats
-        case .markdown, .commonmark, .gfm, .markdownStrict, .markdownPhpextra, .markdownMmd: 
+        case .markdown, .commonmark, .gfm, .markdownStrict, .markdownPhpextra, .markdownMmd:
             return "md"
-        case .html, .html4, .html5, .chunkedhtml: 
+        case .html, .html4, .html5, .chunkedhtml:
             return "html"
         case .latex: return "tex"
         case .pdf: return "pdf"

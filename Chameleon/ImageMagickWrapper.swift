@@ -100,6 +100,12 @@ class ImageMagickWrapper {
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            
+            // Check for common dependency errors
+            if errorString.contains("potrace") {
+                throw ImageMagickError.potraceNotInstalled
+            }
+            
             throw ImageMagickError.conversionFailed(errorString)
         }
     }
@@ -174,6 +180,7 @@ enum ImageFormat: String, CaseIterable {
 enum ImageMagickError: LocalizedError {
     case imageMagickNotInstalled
     case ghostscriptNotInstalled
+    case potraceNotInstalled
     case conversionFailed(String)
     
     var errorDescription: String? {
@@ -182,6 +189,8 @@ enum ImageMagickError: LocalizedError {
             return "ImageMagick is not installed. Please install it via Homebrew: brew install imagemagick"
         case .ghostscriptNotInstalled:
             return "Ghostscript is required for PDF conversion. Please install it via Homebrew: brew install ghostscript"
+        case .potraceNotInstalled:
+            return "Potrace is required for SVG conversion. Please install it via Homebrew: brew install potrace"
         case .conversionFailed(let message):
             if message.contains("gs: command not found") {
                 return "Ghostscript is required for PDF conversion. Please install it via Homebrew: brew install ghostscript"
