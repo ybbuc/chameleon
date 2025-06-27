@@ -693,6 +693,7 @@ struct ConverterView: View {
     @State private var conversionProgress = (current: 0, total: 0)
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
+    @State private var imageQuality: Double = 85
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
     @State private var isFormatPickerExpanded = false
@@ -892,34 +893,43 @@ struct ConverterView: View {
                                 in: 0...3,
                                 step: 1
                             )
-                            .controlSize(.small)
-                            
-                            HStack {
-                                Text("72")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("150")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("300")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("600")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
                         }
                         
-                        Text(dpiDescription)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
                     }
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: shouldShowDpiSelector)
+                }
+                
+                // Show quality slider for lossy image conversions
+                if case .imagemagick(let format) = outputService, !inputFileURLs.isEmpty, format.isLossy {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Image Quality")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(Int(imageQuality))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .monospacedDigit()
+                        }
+                        
+                        VStack(spacing: 4) {
+                            Slider(value: $imageQuality,
+                                    in: 1...100,
+                                    minimumValueLabel: Text("1").font(.caption2),
+                                    maximumValueLabel: Text("100").font(.caption2),
+                                    label: {
+                                        Text("Quality")
+                                    }
+                                )
+                            .labelsHidden()
+                        }
+                    }
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
                 Spacer()
@@ -961,7 +971,7 @@ struct ConverterView: View {
                             if conversionProgress.total > 1 {
                                 // Use ProgressIndicatorView for multiple files
                                 let progress = Double(conversionProgress.current - 1) / Double(conversionProgress.total)
-                                ProgressIndicatorView(isVisible: .constant(true), type: .bar(progress: .constant(progress)))
+                                ProgressIndicatorView(isVisible: .constant(true), type: .impulseBar(progress: .constant(progress), backgroundColor: .gray))
                                     .frame(width: 120, height: 6)
                                     .foregroundStyle(.blue)
                                 
@@ -1367,6 +1377,7 @@ struct ConverterView: View {
                         inputURL: inputURL,
                         outputURL: tempURL,
                         to: format,
+                        quality: Int(imageQuality),
                         dpi: pdfToDpi
                     )
                     
@@ -1589,20 +1600,6 @@ struct ConverterView: View {
         }
     }
     
-    private var dpiDescription: String {
-        switch pdfToDpi {
-        case 72:
-            return "Screen quality - smallest file size"
-        case 150:
-            return "Good quality - balanced"
-        case 300:
-            return "Print quality - larger file size"
-        case 600:
-            return "High quality - largest file size"
-        default:
-            return ""
-        }
-    }
     
     private func iconForFile(fileName: String) -> NSImage {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)

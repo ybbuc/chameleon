@@ -49,7 +49,7 @@ class ImageMagickWrapper {
         throw ImageMagickError.imageMagickNotInstalled
     }
     
-    func convertImage(inputURL: URL, outputURL: URL, to outputFormat: ImageFormat, quality: Int = 85, dpi: Int = 150) async throws {
+    func convertImage(inputURL: URL, outputURL: URL, to outputFormat: ImageFormat, quality: Int = 100, dpi: Int = 150) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: magickPath)
         
