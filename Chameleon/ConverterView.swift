@@ -544,6 +544,7 @@ struct ConverterView: View {
     @State private var conversionProgress = (current: 0, total: 0)
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
+    @State private var showingErrorAlert = false
     @AppStorage("imageQuality") private var imageQuality: Double = 85
     @AppStorage("useLossyCompression") private var useLossyCompression: Bool = false
     @AppStorage("removeExifMetadata") private var removeExifMetadata: Bool = false
@@ -687,17 +688,6 @@ struct ConverterView: View {
                     handleDrop(providers: providers)
                 }
                 
-                if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                } else if let pandocError = pandocInitError {
-                    Text(pandocError)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                }
                 
                 if pandocWrapper == nil {
                     Text("✗ Pandoc not available")
@@ -808,7 +798,6 @@ struct ConverterView: View {
                 VStack {
                     Button(action: {
                         print("Convert button clicked")
-                        errorMessage = "Starting conversion..."
                         Task {
                             await convertFile()
                         }
@@ -997,6 +986,28 @@ struct ConverterView: View {
             initializePandoc()
             initializeImageMagick()
         }
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK") {
+                errorMessage = nil
+            }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .alert("Initialization Error", isPresented: Binding<Bool>(
+            get: { pandocInitError != nil },
+            set: { _ in pandocInitError = nil }
+        )) {
+            Button("OK") { 
+                pandocInitError = nil
+            }
+        } message: {
+            Text(pandocInitError ?? "")
+        }
+    }
+    
+    private func showError(_ message: String) {
+        errorMessage = message
+        showingErrorAlert = true
     }
     
     private func initializePandoc() {
@@ -1048,7 +1059,7 @@ struct ConverterView: View {
                         }
                         
                         guard newDocumentFormat != nil || newImageFormat != nil else {
-                            self.errorMessage = "Unsupported file type: \(url.pathExtension)"
+                            self.showError("Unsupported file type: \(url.pathExtension)")
                             return
                         }
                         
@@ -1135,7 +1146,7 @@ struct ConverterView: View {
                 }
                 
                 guard newDocumentFormat != nil || newImageFormat != nil else {
-                    errorMessage = "Unsupported file type: \(url.pathExtension)"
+                    showError("Unsupported file type: \(url.pathExtension)")
                     continue
                 }
                 
@@ -1192,13 +1203,13 @@ struct ConverterView: View {
         case .pandoc(_):
             guard pandocWrapper != nil else {
                 print("convertFile: pandoc not available")
-                errorMessage = "Pandoc is not available"
+                showError("Pandoc is not available")
                 return
             }
         case .imagemagick(_):
             guard imageMagickWrapper != nil else {
                 print("convertFile: ImageMagick not available")
-                errorMessage = "ImageMagick is not available"
+                showError("ImageMagick is not available")
                 return
             }
         }
@@ -1328,7 +1339,7 @@ struct ConverterView: View {
                 print("Successfully converted \(inputURL.lastPathComponent)")
             } catch {
                 print("Conversion failed for \(inputURL.lastPathComponent): \(error)")
-                errorMessage = "Failed to convert \(inputURL.lastPathComponent): \(error.localizedDescription)"
+                showError("Failed to convert \(inputURL.lastPathComponent): \(error.localizedDescription)")
                 break
             }
         }
@@ -1361,7 +1372,7 @@ struct ConverterView: View {
                     outputFileURL: url
                 )
             } catch {
-                errorMessage = error.localizedDescription
+                showError(error.localizedDescription)
             }
         }
     }
@@ -1389,7 +1400,7 @@ struct ConverterView: View {
                         outputFileURL: fileURL
                     )
                 } catch {
-                    errorMessage = "Failed to save \(file.fileName): \(error.localizedDescription)"
+                    showError("Failed to save \(file.fileName): \(error.localizedDescription)")
                     return
                 }
             }
