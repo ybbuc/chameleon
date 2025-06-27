@@ -454,14 +454,21 @@ struct FormatPicker: View {
             return []
         }
         
-        // Detect if inputs are documents or images
-        let documentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-        var imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        // Check if all input files are PDFs
+        let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         
-        // Special handling for PDF - can be treated as both document and image
-        let hasPDF = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
-        if hasPDF && imageFormats.isEmpty {
-            imageFormats = [.pdf]
+        if allPDFs {
+            // For PDF files, only show image format options
+            let compatibleImageFormats = ImageFormat.outputFormats
+            return Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) }.sorted { $0.1 < $1.1 }
+        }
+        
+        // Detect if inputs are documents or images (excluding PDFs)
+        let documentFormats = inputFileURLs.compactMap { url in
+            url.pathExtension.lowercased() == "pdf" ? nil : PandocFormat.detectFormat(from: url)
+        }
+        let imageFormats = inputFileURLs.compactMap { url in
+            url.pathExtension.lowercased() == "pdf" ? nil : ImageFormat.detectFormat(from: url)
         }
         
         var compatibleServices: [(ConversionService, String)] = []
