@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C502F2622E0EADA800A38245 /* ActivityIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C502F2612E0EADA800A38245 /* ActivityIndicatorView */; };
+		C502F2652E0EAEE700A38245 /* ProgressIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C502F2642E0EAEE700A38245 /* ProgressIndicatorView */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		85000BD02E0836EC000D312F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C502F2652E0EAEE700A38245 /* ProgressIndicatorView in Frameworks */,
+				C502F2622E0EADA800A38245 /* ActivityIndicatorView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = Chameleon;
 			packageProductDependencies = (
+				C502F2612E0EADA800A38245 /* ActivityIndicatorView */,
+				C502F2642E0EAEE700A38245 /* ProgressIndicatorView */,
 			);
 			productName = Chameleon;
 			productReference = 85000BC12E0836EB000D312F /* Chameleon.app */;
@@ -195,6 +204,10 @@
 			);
 			mainGroup = 85000BB82E0836EB000D312F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */,
+				C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85000BC22E0836EB000D312F /* Products */;
 			projectDirPath = "";
@@ -541,6 +554,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exyte/ActivityIndicatorView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
+		C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exyte/ProgressIndicatorView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C502F2612E0EADA800A38245 /* ActivityIndicatorView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */;
+			productName = ActivityIndicatorView;
+		};
+		C502F2642E0EAEE700A38245 /* ProgressIndicatorView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */;
+			productName = ProgressIndicatorView;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 85000BB92E0836EB000D312F /* Project object */;
 }

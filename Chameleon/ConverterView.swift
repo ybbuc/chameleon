@@ -8,6 +8,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import AppKit
+import ActivityIndicatorView
+import ProgressIndicatorView
 
 struct FilePreviewView: View {
     let data: Data?
@@ -687,6 +689,8 @@ struct ConverterView: View {
     @State private var inputFileURLs: [URL] = []
     @State private var outputService: ConversionService = .pandoc(.html)
     @State private var isConverting = false
+    @State private var currentConversionFile = ""
+    @State private var conversionProgress = (current: 0, total: 0)
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
     @State private var isTargeted = false
@@ -953,8 +957,33 @@ struct ConverterView: View {
                         )
                     
                     if isConverting {
-                        ProgressView("Converting...")
-                            .padding()
+                        VStack(spacing: 12) {
+                            if conversionProgress.total > 1 {
+                                // Use ProgressIndicatorView for multiple files
+                                let progress = Double(conversionProgress.current - 1) / Double(conversionProgress.total)
+                                ProgressIndicatorView(isVisible: .constant(true), type: .bar(progress: .constant(progress)))
+                                    .frame(width: 120, height: 6)
+                                    .foregroundStyle(.blue)
+                                
+                                Text("Converting file \(conversionProgress.current) of \(conversionProgress.total)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                // Use ActivityIndicatorView for single files
+                                ActivityIndicatorView(isVisible: .constant(true), type: .equalizer(count: 5))
+                                    .frame(width: 40, height: 40)
+                                    .foregroundStyle(.blue)
+                            }
+                            
+                            if !currentConversionFile.isEmpty {
+                                Text(currentConversionFile)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        .padding()
                     } else if !convertedFiles.isEmpty {
                         if convertedFiles.count == 1 {
                             VStack(spacing: 0) {
@@ -1299,8 +1328,11 @@ struct ConverterView: View {
         isConverting = true
         errorMessage = nil
         convertedFiles = []
+        conversionProgress = (current: 0, total: inputFileURLs.count)
         
-        for inputURL in inputFileURLs {
+        for (index, inputURL) in inputFileURLs.enumerated() {
+            conversionProgress.current = index + 1
+            currentConversionFile = inputURL.lastPathComponent
             do {
                 let tempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
@@ -1419,6 +1451,8 @@ struct ConverterView: View {
         }
         
         isConverting = false
+        currentConversionFile = ""
+        conversionProgress = (current: 0, total: 0)
     }
     
     private func saveFile(data: Data, fileName: String, originalURL: URL) {
