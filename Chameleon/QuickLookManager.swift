@@ -60,10 +60,52 @@ struct QuickLookButton: View {
 
 // MARK: - Quick Look Support for Temporary Data
 
+class QuickLookPreviewController: NSViewController, QLPreviewPanelDataSource, QLPreviewPanelDelegate {
+    var currentURL: URL?
+    
+    override func acceptsPreviewPanelControl(_ panel: QLPreviewPanel!) -> Bool {
+        return true
+    }
+    
+    override func beginPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = self
+        panel.delegate = self
+    }
+    
+    override func endPreviewPanelControl(_ panel: QLPreviewPanel!) {
+        panel.dataSource = nil
+        panel.delegate = nil
+    }
+    
+    // MARK: - QLPreviewPanelDataSource
+    
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
+        return currentURL != nil ? 1 : 0
+    }
+    
+    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
+        return currentURL as NSURL?
+    }
+    
+    // MARK: - QLPreviewPanelDelegate
+    
+    func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
+        if event.type == .keyDown && event.keyCode == 49 { // Space bar
+            panel.close()
+            return true
+        }
+        return false
+    }
+}
+
 class QuickLookManager: ObservableObject {
     static let shared = QuickLookManager()
+    private let previewController = QuickLookPreviewController()
     
-    private init() {}
+    private init() {
+        // Ensure the controller has a view
+        previewController.view = NSView()
+    }
     
     func previewFile(data: Data, fileName: String) {
         // Create a temporary file for preview
@@ -74,23 +116,25 @@ class QuickLookManager: ObservableObject {
             // Write data to temporary file
             try data.write(to: tempURL)
             
-            // Open Quick Look
-            if QLPreviewPanel.shared()?.isVisible ?? false {
-                QLPreviewPanel.shared()?.close()
-            }
-            
-            QLPreviewPanel.shared()?.makeKeyAndOrderFront(nil)
-            QLPreviewPanel.shared()?.center()
-            
             // Set up the preview with temporary URL
             if let panel = QLPreviewPanel.shared() {
-                let coordinator = QuickLookCoordinator(url: tempURL)
-                panel.dataSource = coordinator
-                panel.delegate = coordinator
-                panel.reloadData()
+                // Set the URL in our controller
+                previewController.currentURL = tempURL
                 
-                // Keep the coordinator alive during preview
-                objc_setAssociatedObject(panel, "coordinator", coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                // Make our controller the current controller
+                if let window = NSApp.keyWindow {
+                    window.makeFirstResponder(previewController)
+                }
+                
+                panel.updateController()
+                
+                // Open Quick Look if not already visible
+                if !panel.isVisible {
+                    panel.makeKeyAndOrderFront(nil)
+                    panel.center()
+                }
+                
+                panel.reloadData()
             }
             
             // Clean up temporary file after a delay
@@ -109,53 +153,26 @@ class QuickLookManager: ObservableObject {
             return
         }
         
-        // Open Quick Look
-        if QLPreviewPanel.shared()?.isVisible ?? false {
-            QLPreviewPanel.shared()?.close()
-        }
-        
-        QLPreviewPanel.shared()?.makeKeyAndOrderFront(nil)
-        QLPreviewPanel.shared()?.center()
-        
-        // Set up the preview
+        // Set up the preview first
         if let panel = QLPreviewPanel.shared() {
-            let coordinator = QuickLookCoordinator(url: url)
-            panel.dataSource = coordinator
-            panel.delegate = coordinator
-            panel.reloadData()
+            // Set the URL in our controller
+            previewController.currentURL = url
             
-            // Keep the coordinator alive during preview
-            objc_setAssociatedObject(panel, "coordinator", coordinator, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            // Make our controller the current controller
+            if let window = NSApp.keyWindow {
+                window.makeFirstResponder(previewController)
+            }
+            
+            panel.updateController()
+            
+            // Open Quick Look if not already visible
+            if !panel.isVisible {
+                panel.makeKeyAndOrderFront(nil)
+                panel.center()
+            }
+            
+            panel.reloadData()
         }
     }
 }
 
-private class QuickLookCoordinator: NSObject, QLPreviewPanelDataSource, QLPreviewPanelDelegate {
-    let url: URL
-    
-    init(url: URL) {
-        self.url = url
-    }
-    
-    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int {
-        return 1
-    }
-    
-    func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> QLPreviewItem! {
-        return url as NSURL
-    }
-    
-    func previewPanel(_ panel: QLPreviewPanel!, handle event: NSEvent!) -> Bool {
-        // Handle key events (like space bar to close)
-        if event.type == .keyDown {
-            switch event.keyCode {
-            case 49: // Space bar
-                panel.close()
-                return true
-            default:
-                break
-            }
-        }
-        return false
-    }
-}
