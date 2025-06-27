@@ -545,7 +545,8 @@ struct ConverterView: View {
     @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
     @AppStorage("imageQuality") private var imageQuality: Double = 85
-    @AppStorage("useLossyCompression") private var useLossyCompression: Bool = true
+    @AppStorage("useLossyCompression") private var useLossyCompression: Bool = false
+    @AppStorage("removeExifMetadata") private var removeExifMetadata: Bool = false
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
@@ -747,6 +748,19 @@ struct ConverterView: View {
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: shouldShowDpiSelector)
+                }
+                
+                // Show EXIF metadata removal toggle for all image conversions
+                if case .imagemagick = outputService, !inputFileURLs.isEmpty {
+                    HStack {
+                        Spacer()
+                        Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                    }
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
                 // Show quality controls for lossy image conversions
@@ -1238,6 +1252,11 @@ struct ConverterView: View {
                         dpi: pdfToDpi
                     )
                     
+                    // Strip EXIF metadata if requested (preserving orientation)
+                    // Skip EXIF stripping for PDF conversions as they don't have original EXIF data
+                    if removeExifMetadata && inputURL.pathExtension.lowercased() != "pdf" {
+                        try ImageProcessor.shared.strip(exifMetadataExceptOrientation: tempURL)
+                    }
                     
                     // For PDF input, ImageMagick might create multiple files
                     if inputURL.pathExtension.lowercased() == "pdf" {
