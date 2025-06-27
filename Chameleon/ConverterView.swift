@@ -909,7 +909,7 @@ struct ConverterView: View {
                                         .padding(.horizontal)
                                     
                                     SaveAllButton(
-                                        labe: "Save All"
+                                        label: "Save All"
                                     ) {
                                         saveAllFiles()
                                     }
