@@ -329,13 +329,9 @@ struct ConvertedFile: Identifiable {
     let fileName: String
 }
 
-struct SearchableFormatPicker: View {
+struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
-    @Binding var isExpanded: Bool
-    @State private var searchText = ""
-    @FocusState private var isSearchFocused: Bool
-    @State private var highlightedIndex: Int = 0
     
     static let documentFormats: [(PandocFormat, String)] = [
         // Common formats
@@ -488,166 +484,15 @@ struct SearchableFormatPicker: View {
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
-    private var filteredServices: [(ConversionService, String)] {
-        let services = compatibleServices
-        if searchText.isEmpty {
-            return services
-        } else {
-            return services.filter { $0.1.localizedCaseInsensitiveContains(searchText) }
-        }
-    }
-    
     var body: some View {
-        ZStack(alignment: .top) {
-            Button(action: {
-                if !inputFileURLs.isEmpty {
-                    isExpanded.toggle()
-                    if isExpanded {
-                        isSearchFocused = true
-                    }
-                }
-            }) {
-                HStack {
-                    Text(inputFileURLs.isEmpty ? "Output Format" : getServiceDisplayName(selectedService))
-                        .foregroundColor(inputFileURLs.isEmpty ? .secondary : .primary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10))
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        .animation(.easeInOut(duration: 0.1), value: isExpanded)
-                        .foregroundColor(inputFileURLs.isEmpty ? .secondary : .primary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .background(Color(NSColor.quaternaryLabelColor).opacity(0.4))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .frame(width: 300)
-            .zIndex(1)
-            
-            if isExpanded {
-                VStack(spacing: 0) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        
-                        TextField("Search Formats", text: $searchText)
-                            .textFieldStyle(.plain)
-                            .focused($isSearchFocused)
-                            .foregroundStyle(.primary)
-                            .onSubmit {
-                                if !filteredServices.isEmpty {
-                                    selectedService = filteredServices[highlightedIndex].0
-                                    isExpanded = false
-                                    searchText = ""
-                                }
-                            }
-                            .onChange(of: searchText) { _, _ in
-                                highlightedIndex = 0
-                            }
-                        
-                        if !searchText.isEmpty {
-                            Button {
-                                searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(8)
-                    .background(Color(NSColor.quaternaryLabelColor).opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 8)
-                    
-                    Divider()
-                    
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(Array(filteredServices.enumerated()), id: \.element.0) { index, item in
-                                let (service, name) = item
-                                HStack {
-                                    Text(name)
-                                    Spacer()
-                                    if servicesEqual(service, selectedService) {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(.accentColor)
-                                    }
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    highlightedIndex == index ? 
-                                    Color.accentColor.opacity(0.2) :
-                                    (servicesEqual(service, selectedService) ? Color.accentColor.opacity(0.1) : Color.clear)
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedService = service
-                                    isExpanded = false
-                                    searchText = ""
-                                }
-                                .onHover { isHovered in
-                                    if isHovered {
-                                        highlightedIndex = index
-                                    }
-                                }
-                                
-                                if index != filteredServices.count - 1 {
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                    .frame(maxHeight: 200)
-                    .padding(.bottom, 8)
-                }
-                .background(Color(NSColor.controlBackgroundColor))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
-                .cornerRadius(6)
-                .shadow(radius: 4)
-                .onKeyPress(.downArrow) {
-                    if highlightedIndex < filteredServices.count - 1 {
-                        highlightedIndex += 1
-                    }
-                    return .handled
-                }
-                .onKeyPress(.upArrow) {
-                    if highlightedIndex > 0 {
-                        highlightedIndex -= 1
-                    }
-                    return .handled
-                }
-                .onKeyPress(.return) {
-                    if !filteredServices.isEmpty {
-                        selectedService = filteredServices[highlightedIndex].0
-                        isExpanded = false
-                        searchText = ""
-                    }
-                    return .handled
-                }
-                .onKeyPress(.escape) {
-                    isExpanded = false
-                    searchText = ""
-                    return .handled
-                }
-                .padding(.top, 44) // Height of the button
-                .frame(width: 300)
-                .zIndex(2)
+        Picker("Output Format", selection: $selectedService) {
+            ForEach(compatibleServices, id: \.0) { service, name in
+                Text(name).tag(service)
             }
         }
+        .pickerStyle(.menu)
+        .frame(width: 300)
+        .disabled(inputFileURLs.isEmpty)
     }
     
     private func getServiceDisplayName(_ service: ConversionService) -> String {
@@ -696,7 +541,6 @@ struct ConverterView: View {
     @State private var imageQuality: Double = 85
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
-    @State private var isFormatPickerExpanded = false
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 150
     
     @State private var pandocWrapper: PandocWrapper?
@@ -750,7 +594,6 @@ struct ConverterView: View {
                                             inputFileURLs = []
                                             convertedFiles = []
                                             errorMessage = nil
-                                            isFormatPickerExpanded = false
                                         }
                                     }
                                     .padding(.horizontal)
@@ -784,8 +627,7 @@ struct ConverterView: View {
                                                         if inputFileURLs.isEmpty {
                                                             convertedFiles = []
                                                             errorMessage = nil
-                                                            isFormatPickerExpanded = false
-                                                        }
+                                                                        }
                                                     }
                                                 )
                                             }
@@ -807,7 +649,6 @@ struct ConverterView: View {
                                         inputFileURLs = []
                                         convertedFiles = []
                                         errorMessage = nil
-                                        isFormatPickerExpanded = false
                                     }
                                     .padding(.horizontal)
                                     .padding(.vertical, 6)
@@ -862,7 +703,7 @@ struct ConverterView: View {
             
             // Convert pane (middle)
             VStack {
-                SearchableFormatPicker(selectedService: $outputService, inputFileURLs: inputFileURLs, isExpanded: $isFormatPickerExpanded)
+                FormatPicker(selectedService: $outputService, inputFileURLs: inputFileURLs)
                     .padding(.top)
                     .disabled(inputFileURLs.isEmpty)
                 
@@ -1068,7 +909,7 @@ struct ConverterView: View {
                                         .padding(.horizontal)
                                     
                                     SaveAllButton(
-                                        label: "Save All"
+                                        labe: "Save All"
                                     ) {
                                         saveAllFiles()
                                     }
@@ -1560,13 +1401,13 @@ struct ConverterView: View {
             for format in documentFormats.dropFirst() {
                 compatiblePandocFormats.formIntersection(PandocFormat.compatibleOutputFormats(for: format))
             }
-            compatibleServices.append(contentsOf: SearchableFormatPicker.documentFormats.filter { compatiblePandocFormats.contains($0.0) }.map { (.pandoc($0.0), $0.1) })
+            compatibleServices.append(contentsOf: FormatPicker.documentFormats.filter { compatiblePandocFormats.contains($0.0) }.map { (.pandoc($0.0), $0.1) })
         }
         
         if !imageFormats.isEmpty {
             // Image conversion with ImageMagick
             let compatibleImageFormats = ImageFormat.outputFormats
-            compatibleServices.append(contentsOf: SearchableFormatPicker.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
+            compatibleServices.append(contentsOf: FormatPicker.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
         }
         
         return compatibleServices.sorted { $0.1 < $1.1 }
