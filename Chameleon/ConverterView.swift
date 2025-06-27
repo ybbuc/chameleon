@@ -32,11 +32,14 @@ struct FilePreviewView: View {
             
             if isImage {
                 if let nsImage = NSImage(data: data) {
+                    let isPDF = fileName.lowercased().hasSuffix(".pdf")
+                    
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: 200, maxHeight: 150)
+                        .background(isPDF ? Color.white : Color.clear)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .frame(maxWidth: 200, maxHeight: 150)
                 } else {
                     fileIcon
                 }
@@ -81,30 +84,49 @@ struct FilePreviewView: View {
 struct PreviewButton: View {
     let action: () -> Void
     @State private var isHovering = false
-    @State private var isPressed = false
     
     var body: some View {
         Button {
             action()
         } label: {
-            Image(systemName: isPressed ? "eye.fill" : "eye")
-                .font(.system(size: 16))
+            Image(systemName: "eye")
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .padding(8)
+                .padding(6)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(isHovering ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
+        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 4))
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
         .onHover { hovering in
             isHovering = hovering
         }
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
-            // Action handled by Button
-        } onPressingChanged: { pressing in
-            isPressed = pressing
-        }
         .help("Quick Look")
+    }
+}
+
+struct RemoveButton: View {
+    let action: () -> Void
+    @State private var isHovering = false
+    
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .padding(4)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
+        .onHover { hovering in
+            isHovering = hovering
+        }
     }
 }
 
@@ -120,13 +142,13 @@ struct ClearButton: View {
         } label: {
             Label(label, systemImage: "xmark")
                 .font(.body)
-                .foregroundStyle(.red)
+                .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(Color.red.opacity(isHovering ? 0.15 : 0.1))
+        .background(Color.gray.opacity(isHovering ? 0.2 : 0.1))
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .onHover { hovering in
             isHovering = hovering
@@ -144,15 +166,17 @@ struct SaveButton: View {
         Button {
             action()
         } label: {
-            Image(systemName: isPressed ? "arrow.down.to.line.square.fill" : "arrow.down.to.line.square")
-                .font(.system(size: 16))
+            Image(systemName: "arrow.down.to.line.compact")
+                .font(.system(size: 13))
                 .foregroundStyle(Color(red: 0.0, green: 0.5, blue: 0.0))
-                .padding(6)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 5)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(isHovering ? Color(red: 0.0, green: 0.5, blue: 0.0).opacity(0.1) : Color.clear)
+        .background(isHovering ? Color(red: 0.0, green: 0.5, blue: 0.0).opacity(0.15) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 4))
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
         .onHover { hovering in
             isHovering = hovering
         }
@@ -183,6 +207,7 @@ struct SaveAllButton: View {
         .buttonStyle(.plain)
         .background(Color(red: 0.0, green: 0.5, blue: 0.0).opacity(isHovering ? 0.15 : 0.1))
         .clipShape(RoundedRectangle(cornerRadius: 4))
+        .animation(.easeInOut(duration: 0.15), value: isHovering)
         .onHover { hovering in
             isHovering = hovering
         }
@@ -193,14 +218,13 @@ struct FileRow: View {
     let url: URL
     let onRemove: () -> Void
     @State private var isHoveringRow = false
-    @State private var isHoveringButton = false
-    @State private var isPressed = false
     
     var body: some View {
         HStack {
             Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
                 .resizable()
                 .frame(width: 32, height: 32)
+                .fixedSize()
             
             Text(url.lastPathComponent)
                 .lineLimit(1)
@@ -208,81 +232,91 @@ struct FileRow: View {
             
             Spacer()
             
-            if isHoveringRow {
-                Button {
-                    onRemove()
-                } label: {
-                    Image(systemName: isPressed ? "xmark.square.fill" : "xmark.square")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.red)
-                        .padding(4)
-                        .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                if isHoveringRow {
+                    PreviewButton(action: {
+                        QuickLookManager.shared.previewFile(at: url)
+                    })
+                    .transition(.opacity)
                 }
-                .buttonStyle(.plain)
-                .background(isHoveringButton ? Color.red.opacity(0.1) : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .onHover { hovering in
-                    isHoveringButton = hovering
-                }
-                .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
-                    // Action handled by Button
-                } onPressingChanged: { pressing in
-                    isPressed = pressing
-                }
-                .transition(.opacity.combined(with: .scale))
+                
+                RemoveButton(action: onRemove)
             }
         }
-        .animation(.easeInOut(duration: 0.15), value: isHoveringRow)
         .onHover { hovering in
-            isHoveringRow = hovering
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHoveringRow = hovering
+            }
         }
     }
 }
 
-struct ConvertedFileRow: View {
+struct FileContentRow: View {
+    let url: URL
+    let onRemove: () -> Void
+    @State private var isHoveringRow = false
+    
+    var body: some View {
+        HStack {
+            Text(url.lastPathComponent)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            
+            Spacer()
+            
+            HStack(spacing: 4) {
+                if isHoveringRow {
+                    PreviewButton(action: {
+                        QuickLookManager.shared.previewFile(at: url)
+                    })
+                    .transition(.opacity)
+                }
+                
+                RemoveButton(action: onRemove)
+            }
+        }
+        .frame(height: 32)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHoveringRow = hovering
+            }
+        }
+    }
+}
+
+
+struct ConvertedFileContentRow: View {
     let file: ConvertedFile
     let onSave: () -> Void
     @State private var isHoveringRow = false
     
     var body: some View {
         HStack {
-            Image(nsImage: iconForFile(fileName: file.fileName))
-                .resizable()
-                .frame(width: 32, height: 32)
-            
             Text(file.fileName)
                 .lineLimit(1)
                 .truncationMode(.middle)
             
             Spacer()
             
-            if isHoveringRow {
-                HStack(spacing: 4) {
-                    QuickLookButton(action: {
+            HStack(spacing: 4) {
+                if isHoveringRow {
+                    PreviewButton(action: {
                         QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
-                    }, iconSize: 12)
-                    
-                    SaveButton {
-                        onSave()
-                    }
+                    })
+                    .transition(.opacity)
                 }
-                .transition(.opacity.combined(with: .scale))
+                
+                SaveButton {
+                    onSave()
+                }
             }
         }
-        .animation(.easeInOut(duration: 0.15), value: isHoveringRow)
+        .frame(height: 32)
         .onHover { hovering in
-            isHoveringRow = hovering
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHoveringRow = hovering
+            }
         }
-    }
-    
-    private func iconForFile(fileName: String) -> NSImage {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        if !FileManager.default.fileExists(atPath: tempURL.path) {
-            FileManager.default.createFile(atPath: tempURL.path, contents: Data(), attributes: nil)
-        }
-        let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
-        try? FileManager.default.removeItem(at: tempURL)
-        return icon
     }
 }
 
@@ -721,22 +755,40 @@ struct ConverterView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
-                                    VStack(spacing: 8) {
-                                        ForEach(inputFileURLs, id: \.self) { url in
-                                            FileRow(
-                                                url: url,
-                                                onRemove: {
-                                                    inputFileURLs.removeAll { $0 == url }
-                                                    if inputFileURLs.isEmpty {
-                                                        convertedFiles = []
-                                                        errorMessage = nil
-                                                        isFormatPickerExpanded = false
-                                                    }
-                                                }
-                                            )
+                                    HStack(alignment: .top, spacing: 0) {
+                                        // Icon column
+                                        VStack(spacing: 8) {
+                                            ForEach(inputFileURLs, id: \.self) { url in
+                                                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                                                    .resizable()
+                                                    .frame(width: 32, height: 32)
+                                                    .fixedSize()
+                                            }
                                         }
+                                        .padding(.leading, 16)
+                                        .padding(.trailing, 12)
+                                        .padding(.vertical, 16)
+                                        
+                                        // File content column
+                                        VStack(spacing: 8) {
+                                            ForEach(inputFileURLs, id: \.self) { url in
+                                                FileContentRow(
+                                                    url: url,
+                                                    onRemove: {
+                                                        inputFileURLs.removeAll { $0 == url }
+                                                        if inputFileURLs.isEmpty {
+                                                            convertedFiles = []
+                                                            errorMessage = nil
+                                                            isFormatPickerExpanded = false
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        .padding(.trailing, 16)
+                                        .padding(.vertical, 16)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding()
                                 }
                                 
                                 VStack(spacing: 0) {
@@ -941,17 +993,35 @@ struct ConverterView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
-                                    VStack(spacing: 8) {
-                                        ForEach(convertedFiles) { file in
-                                            ConvertedFileRow(
-                                                file: file,
-                                                onSave: {
-                                                    saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
-                                                }
-                                            )
+                                    HStack(alignment: .top, spacing: 0) {
+                                        // Icon column
+                                        VStack(spacing: 8) {
+                                            ForEach(convertedFiles) { file in
+                                                Image(nsImage: self.iconForFile(fileName: file.fileName))
+                                                    .resizable()
+                                                    .frame(width: 32, height: 32)
+                                                    .fixedSize()
+                                            }
                                         }
+                                        .padding(.leading, 16)
+                                        .padding(.trailing, 12)
+                                        .padding(.vertical, 16)
+                                        
+                                        // File content column
+                                        VStack(spacing: 8) {
+                                            ForEach(convertedFiles) { file in
+                                                ConvertedFileContentRow(
+                                                    file: file,
+                                                    onSave: {
+                                                        saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        .padding(.trailing, 16)
+                                        .padding(.vertical, 16)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding()
                                 }
                                 
                                 VStack(spacing: 0) {
@@ -1268,7 +1338,6 @@ struct ConverterView: View {
                         dpi: pdfToDpi
                     )
                     
-                    print("Conversion completed, reading result...")
                     
                     // For PDF input, ImageMagick might create multiple files
                     if inputURL.pathExtension.lowercased() == "pdf" {
@@ -1277,17 +1346,7 @@ struct ConverterView: View {
                         let baseTempName = tempURL.deletingPathExtension().lastPathComponent
                         let ext = tempURL.pathExtension
                         
-                        print("Looking for multi-page files in: \(tempDir.path)")
-                        print("Base temp name: \(baseTempName)")
                         
-                        // Check what files were actually created
-                        do {
-                            let files = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-                            let relevantFiles = files.filter { $0.lastPathComponent.hasPrefix(baseTempName) }
-                            print("Found \(relevantFiles.count) relevant files: \(relevantFiles.map { $0.lastPathComponent })")
-                        } catch {
-                            print("Error listing temp directory: \(error)")
-                        }
                         
                         var pageIndex = 0
                         var foundFiles = false
@@ -1298,7 +1357,6 @@ struct ConverterView: View {
                             let testURL = tempDir.appendingPathComponent(testFileName)
                             
                             if FileManager.default.fileExists(atPath: testURL.path) {
-                                print("Found page \(pageIndex) at: \(testURL.lastPathComponent)")
                                 let data = try Data(contentsOf: testURL)
                                 let fileName = "\(baseName)-page\(pageIndex + 1).\(outputService.fileExtension)"
                                 
@@ -1319,7 +1377,6 @@ struct ConverterView: View {
                         
                         // If no numbered files were found, check for the original filename
                         if !foundFiles && FileManager.default.fileExists(atPath: tempURL.path) {
-                            print("Using single file: \(tempURL.lastPathComponent)")
                             let data = try Data(contentsOf: tempURL)
                             let fileName = "\(baseName).\(outputService.fileExtension)"
                             
@@ -1418,23 +1475,6 @@ struct ConverterView: View {
         }
     }
     
-    private func iconForFile(fileName: String) -> NSImage {
-        // Create a temporary file with the correct extension to get the proper icon
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-        
-        // Create an empty file if it doesn't exist
-        if !FileManager.default.fileExists(atPath: tempURL.path) {
-            FileManager.default.createFile(atPath: tempURL.path, contents: Data(), attributes: nil)
-        }
-        
-        let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
-        
-        // Clean up the temporary file
-        try? FileManager.default.removeItem(at: tempURL)
-        
-        return icon
-    }
-    
     private func isConversionServiceAvailable() -> Bool {
         switch outputService {
         case .pandoc(_):
@@ -1528,6 +1568,16 @@ struct ConverterView: View {
         default:
             return ""
         }
+    }
+    
+    private func iconForFile(fileName: String) -> NSImage {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        if !FileManager.default.fileExists(atPath: tempURL.path) {
+            FileManager.default.createFile(atPath: tempURL.path, contents: Data(), attributes: nil)
+        }
+        let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
+        try? FileManager.default.removeItem(at: tempURL)
+        return icon
     }
 }
 
