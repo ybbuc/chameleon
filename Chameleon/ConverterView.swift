@@ -9,6 +9,105 @@ import SwiftUI
 import UniformTypeIdentifiers
 import AppKit
 
+struct FilePreviewView: View {
+    let data: Data?
+    let url: URL?
+    let fileName: String
+    
+    init(data: Data, fileName: String) {
+        self.data = data
+        self.url = nil
+        self.fileName = fileName
+    }
+    
+    init(url: URL) {
+        self.data = nil
+        self.url = url
+        self.fileName = url.lastPathComponent
+    }
+    
+    var body: some View {
+        if let data = getFileData() {
+            let isImage = ImageFormat.detectFormat(from: URL(fileURLWithPath: fileName)) != nil
+            
+            if isImage {
+                if let nsImage = NSImage(data: data) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: 200, maxHeight: 150)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    fileIcon
+                }
+            } else {
+                fileIcon
+            }
+        } else {
+            fileIcon
+        }
+    }
+    
+    private var fileIcon: some View {
+        Image(nsImage: iconForFile(fileName: fileName))
+            .resizable()
+            .frame(width: 64, height: 64)
+    }
+    
+    private func getFileData() -> Data? {
+        if let data = data {
+            return data
+        } else if let url = url {
+            return try? Data(contentsOf: url)
+        }
+        return nil
+    }
+    
+    private func iconForFile(fileName: String) -> NSImage {
+        if let url = url {
+            return NSWorkspace.shared.icon(forFile: url.path)
+        } else {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+            if !FileManager.default.fileExists(atPath: tempURL.path) {
+                FileManager.default.createFile(atPath: tempURL.path, contents: Data(), attributes: nil)
+            }
+            let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
+            try? FileManager.default.removeItem(at: tempURL)
+            return icon
+        }
+    }
+}
+
+struct PreviewButton: View {
+    let action: () -> Void
+    @State private var isHovering = false
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button {
+            action()
+        } label: {
+            Image(systemName: isPressed ? "eye.fill" : "eye")
+                .font(.system(size: 16))
+                .foregroundStyle(.secondary)
+                .padding(8)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(isHovering ? Color.gray.opacity(0.2) : Color.gray.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
+            // Action handled by Button
+        } onPressingChanged: { pressing in
+            isPressed = pressing
+        }
+        .help("Quick Look")
+    }
+}
+
 struct ClearButton: View {
     let label: String
     let isDisabled: Bool
@@ -325,7 +424,13 @@ struct SearchableFormatPicker: View {
         
         // Detect if inputs are documents or images
         let documentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-        let imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        var imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        
+        // Special handling for PDF - can be treated as both document and image
+        let hasPDF = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
+        if hasPDF && imageFormats.isEmpty {
+            imageFormats = [.pdf]
+        }
         
         var compatibleServices: [(ConversionService, String)] = []
         
@@ -553,6 +658,7 @@ struct ConverterView: View {
     @State private var isTargeted = false
     @State private var showingRecentConversions = false
     @State private var isFormatPickerExpanded = false
+    @AppStorage("pdfToDpi") private var pdfToDpi: Int = 150
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
@@ -575,42 +681,43 @@ struct ConverterView: View {
                     
                     if !inputFileURLs.isEmpty {
                         if inputFileURLs.count == 1 {
-                            VStack(spacing: 12) {
-                                let fileURL = inputFileURLs[0]
-                                let isImage = ImageFormat.detectFormat(from: fileURL) != nil
-                                
-                                if isImage {
-                                    AsyncImage(url: fileURL) { image in
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                    } placeholder: {
-                                        ProgressView()
-                                    }
-                                    .frame(maxWidth: 200, maxHeight: 150)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                } else {
-                                    Image(nsImage: NSWorkspace.shared.icon(forFile: fileURL.path))
-                                        .resizable()
-                                        .frame(width: 64, height: 64)
+                            VStack(spacing: 0) {
+                                VStack(spacing: 12) {
+                                    let fileURL = inputFileURLs[0]
+                                    
+                                    FilePreviewView(url: fileURL)
+                                    
+                                    Text(fileURL.lastPathComponent)
+                                        .font(.headline)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.center)
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 
-                                Text(fileURL.lastPathComponent)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                
-                                ClearButton(
-                                    label: "Clear",
-                                    isDisabled: false
-                                ) {
-                                    inputFileURLs = []
-                                    convertedFiles = []
-                                    errorMessage = nil
-                                    isFormatPickerExpanded = false
+                                VStack(spacing: 0) {
+                                    Divider()
+                                        .padding(.horizontal)
+                                    
+                                    HStack(spacing: 12) {
+                                        PreviewButton(action: {
+                                            QuickLookManager.shared.previewFile(at: inputFileURLs[0])
+                                        })
+                                        
+                                        ClearButton(
+                                            label: "Clear",
+                                            isDisabled: false
+                                        ) {
+                                            inputFileURLs = []
+                                            convertedFiles = []
+                                            errorMessage = nil
+                                            isFormatPickerExpanded = false
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 6)
                                 }
                             }
-                            .padding()
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
@@ -702,6 +809,63 @@ struct ConverterView: View {
                     .padding(.top)
                     .disabled(inputFileURLs.isEmpty)
                 
+                // Show DPI selector when converting PDF to image
+                if shouldShowDpiSelector {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("PDF Resolution")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(pdfToDpi) DPI")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .monospacedDigit()
+                        }
+                        
+                        VStack(spacing: 4) {
+                            Slider(
+                                value: Binding(
+                                    get: { Double(pdfToDpiIndex) },
+                                    set: { newValue in
+                                        let dpiValues = [72, 150, 300, 600]
+                                        let index = Int(newValue)
+                                        pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
+                                    }
+                                ),
+                                in: 0...3,
+                                step: 1
+                            )
+                            .controlSize(.small)
+                            
+                            HStack {
+                                Text("72")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("150")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("300")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("600")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Text(dpiDescription)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: shouldShowDpiSelector)
+                }
+                
                 Spacer()
                 
                 VStack {
@@ -741,46 +905,39 @@ struct ConverterView: View {
                             .padding()
                     } else if !convertedFiles.isEmpty {
                         if convertedFiles.count == 1 {
-                            VStack(spacing: 12) {
-                                let file = convertedFiles[0]
-                                let isImage = ImageFormat.detectFormat(from: URL(fileURLWithPath: file.fileName)) != nil
-                                
-                                if isImage {
-                                    if let nsImage = NSImage(data: file.data) {
-                                        Image(nsImage: nsImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(maxWidth: 200, maxHeight: 150)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    } else {
-                                        Image(nsImage: iconForFile(fileName: file.fileName))
-                                            .resizable()
-                                            .frame(width: 64, height: 64)
-                                    }
-                                } else {
-                                    Image(nsImage: iconForFile(fileName: file.fileName))
-                                        .resizable()
-                                        .frame(width: 64, height: 64)
-                                }
-                                
-                                Text(file.fileName)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                
-                                HStack(spacing: 12) {
-                                    QuickLookButton(action: {
-                                        QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
-                                    }, style: .full)
+                            VStack(spacing: 0) {
+                                VStack(spacing: 12) {
+                                    let file = convertedFiles[0]
                                     
-                                    SaveAllButton(
-                                        label: "Save"
-                                    ) {
-                                        saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
+                                    FilePreviewView(data: file.data, fileName: file.fileName)
+                                    
+                                    Text(file.fileName)
+                                        .font(.headline)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                
+                                VStack(spacing: 0) {
+                                    Divider()
+                                        .padding(.horizontal)
+                                    
+                                    HStack(spacing: 12) {
+                                        PreviewButton(action: {
+                                            QuickLookManager.shared.previewFile(data: convertedFiles[0].data, fileName: convertedFiles[0].fileName)
+                                        })
+                                        
+                                        SaveAllButton(
+                                            label: "Save"
+                                        ) {
+                                            saveFile(data: convertedFiles[0].data, fileName: convertedFiles[0].fileName, originalURL: convertedFiles[0].originalURL)
+                                        }
                                     }
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 6)
                                 }
                             }
-                            .padding()
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
@@ -896,7 +1053,12 @@ struct ConverterView: View {
                         
                         // Detect format of the new file (document or image)
                         let newDocumentFormat = PandocFormat.detectFormat(from: url)
-                        let newImageFormat = ImageFormat.detectFormat(from: url)
+                        var newImageFormat = ImageFormat.detectFormat(from: url)
+                        
+                        // Special handling for PDF - can be treated as both document and image
+                        if url.pathExtension.lowercased() == "pdf" {
+                            newImageFormat = .pdf
+                        }
                         
                         guard newDocumentFormat != nil || newImageFormat != nil else {
                             self.errorMessage = "Unsupported file type: \(url.pathExtension)"
@@ -921,16 +1083,22 @@ struct ConverterView: View {
                         let hasExistingImages = !existingImageFormats.isEmpty
                         
                         // Allow if new file type matches existing file types
+                        // Special case: PDFs can be treated as both documents and images
+                        let isPDFMixing = url.pathExtension.lowercased() == "pdf" && 
+                                         self.inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+                        
                         if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
-                           (isNewImage && hasExistingImages && !hasExistingDocuments) {
+                           (isNewImage && hasExistingImages && !hasExistingDocuments) ||
+                           isPDFMixing {
                             self.inputFileURLs.append(url)
                             self.errorMessage = nil
                             self.updateOutputServiceToDefault()
                         } else {
-                            // Get format names for error message
-                            let newTypeName = isNewDocument ? "document" : "image"
-                            let existingTypeName = hasExistingDocuments ? "document" : "image"
-                            self.errorMessage = "Cannot mix different file types. You have \(existingTypeName) files, but tried to add a \(newTypeName) file."
+                            // Replace existing files with the new incompatible file
+                            self.inputFileURLs = [url]
+                            self.convertedFiles = []
+                            self.errorMessage = nil
+                            self.updateOutputServiceToDefault()
                         }
                     }
                 }
@@ -955,7 +1123,7 @@ struct ConverterView: View {
             UTType(filenameExtension: "odt")!,
             UTType(filenameExtension: "epub")!,
             // Image types
-            .image, .jpeg, .png, .gif, .bmp, .tiff,
+            .image, .jpeg, .png, .gif, .bmp, .tiff, .pdf,
             UTType(filenameExtension: "webp")!,
             UTType(filenameExtension: "heic")!,
             UTType(filenameExtension: "heif")!,
@@ -972,7 +1140,12 @@ struct ConverterView: View {
                 
                 // Detect format of the new file (document or image)
                 let newDocumentFormat = PandocFormat.detectFormat(from: url)
-                let newImageFormat = ImageFormat.detectFormat(from: url)
+                var newImageFormat = ImageFormat.detectFormat(from: url)
+                
+                // Special handling for PDF - can be treated as both document and image
+                if url.pathExtension.lowercased() == "pdf" {
+                    newImageFormat = .pdf
+                }
                 
                 guard newDocumentFormat != nil || newImageFormat != nil else {
                     errorMessage = "Unsupported file type: \(url.pathExtension)"
@@ -996,15 +1169,21 @@ struct ConverterView: View {
                 let hasExistingImages = !existingImageFormats.isEmpty
                 
                 // Allow if new file type matches existing file types
+                // Special case: PDFs can be treated as both documents and images
+                let isPDFMixing = url.pathExtension.lowercased() == "pdf" && 
+                                 inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+                
                 if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
-                   (isNewImage && hasExistingImages && !hasExistingDocuments) {
+                   (isNewImage && hasExistingImages && !hasExistingDocuments) ||
+                   isPDFMixing {
                     inputFileURLs.append(url)
                     updateOutputServiceToDefault()
                 } else {
-                    // Get format names for error message
-                    let newTypeName = isNewDocument ? "document" : "image"
-                    let existingTypeName = hasExistingDocuments ? "document" : "image"
-                    errorMessage = "Cannot mix different file types. You have \(existingTypeName) files, but tried to add a \(newTypeName) file."
+                    // Replace existing files with the new incompatible file
+                    inputFileURLs = [url]
+                    convertedFiles = []
+                    errorMessage = nil
+                    updateOutputServiceToDefault()
                     break
                 }
             }
@@ -1059,28 +1238,109 @@ struct ConverterView: View {
                         outputURL: tempURL,
                         to: format
                     )
+                    
+                    // Single file output for Pandoc
+                    let data = try Data(contentsOf: tempURL)
+                    let baseName = inputURL.deletingPathExtension().lastPathComponent
+                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                    
+                    let convertedFile = ConvertedFile(
+                        originalURL: inputURL,
+                        data: data,
+                        fileName: fileName
+                    )
+                    convertedFiles.append(convertedFile)
+                    
+                    try FileManager.default.removeItem(at: tempURL)
+                    
                 case .imagemagick(let format):
                     try await imageMagickWrapper!.convertImage(
                         inputURL: inputURL,
                         outputURL: tempURL,
-                        to: format
+                        to: format,
+                        dpi: pdfToDpi
                     )
+                    
+                    print("Conversion completed, reading result...")
+                    
+                    // For PDF input, ImageMagick might create multiple files
+                    if inputURL.pathExtension.lowercased() == "pdf" {
+                        let baseName = inputURL.deletingPathExtension().lastPathComponent
+                        let tempDir = tempURL.deletingLastPathComponent()
+                        let baseTempName = tempURL.deletingPathExtension().lastPathComponent
+                        let ext = tempURL.pathExtension
+                        
+                        print("Looking for multi-page files in: \(tempDir.path)")
+                        print("Base temp name: \(baseTempName)")
+                        
+                        // Check what files were actually created
+                        do {
+                            let files = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
+                            let relevantFiles = files.filter { $0.lastPathComponent.hasPrefix(baseTempName) }
+                            print("Found \(relevantFiles.count) relevant files: \(relevantFiles.map { $0.lastPathComponent })")
+                        } catch {
+                            print("Error listing temp directory: \(error)")
+                        }
+                        
+                        var pageIndex = 0
+                        var foundFiles = false
+                        
+                        // Based on the debug output, ImageMagick uses: filename-N.ext
+                        while true {
+                            let testFileName = "\(baseTempName)-\(pageIndex).\(ext)"
+                            let testURL = tempDir.appendingPathComponent(testFileName)
+                            
+                            if FileManager.default.fileExists(atPath: testURL.path) {
+                                print("Found page \(pageIndex) at: \(testURL.lastPathComponent)")
+                                let data = try Data(contentsOf: testURL)
+                                let fileName = "\(baseName)-page\(pageIndex + 1).\(outputService.fileExtension)"
+                                
+                                let convertedFile = ConvertedFile(
+                                    originalURL: inputURL,
+                                    data: data,
+                                    fileName: fileName
+                                )
+                                convertedFiles.append(convertedFile)
+                                
+                                try FileManager.default.removeItem(at: testURL)
+                                foundFiles = true
+                                pageIndex += 1
+                            } else {
+                                break
+                            }
+                        }
+                        
+                        // If no numbered files were found, check for the original filename
+                        if !foundFiles && FileManager.default.fileExists(atPath: tempURL.path) {
+                            print("Using single file: \(tempURL.lastPathComponent)")
+                            let data = try Data(contentsOf: tempURL)
+                            let fileName = "\(baseName).\(outputService.fileExtension)"
+                            
+                            let convertedFile = ConvertedFile(
+                                originalURL: inputURL,
+                                data: data,
+                                fileName: fileName
+                            )
+                            convertedFiles.append(convertedFile)
+                            
+                            try FileManager.default.removeItem(at: tempURL)
+                        }
+                    } else {
+                        // Single file output for non-PDF images
+                        let data = try Data(contentsOf: tempURL)
+                        let baseName = inputURL.deletingPathExtension().lastPathComponent
+                        let fileName = "\(baseName).\(outputService.fileExtension)"
+                        
+                        let convertedFile = ConvertedFile(
+                            originalURL: inputURL,
+                            data: data,
+                            fileName: fileName
+                        )
+                        convertedFiles.append(convertedFile)
+                        
+                        try FileManager.default.removeItem(at: tempURL)
+                    }
                 }
-                
-                print("Conversion completed, reading result...")
-                
-                let data = try Data(contentsOf: tempURL)
-                let baseName = inputURL.deletingPathExtension().lastPathComponent
-                let fileName = "\(baseName).\(outputService.fileExtension)"
-                
-                let convertedFile = ConvertedFile(
-                    originalURL: inputURL,
-                    data: data,
-                    fileName: fileName
-                )
-                convertedFiles.append(convertedFile)
-                
-                try FileManager.default.removeItem(at: tempURL)
                 
                 print("Successfully converted \(inputURL.lastPathComponent)")
             } catch {
@@ -1192,7 +1452,13 @@ struct ConverterView: View {
         
         // Detect if inputs are documents or images
         let documentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-        let imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        var imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        
+        // Special handling for PDF - can be treated as both document and image
+        let hasPDF = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
+        if hasPDF && imageFormats.isEmpty {
+            imageFormats = [.pdf]
+        }
         
         var compatibleServices: [(ConversionService, String)] = []
         
@@ -1220,6 +1486,40 @@ struct ConverterView: View {
             return format.rawValue
         case .imagemagick(let format):
             return format.rawValue
+        }
+    }
+    
+    private var shouldShowDpiSelector: Bool {
+        // Show DPI selector when:
+        // 1. We have PDF input files
+        // 2. We're converting to an image format
+        let hasPdfInput = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
+        let isImageOutput = if case .imagemagick(_) = outputService { true } else { false }
+        return hasPdfInput && isImageOutput
+    }
+    
+    private var pdfToDpiIndex: Int {
+        switch pdfToDpi {
+        case 72: return 0
+        case 150: return 1
+        case 300: return 2
+        case 600: return 3
+        default: return 1
+        }
+    }
+    
+    private var dpiDescription: String {
+        switch pdfToDpi {
+        case 72:
+            return "Screen quality - smallest file size"
+        case 150:
+            return "Good quality - balanced"
+        case 300:
+            return "Print quality - larger file size"
+        case 600:
+            return "High quality - largest file size"
+        default:
+            return ""
         }
     }
 }

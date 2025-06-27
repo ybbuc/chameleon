@@ -11,10 +11,10 @@ class ImageMagickWrapper {
     private let magickPath: String
     
     init() throws {
-        // Use system convert from PATH
+        // Use system magick from PATH (ImageMagick v7)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["convert"]
+        process.arguments = ["magick"]
         
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -25,7 +25,7 @@ class ImageMagickWrapper {
         if process.terminationStatus == 0 {
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                print("Found ImageMagick convert at: \(path)")
+                print("Found ImageMagick at: \(path)")
                 self.magickPath = path
                 return
             }
@@ -33,14 +33,14 @@ class ImageMagickWrapper {
         
         // Fallback to common locations
         let commonPaths = [
-            "/usr/local/bin/convert",
-            "/opt/homebrew/bin/convert",
-            "/opt/local/bin/convert"
+            "/usr/local/bin/magick",
+            "/opt/homebrew/bin/magick",
+            "/opt/local/bin/magick"
         ]
         
         for path in commonPaths {
             if FileManager.default.fileExists(atPath: path) && FileManager.default.isExecutableFile(atPath: path) {
-                print("Found ImageMagick convert at fallback location: \(path)")
+                print("Found ImageMagick at fallback location: \(path)")
                 self.magickPath = path
                 return
             }
@@ -49,11 +49,20 @@ class ImageMagickWrapper {
         throw ImageMagickError.imageMagickNotInstalled
     }
     
-    func convertImage(inputURL: URL, outputURL: URL, to outputFormat: ImageFormat, quality: Int = 85) async throws {
+    func convertImage(inputURL: URL, outputURL: URL, to outputFormat: ImageFormat, quality: Int = 85, dpi: Int = 150) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: magickPath)
         
-        var arguments = [inputURL.path]
+        var arguments: [String] = []
+        
+        // Special handling for PDF input files
+        if inputURL.pathExtension.lowercased() == "pdf" {
+            // Set density for better quality and convert all pages
+            arguments.append(contentsOf: ["-density", "\(dpi)"])
+            arguments.append(inputURL.path) // No [0] means all pages
+        } else {
+            arguments.append(inputURL.path)
+        }
         
         // Add quality setting for lossy formats
         if outputFormat.isLossy {
@@ -75,6 +84,15 @@ class ImageMagickWrapper {
         
         let errorPipe = Pipe()
         process.standardError = errorPipe
+        
+        // Set up environment to include common Homebrew paths for Ghostscript
+        var environment = ProcessInfo.processInfo.environment
+        let existingPath = environment["PATH"] ?? ""
+        let homebrewPaths = "/opt/homebrew/bin:/usr/local/bin"
+        if !existingPath.contains(homebrewPaths) {
+            environment["PATH"] = "\(homebrewPaths):\(existingPath)"
+        }
+        process.environment = environment
         
         try process.run()
         process.waitUntilExit()
@@ -155,13 +173,19 @@ enum ImageFormat: String, CaseIterable {
 
 enum ImageMagickError: LocalizedError {
     case imageMagickNotInstalled
+    case ghostscriptNotInstalled
     case conversionFailed(String)
     
     var errorDescription: String? {
         switch self {
         case .imageMagickNotInstalled:
             return "ImageMagick is not installed. Please install it via Homebrew: brew install imagemagick"
+        case .ghostscriptNotInstalled:
+            return "Ghostscript is required for PDF conversion. Please install it via Homebrew: brew install ghostscript"
         case .conversionFailed(let message):
+            if message.contains("gs: command not found") {
+                return "Ghostscript is required for PDF conversion. Please install it via Homebrew: brew install ghostscript"
+            }
             return "ImageMagick conversion failed: \(message)"
         }
     }
