@@ -13,6 +13,7 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 - Xcode 16.4+
 - Pandoc (required): `brew install pandoc`
 - ImageMagick (required): `brew install imagemagick`
+- FFmpeg (required): `brew install ffmpeg`
 - LaTeX (optional, for PDF export): `brew install --cask mactex-no-gui`
 
 ## Setup
@@ -25,6 +26,9 @@ A macOS application with integrated pandoc and ImageMagick support for document 
    
    # Install ImageMagick (required)
    brew install imagemagick
+   
+   # Install FFmpeg (required)
+   brew install ffmpeg
    
    # Install LaTeX for PDF support (optional)
    brew install --cask mactex-no-gui
@@ -43,8 +47,9 @@ A macOS application with integrated pandoc and ImageMagick support for document 
 - **Guided Setup** - Interactive onboarding walks you through installing dependencies
 - Document conversion between multiple formats
 - Image conversion with ImageMagick integration
+- Video and audio conversion with FFmpeg integration
 - Drag-and-drop interface
 - Quick Look preview for converted files before saving
 - Recent conversions history with quick access
 - Native SwiftUI design
-- Supports: Markdown, HTML, DOCX, LaTeX, PDF (with LaTeX), RTF, EPUB, image formats (JPEG, PNG, TIFF, etc.), and more
+- Supports: Markdown, HTML, DOCX, LaTeX, PDF (with LaTeX), RTF, EPUB, image formats (JPEG, PNG, TIFF, etc.), video/audio formats (MP4, AVI, MOV, MP3, etc.), and more

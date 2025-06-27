@@ -14,33 +14,13 @@ struct OnboardingView: View {
     @State private var homebrewInstalled = false
     @State private var pandocInstalled = false
     @State private var imagemagickInstalled = false
+    @State private var ffmpegInstalled = false
     @State private var latexInstalled = false
+    private let forceUninstalled = true
     @State private var isCheckingDependencies = true
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 16) {
-                Text("Welcome to Chameleon")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("Let's set up your file conversion tools.")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 40)
-            .padding(.bottom, 30)
-            
-            // Progress indicator
-            HStack(spacing: 8) {
-                ForEach(0..<4) { index in
-                    Circle()
-                        .fill(index <= currentStep ? Color.accentColor : Color.gray.opacity(0.3))
-                        .frame(width: 4, height: 4)
-                }
-            }
-            .padding(.bottom, 20)
             
             // Content
             Group {
@@ -53,6 +33,7 @@ struct OnboardingView: View {
                     DependenciesStep(
                         pandocInstalled: $pandocInstalled,
                         imagemagickInstalled: $imagemagickInstalled,
+                        ffmpegInstalled: $ffmpegInstalled,
                         latexInstalled: $latexInstalled
                     )
                 case 3:
@@ -63,43 +44,63 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 40)
+            .padding(.top, currentStep == 0 ? 0 : 50)
             
             // Navigation
             HStack {
-                if currentStep > 0 {
-                    Button("Back") {
-                        withAnimation {
-                            currentStep -= 1
+                HStack {
+                    if currentStep == 0 {
+                        Button("Skip Setup") {
+                            showOnboarding = false
                         }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
+                    } else if currentStep > 0 {
+                        Button("Back") {
+                            withAnimation {
+                                currentStep -= 1
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .frame(width: 100)
+                
+                Spacer()
+                
+                // Progress indicator
+                HStack(spacing: 8) {
+                    ForEach(0..<4) { index in
+                        Circle()
+                            .fill(index <= currentStep ? Color.accentColor : Color.gray.opacity(0.3))
+                            .frame(width: 4, height: 4)
+                    }
                 }
                 
                 Spacer()
                 
-                if currentStep < 3 {
-                    Button("Skip Setup") {
-                        showOnboarding = false
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.secondary)
-                    
-                    Button(currentStep == 0 ? "Get Started" : "Continue") {
-                        withAnimation {
-                            currentStep += 1
+                HStack {
+                    Spacer()
+                    if currentStep < 3 {
+                        Button("Continue") {
+                            withAnimation {
+                                currentStep += 1
+                            }
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(currentStep == 1 && !homebrewInstalled)
+                    } else {
+                        Button("Start") {
+                            showOnboarding = false
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(currentStep == 1 && !homebrewInstalled)
-                } else {
-                    Button("Start Using Chameleon") {
-                        showOnboarding = false
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                 }
+                .frame(width: 100)
             }
             .padding(30)
         }
@@ -139,19 +140,24 @@ struct OnboardingView: View {
             let imagemagickResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v convert"])
             let imagemagickFound = imagemagickResult.exitCode == 0 && !imagemagickResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             
+            // Check FFmpeg
+            let ffmpegResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v ffmpeg"])
+            let ffmpegFound = ffmpegResult.exitCode == 0 && !ffmpegResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            
             // Check LaTeX (optional)
             let latexResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v pdflatex"])
             let latexFound = latexResult.exitCode == 0 && !latexResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             
             DispatchQueue.main.async {
-                self.homebrewInstalled = homebrewFound
-                self.pandocInstalled = pandocFound
-                self.imagemagickInstalled = imagemagickFound
-                self.latexInstalled = latexFound
+                self.homebrewInstalled = forceUninstalled ? false : homebrewFound
+                self.pandocInstalled = forceUninstalled ? false : pandocFound
+                self.imagemagickInstalled = forceUninstalled ? false : imagemagickFound
+                self.ffmpegInstalled = forceUninstalled ? false : ffmpegFound
+                self.latexInstalled = forceUninstalled ? false : latexFound
                 self.isCheckingDependencies = false
                 
                 // Skip to appropriate step if dependencies are already installed
-                if homebrewFound && pandocFound && imagemagickFound {
+                if homebrewFound && pandocFound && imagemagickInstalled && ffmpegFound {
                     self.currentStep = 3
                 } else if homebrewFound {
                     self.currentStep = 2
@@ -164,16 +170,28 @@ struct OnboardingView: View {
 struct WelcomeStep: View {
     var body: some View {
         VStack(spacing: 24) {
-            Text("Chameleon needs a few tools to convert your documents")
+            // Header
+            VStack(spacing: 16) {
+                Text("Welcome to Chameleon")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Let's set up your file conversion tools.")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 40)
+            
+            Text("Chameleon needs several tools to convert your files:")
                 .font(.headline)
                 .multilineTextAlignment(.center)
             
             VStack(alignment: .leading, spacing: 16) {
                 FeatureRowWithLink(
-                    icon: "doc.text",
-                    title: "Pandoc",
-                    description: "Universal document converter for text formats",
-                    url: "https://pandoc.org"
+                    icon: "video",
+                    title: "FFmpeg",
+                    description: "Video and audio conversion and processing",
+                    url: "https://ffmpeg.org"
                 )
                 
                 FeatureRowWithLink(
@@ -184,17 +202,23 @@ struct WelcomeStep: View {
                 )
                 
                 FeatureRowWithLink(
+                    icon: "doc.text",
+                    title: "Pandoc",
+                    description: "Universal document converter for text formats",
+                    url: "https://pandoc.org"
+                )
+                
+                FeatureRowWithLink(
                     icon: "doc.richtext",
-                    title: "LaTeX (Optional)",
+                    title: "LaTeX",
                     description: "Professional PDF generation with MacTeX",
                     url: "https://tug.org/mactex/"
                 )
             }
-            .padding(.vertical, 20)
+            .padding(.bottom, 28)
             
-            Text("We'll guide you through installing these tools")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            Text("We'll guide you through installing these packages with Homebrew.")
+                .font(.body)
         }
     }
 }
@@ -202,74 +226,86 @@ struct WelcomeStep: View {
 struct HomebrewStep: View {
     @Binding var isInstalled: Bool
     @State private var isChecking = false
-    @State private var showCopyConfirmation = false
+    @State private var isRefreshHovered = false
     
     let installCommand = "/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
     
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: isInstalled ? "checkmark.circle.fill" : "shippingbox")
-                .font(.system(size: 48))
-                .foregroundStyle(isInstalled ? .green : .accentColor)
+            if isInstalled {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.green)
+            } else {
+                Image("homebrew")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 48, height: 48)
+                    .foregroundColor(.accentColor)
+            }
             
-            Text(isInstalled ? "Homebrew is installed!" : "Install Homebrew")
-                .font(.title2)
-                .fontWeight(.semibold)
+            HStack(spacing: 8) {
+                Text(isInstalled ? "Homebrew is installed!" : "Install Homebrew")
+                    .font(.title)
+                    .fontWeight(.semibold)
+                
+                if !isInstalled {
+                    HelpLink(destination: URL(string: "https://docs.brew.sh/Installation")!)
+                }
+            }
             
             Text(isInstalled ? 
-                 "Great! Homebrew is already installed on your system." :
+                 "Fantasic! Homebrew is already installed on your system." :
                  "Homebrew is a package manager that makes it easy to install command-line tools on macOS.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 16)
             
             if !isInstalled {
                 VStack(spacing: 16) {
                     Text("Copy and run this command in Terminal:")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    HStack {
-                        Text(installCommand)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(.primary)
-                            .lineLimit(2)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Button {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(installCommand, forType: .string)
-                            showCopyConfirmation = true
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showCopyConfirmation = false
-                            }
-                        } label: {
-                            Image(systemName: showCopyConfirmation ? "checkmark" : "doc.on.doc")
-                                .foregroundColor(showCopyConfirmation ? .green : .accentColor)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    CommandBox(command: installCommand)
                     
                     Button("Open Terminal") {
                         NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
                     }
                     .buttonStyle(.bordered)
+                    
+                    Text("The script explains what it will do and then pauses before it does it. When you install Homebrew, it prints some directions for updating your shell’s config. If you don’t follow those directions, Homebrew will not work.")
+                        .padding(.top, 8)
+                        .multilineTextAlignment(.leading)
                 }
             }
             
             Spacer()
             
-            Button(isInstalled ? "Verify Installation" : "Check Again") {
-                checkHomebrew()
+            if !isInstalled {
+                Button {
+                    checkHomebrew()
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                        .padding(8)
+                }
+                .buttonStyle(.plain)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isRefreshHovered ? Color.secondary.opacity(0.1) : Color.clear)
+                )
+                .onHover { hovered in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isRefreshHovered = hovered
+                    }
+                }
+                .disabled(isChecking)
             }
-            .buttonStyle(.bordered)
-            .disabled(isChecking)
         }
     }
     
@@ -306,12 +342,13 @@ struct HomebrewStep: View {
 struct DependenciesStep: View {
     @Binding var pandocInstalled: Bool
     @Binding var imagemagickInstalled: Bool
+    @Binding var ffmpegInstalled: Bool
     @Binding var latexInstalled: Bool
     @State private var isInstalling = false
     @State private var currentInstall: String?
     
     var allRequiredInstalled: Bool {
-        pandocInstalled && imagemagickInstalled
+        pandocInstalled && imagemagickInstalled && ffmpegInstalled
     }
     
     var body: some View {
@@ -322,23 +359,31 @@ struct DependenciesStep: View {
             
             VStack(spacing: 12) {
                 DependencyRow(
-                    name: "Pandoc",
-                    command: "brew install pandoc",
-                    isInstalled: pandocInstalled,
-                    isRequired: true,
-                    onInstall: { installDependency("pandoc", command: "brew install pandoc") }
+                    name: "FFmpeg",
+                    command: "brew install ffmpeg",
+                    isInstalled: ffmpegInstalled,
+                    isRequired: false,
+                    onInstall: { installDependency("ffmpeg", command: "brew install ffmpeg") }
                 )
                 
                 DependencyRow(
                     name: "ImageMagick",
                     command: "brew install imagemagick",
                     isInstalled: imagemagickInstalled,
-                    isRequired: true,
+                    isRequired: false,
                     onInstall: { installDependency("imagemagick", command: "brew install imagemagick") }
                 )
                 
                 DependencyRow(
-                    name: "LaTeX (MacTeX)",
+                    name: "Pandoc",
+                    command: "brew install pandoc",
+                    isInstalled: pandocInstalled,
+                    isRequired: false,
+                    onInstall: { installDependency("pandoc", command: "brew install pandoc") }
+                )
+                
+                DependencyRow(
+                    name: "LaTeX",
                     command: "brew install --cask mactex-no-gui",
                     isInstalled: latexInstalled,
                     isRequired: false,
@@ -347,17 +392,17 @@ struct DependenciesStep: View {
             }
             
             if !allRequiredInstalled {
-                Button("Install All Required") {
+                Button("Install All") {
                     installAllRequired()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .disabled(isInstalling)
             }
             
             Spacer()
             
             if allRequiredInstalled {
-                Label("All required dependencies are installed!", systemImage: "checkmark.circle.fill")
+                Label("All dependencies are installed!", systemImage: "checkmark.circle.fill")
                     .foregroundColor(.green)
             }
         }
@@ -386,11 +431,14 @@ struct DependenciesStep: View {
     private func installAllRequired() {
         var commands: [String] = []
         
-        if !pandocInstalled {
-            commands.append("brew install pandoc")
+        if !ffmpegInstalled {
+            commands.append("brew install ffmpeg")
         }
         if !imagemagickInstalled {
             commands.append("brew install imagemagick")
+        }
+        if !pandocInstalled {
+            commands.append("brew install pandoc")
         }
         
         let combinedCommand = commands.joined(separator: " && ")
@@ -407,6 +455,10 @@ struct DependenciesStep: View {
             let imagemagickResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v convert"])
             let imagemagickFound = imagemagickResult.exitCode == 0 && !imagemagickResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             
+            // Check FFmpeg
+            let ffmpegResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v ffmpeg"])
+            let ffmpegFound = ffmpegResult.exitCode == 0 && !ffmpegResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            
             // Check LaTeX (optional)
             let latexResult = Process.run(command: "/bin/bash", arguments: ["-c", "command -v pdflatex"])
             let latexFound = latexResult.exitCode == 0 && !latexResult.output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -415,6 +467,7 @@ struct DependenciesStep: View {
                 withAnimation {
                     pandocInstalled = pandocFound
                     imagemagickInstalled = imagemagickFound
+                    ffmpegInstalled = ffmpegFound
                     latexInstalled = latexFound
                 }
             }
@@ -451,13 +504,77 @@ struct CompletionStep: View {
     }
 }
 
+struct CopyButton: View {
+    let text: String
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .foregroundColor(.accentColor)
+                .padding(4)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHovered ? Color.accentColor.opacity(0.1) : Color.clear)
+        )
+        .onHover { hovered in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovered
+            }
+        }
+    }
+}
+
+struct CommandBox: View {
+    let command: String
+    
+    var body: some View {
+        HStack {
+            Text(command)
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            CopyButton(text: command)
+        }
+        .padding()
+        .background(Color.gray.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+struct HelpLink: View {
+    let destination: URL
+    
+    var body: some View {
+        Button("?") {
+            NSWorkspace.shared.open(destination)
+        }
+        .buttonStyle(.plain)
+        .frame(width: 20, height: 20)
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(Circle())
+        .overlay(
+            Circle()
+                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+        )
+    }
+}
+
 struct FeatureRow: View {
     let icon: String
     let title: String
     let description: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(Color.accentColor)
@@ -481,7 +598,7 @@ struct FeatureRowWithLink: View {
     let url: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(Color.accentColor)
@@ -518,7 +635,6 @@ struct DependencyRow: View {
     let isInstalled: Bool
     let isRequired: Bool
     let onInstall: () -> Void
-    @State private var showCopyConfirmation = false
     
     var body: some View {
         HStack {
@@ -526,19 +642,8 @@ struct DependencyRow: View {
                 .foregroundStyle(isInstalled ? .green : .secondary)
             
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(name)
-                        .font(.headline)
-                    if !isRequired {
-                        Text("Optional")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.gray.opacity(0.2))
-                            .clipShape(Capsule())
-                    }
-                }
+                Text(name)
+                    .font(.headline)
                 
                 if !isInstalled {
                     Text(command)
@@ -551,20 +656,8 @@ struct DependencyRow: View {
             Spacer()
             
             if !isInstalled {
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(command, forType: .string)
-                    showCopyConfirmation = true
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        showCopyConfirmation = false
-                    }
-                } label: {
-                    Image(systemName: showCopyConfirmation ? "checkmark" : "doc.on.doc")
-                        .foregroundColor(showCopyConfirmation ? .green : .accentColor)
-                }
-                .buttonStyle(.plain)
-                .help("Copy command")
+                CopyButton(text: command)
+                    .help("Copy command")
                 
                 Button("Install") {
                     onInstall()
