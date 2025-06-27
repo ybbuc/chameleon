@@ -11,530 +11,8 @@ import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
 
-struct FilePreviewView: View {
-    let data: Data?
-    let url: URL?
-    let fileName: String
-    
-    init(data: Data, fileName: String) {
-        self.data = data
-        self.url = nil
-        self.fileName = fileName
-    }
-    
-    init(url: URL) {
-        self.data = nil
-        self.url = url
-        self.fileName = url.lastPathComponent
-    }
-    
-    var body: some View {
-        if let data = getFileData() {
-            let isImage = ImageFormat.detectFormat(from: URL(fileURLWithPath: fileName)) != nil
-            
-            if isImage {
-                if let nsImage = NSImage(data: data) {
-                    let isPDF = fileName.lowercased().hasSuffix(".pdf")
-                    
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .background(isPDF ? Color.white : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .frame(maxWidth: 200, maxHeight: 150)
-                } else {
-                    fileIcon
-                }
-            } else {
-                fileIcon
-            }
-        } else {
-            fileIcon
-        }
-    }
-    
-    private var fileIcon: some View {
-        Image(nsImage: iconForFile(fileName: fileName))
-            .resizable()
-            .frame(width: 64, height: 64)
-    }
-    
-    private func getFileData() -> Data? {
-        if let data = data {
-            return data
-        } else if let url = url {
-            return try? Data(contentsOf: url)
-        }
-        return nil
-    }
-    
-    private func iconForFile(fileName: String) -> NSImage {
-        if let url = url {
-            return NSWorkspace.shared.icon(forFile: url.path)
-        } else {
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-            if !FileManager.default.fileExists(atPath: tempURL.path) {
-                FileManager.default.createFile(atPath: tempURL.path, contents: Data(), attributes: nil)
-            }
-            let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
-            try? FileManager.default.removeItem(at: tempURL)
-            return icon
-        }
-    }
-}
-
-struct PreviewButton: View {
-    let action: () -> Void
-    @State private var isHovering = false
-    
-    var body: some View {
-        Button {
-            action()
-        } label: {
-            Image(systemName: "eye")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .padding(6)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .help("Quick Look")
-    }
-}
-
-struct RemoveButton: View {
-    let action: () -> Void
-    @State private var isHovering = false
-    
-    var body: some View {
-        Button {
-            action()
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .padding(4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
-        .onHover { hovering in
-            isHovering = hovering
-        }
-    }
-}
-
-struct ClearButton: View {
-    let label: String
-    let isDisabled: Bool
-    let action: () -> Void
-    @State private var isHovering = false
-    
-    var body: some View {
-        Button {
-            action()
-        } label: {
-            Label(label, systemImage: "xmark")
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(Color.gray.opacity(isHovering ? 0.2 : 0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .disabled(isDisabled)
-    }
-}
-
-struct SaveButton: View {
-    let action: () -> Void
-    @State private var isHovering = false
-    @State private var isPressed = false
-    
-    var body: some View {
-        Button {
-            action()
-        } label: {
-            Image(systemName: "arrow.down.to.line.compact")
-                .font(.system(size: 13))
-                .foregroundStyle(Color(red: 0.0, green: 0.5, blue: 0.0))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 5)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(isHovering ? Color(red: 0.0, green: 0.5, blue: 0.0).opacity(0.15) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
-            // Action handled by Button
-        } onPressingChanged: { pressing in
-            isPressed = pressing
-        }
-    }
-}
-
-struct SaveAllButton: View {
-    let label: String
-    let action: () -> Void
-    @State private var isHovering = false
-    
-    var body: some View {
-        Button {
-            action()
-        } label: {
-            Label(label, systemImage: "arrow.down.to.line.compact")
-                .font(.body)
-                .foregroundStyle(Color(red: 0.0, green: 0.5, blue: 0.0))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(Color(red: 0.0, green: 0.5, blue: 0.0).opacity(isHovering ? 0.15 : 0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
-        .onHover { hovering in
-            isHovering = hovering
-        }
-    }
-}
-
-struct FileRow: View {
-    let url: URL
-    let onRemove: () -> Void
-    @State private var isHoveringRow = false
-    
-    var body: some View {
-        HStack {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
-                .resizable()
-                .frame(width: 32, height: 32)
-                .fixedSize()
-            
-            Text(url.lastPathComponent)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                if isHoveringRow {
-                    PreviewButton(action: {
-                        QuickLookManager.shared.previewFile(at: url)
-                    })
-                    .transition(.opacity)
-                }
-                
-                RemoveButton(action: onRemove)
-            }
-        }
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                isHoveringRow = hovering
-            }
-        }
-    }
-}
-
-struct FileContentRow: View {
-    let url: URL
-    let onRemove: () -> Void
-    @State private var isHoveringRow = false
-    
-    var body: some View {
-        HStack {
-            Text(url.lastPathComponent)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                if isHoveringRow {
-                    PreviewButton(action: {
-                        QuickLookManager.shared.previewFile(at: url)
-                    })
-                    .transition(.opacity)
-                }
-                
-                RemoveButton(action: onRemove)
-            }
-        }
-        .frame(height: 32)
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                isHoveringRow = hovering
-            }
-        }
-    }
-}
 
 
-struct ConvertedFileContentRow: View {
-    let file: ConvertedFile
-    let onSave: () -> Void
-    @State private var isHoveringRow = false
-    
-    var body: some View {
-        HStack {
-            Text(file.fileName)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            
-            Spacer()
-            
-            HStack(spacing: 4) {
-                if isHoveringRow {
-                    PreviewButton(action: {
-                        QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
-                    })
-                    .transition(.opacity)
-                }
-                
-                SaveButton {
-                    onSave()
-                }
-            }
-        }
-        .frame(height: 32)
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                isHoveringRow = hovering
-            }
-        }
-    }
-}
-
-struct ConvertedFile: Identifiable {
-    let id = UUID()
-    let originalURL: URL
-    let data: Data
-    let fileName: String
-}
-
-struct FormatPicker: View {
-    @Binding var selectedService: ConversionService
-    let inputFileURLs: [URL]
-    
-    static let documentFormats: [(PandocFormat, String)] = [
-        // Common formats
-        (.markdown, "Markdown"),
-        (.html, "HTML"),
-        (.pdf, "PDF"),
-        (.docx, "Word Document (DOCX)"),
-        (.latex, "LaTeX"),
-        (.plain, "Plain Text"),
-        (.rtf, "Rich Text Format (RTF)"),
-        (.epub, "EPUB"),
-        
-        // Markdown variants
-        (.commonmark, "CommonMark"),
-        (.gfm, "GitHub Flavored Markdown"),
-        (.markdownStrict, "Strict Markdown"),
-        (.markdownPhpextra, "PHP Markdown Extra"),
-        (.markdownMmd, "MultiMarkdown"),
-        
-        // Lightweight markup
-        (.rst, "reStructuredText"),
-        (.asciidoc, "AsciiDoc"),
-        (.textile, "Textile"),
-        (.org, "Org Mode"),
-        (.muse, "Emacs Muse"),
-        (.creole, "Creole"),
-        (.djot, "Djot"),
-        (.markua, "Markua"),
-        (.txt2tags, "txt2tags"),
-        
-        // Wiki formats
-        (.mediawiki, "MediaWiki"),
-        (.dokuwiki, "DokuWiki"),
-        (.tikiwiki, "TikiWiki"),
-        (.twiki, "TWiki"),
-        (.vimwiki, "Vimwiki"),
-        (.xwiki, "XWiki"),
-        (.zimwiki, "ZimWiki"),
-        (.jira, "Jira Wiki"),
-        
-        // HTML variants
-        (.html4, "HTML 4"),
-        (.html5, "HTML 5"),
-        (.chunkedhtml, "Chunked HTML"),
-        
-        // Ebook formats
-        (.epub2, "EPUB 2"),
-        (.epub3, "EPUB 3"),
-        (.fb2, "FictionBook2"),
-        
-        // Documentation formats
-        (.man, "Man Page"),
-        (.ms, "Roff ms"),
-        (.mdoc, "mdoc"),
-        (.texinfo, "GNU TexInfo"),
-        (.haddock, "Haddock"),
-        
-        // XML formats
-        (.docbook, "DocBook"),
-        (.docbook4, "DocBook 4"),
-        (.docbook5, "DocBook 5"),
-        (.jats, "JATS"),
-        (.jatsArchiving, "JATS Archiving"),
-        (.jatsPublishing, "JATS Publishing"),
-        (.jatsArticleauthoring, "JATS Article Authoring"),
-        (.bits, "BITS"),
-        (.tei, "TEI Simple"),
-        (.opml, "OPML"),
-        (.opendocument, "OpenDocument XML"),
-        
-        // Office formats
-        (.odt, "OpenDocument Text (ODT)"),
-        (.powerpoint, "PowerPoint (PPTX)"),
-        (.openoffice, "OpenOffice"),
-        
-        // Academic formats
-        (.context, "ConTeXt"),
-        (.biblatex, "BibLaTeX"),
-        (.bibtex, "BibTeX"),
-        (.csljson, "CSL JSON"),
-        (.ris, "RIS"),
-        (.endnotexml, "EndNote XML"),
-        
-        // Presentation formats
-        (.beamer, "LaTeX Beamer"),
-        (.slidy, "Slidy"),
-        (.slideous, "Slideous"),
-        (.dzslides, "DZSlides"),
-        (.revealjs, "reveal.js"),
-        (.s5, "S5"),
-        
-        // Other formats
-        (.json, "JSON"),
-        (.native, "Native"),
-        (.icml, "InDesign ICML"),
-        (.typst, "Typst"),
-        (.ipynb, "Jupyter Notebook"),
-        (.csv, "CSV"),
-        (.tsv, "TSV"),
-        (.ansi, "ANSI Terminal")
-    ]
-    
-    static let imageFormats: [(ImageFormat, String)] = [
-        (.jpeg, "JPEG"),
-        (.png, "PNG"),
-        (.gif, "GIF"),
-        (.bmp, "BMP"),
-        (.tiff, "TIFF"),
-        (.webp, "WebP"),
-        (.heic, "HEIC"),
-        (.heif, "HEIF"),
-        (.pdf, "PDF (Image)"),
-        (.svg, "SVG"),
-        (.ico, "ICO")
-    ]
-    
-    private var compatibleServices: [(ConversionService, String)] {
-        guard !inputFileURLs.isEmpty else {
-            // Return empty array when no files are present
-            return []
-        }
-        
-        // Check if all input files are PDFs
-        let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
-        
-        if allPDFs {
-            // For PDF files, only show image format options
-            let compatibleImageFormats = ImageFormat.outputFormats
-            return Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) }.sorted { $0.1 < $1.1 }
-        }
-        
-        // Detect if inputs are documents or images (excluding PDFs)
-        let documentFormats = inputFileURLs.compactMap { url in
-            url.pathExtension.lowercased() == "pdf" ? nil : PandocFormat.detectFormat(from: url)
-        }
-        let imageFormats = inputFileURLs.compactMap { url in
-            url.pathExtension.lowercased() == "pdf" ? nil : ImageFormat.detectFormat(from: url)
-        }
-        
-        var compatibleServices: [(ConversionService, String)] = []
-        
-        if !documentFormats.isEmpty {
-            // Document conversion with Pandoc
-            var compatiblePandocFormats = Set(PandocFormat.compatibleOutputFormats(for: documentFormats[0]))
-            for format in documentFormats.dropFirst() {
-                compatiblePandocFormats.formIntersection(PandocFormat.compatibleOutputFormats(for: format))
-            }
-            compatibleServices.append(contentsOf: Self.documentFormats.filter { compatiblePandocFormats.contains($0.0) }.map { (.pandoc($0.0), $0.1) })
-        }
-        
-        if !imageFormats.isEmpty {
-            // Image conversion with ImageMagick
-            let compatibleImageFormats = ImageFormat.outputFormats
-            compatibleServices.append(contentsOf: Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
-        }
-        
-        return compatibleServices.sorted { $0.1 < $1.1 }
-    }
-    
-    var body: some View {
-        Picker("Output Format", selection: $selectedService) {
-            ForEach(compatibleServices, id: \.0) { service, name in
-                Text(name).tag(service)
-            }
-        }
-        .pickerStyle(.menu)
-        .disabled(inputFileURLs.isEmpty)
-    }
-    
-    private func getServiceDisplayName(_ service: ConversionService) -> String {
-        switch service {
-        case .pandoc(let format):
-            return Self.documentFormats.first { $0.0 == format }?.1 ?? format.rawValue
-        case .imagemagick(let format):
-            return Self.imageFormats.first { $0.0 == format }?.1 ?? format.displayName
-        }
-    }
-    
-    private func servicesEqual(_ service1: ConversionService, _ service2: ConversionService) -> Bool {
-        switch (service1, service2) {
-        case (.pandoc(let f1), .pandoc(let f2)):
-            return f1 == f2
-        case (.imagemagick(let f1), .imagemagick(let f2)):
-            return f1 == f2
-        default:
-            return false
-        }
-    }
-}
-
-enum ConversionService: Hashable {
-    case pandoc(PandocFormat)
-    case imagemagick(ImageFormat)
-    
-    var fileExtension: String {
-        switch self {
-        case .pandoc(let format):
-            return format.fileExtension
-        case .imagemagick(let format):
-            return format.fileExtension
-        }
-    }
-}
 
 struct ConverterView: View {
     @State private var inputFileURLs: [URL] = []
@@ -1067,7 +545,7 @@ struct ConverterView: View {
                         if self.inputFileURLs.isEmpty {
                             self.inputFileURLs.append(url)
                             self.errorMessage = nil
-                            self.updateOutputServiceToDefault()
+                            self.updateOutputService()
                             return
                         }
                         
@@ -1090,13 +568,13 @@ struct ConverterView: View {
                            isPDFMixing {
                             self.inputFileURLs.append(url)
                             self.errorMessage = nil
-                            self.updateOutputServiceToDefault()
+                            self.updateOutputService()
                         } else {
                             // Replace existing files with the new incompatible file
                             self.inputFileURLs = [url]
                             self.convertedFiles = []
                             self.errorMessage = nil
-                            self.updateOutputServiceToDefault()
+                            self.updateOutputService()
                         }
                     }
                 }
@@ -1153,7 +631,7 @@ struct ConverterView: View {
                 // If this is the first file, allow it
                 if inputFileURLs.isEmpty {
                     inputFileURLs.append(url)
-                    updateOutputServiceToDefault()
+                    updateOutputService()
                     continue
                 }
                 
@@ -1175,13 +653,13 @@ struct ConverterView: View {
                    (isNewImage && hasExistingImages && !hasExistingDocuments) ||
                    isPDFMixing {
                     inputFileURLs.append(url)
-                    updateOutputServiceToDefault()
+                    updateOutputService()
                 } else {
                     // Replace existing files with the new incompatible file
                     inputFileURLs = [url]
                     convertedFiles = []
                     errorMessage = nil
-                    updateOutputServiceToDefault()
+                    updateOutputService()
                     break
                 }
             }
@@ -1416,9 +894,15 @@ struct ConverterView: View {
         }
     }
     
-    private func updateOutputServiceToDefault() {
-        // Get compatible services and set to first one if available
+    private func updateOutputService() {
         let compatibleServices = getCompatibleServices()
+        
+        // If current outputService is still compatible, keep it
+        if compatibleServices.contains(where: { $0.0 == outputService }) {
+            return
+        }
+        
+        // Otherwise, select the first compatible option if available
         if let firstService = compatibleServices.first {
             outputService = firstService.0
         }
