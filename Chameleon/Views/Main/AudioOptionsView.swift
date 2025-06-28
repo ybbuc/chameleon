@@ -12,39 +12,27 @@ struct AudioOptionsView: View {
     let outputFormat: FFmpegFormat?
     
     private var availableSampleRates: [AudioSampleRate] {
-        switch outputFormat {
-        case .mp3:
-            return AudioSampleRate.mp3SampleRates
-        case .flac, .alac:
-            return AudioSampleRate.flacSampleRates
-        case .wav:
-            return AudioSampleRate.wavSampleRates
-        case .aiff:
-            return AudioSampleRate.aiffSampleRates
-        default:
+        guard let format = outputFormat,
+              let config = FormatRegistry.shared.config(for: format) else {
             return AudioSampleRate.defaultSampleRates
         }
+        return config.availableSampleRates
     }
     
     private var availableSampleSizes: [AudioSampleSize] {
-        switch outputFormat {
-        case .flac:
-            return AudioSampleSize.flacSampleSizes
-        case .alac:
-            return AudioSampleSize.alacSampleSizes
-        case .wav:
-            return AudioSampleSize.wavSampleSizes
-        case .aiff:
-            return AudioSampleSize.aiffSampleSizes
-        default:
+        guard let format = outputFormat,
+              let config = FormatRegistry.shared.config(for: format) else {
             return AudioSampleSize.allCases
         }
+        return config.availableSampleSizes
     }
     
     var body: some View {
         VStack(spacing: 12) {
-            // Bit Rate dropdown (not for lossless formats like FLAC, ALAC, WAV, and AIFF)
-            if outputFormat != .flac && outputFormat != .alac && outputFormat != .wav && outputFormat != .aiff {
+            // Bit Rate dropdown (only for lossy formats)
+            if let format = outputFormat,
+               let config = FormatRegistry.shared.config(for: format),
+               config.supportsBitRate {
                 HStack {
                     Spacer()
                     Picker("Bit Rate", selection: $audioOptions.bitRate) {
@@ -91,8 +79,10 @@ struct AudioOptionsView: View {
                 }
             }
             
-            // Sample Size dropdown (only for lossless formats like FLAC, ALAC, WAV, and AIFF)
-            if outputFormat == .flac || outputFormat == .alac || outputFormat == .wav || outputFormat == .aiff {
+            // Sample Size dropdown (only for lossless formats)
+            if let format = outputFormat,
+               let config = FormatRegistry.shared.config(for: format),
+               config.supportsSampleSize {
                 HStack {
                     Spacer()
                     Picker("Sample Size", selection: $audioOptions.sampleSize) {
@@ -105,8 +95,10 @@ struct AudioOptionsView: View {
                 }
             }
             
-            // Variable Bit Rate toggle (only for MP3)
-            if outputFormat == .mp3 {
+            // Variable Bit Rate toggle (only for formats that support it)
+            if let format = outputFormat,
+               let config = FormatRegistry.shared.config(for: format),
+               config.supportsVariableBitRate {
                 HStack {
                     Spacer()
                     Toggle("Use Variable Bit Rate (VBR)", isOn: $audioOptions.useVariableBitRate)

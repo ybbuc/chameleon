@@ -69,24 +69,8 @@ enum AudioSampleRate: Int, CaseIterable {
         return "\(rawValue) Hz"
     }
     
-    static var mp3SampleRates: [AudioSampleRate] {
-        return [.hz8000, .hz11025, .hz12000, .hz16000, .hz22050, .hz24000, .hz32000, .hz44100, .hz48000]
-    }
-    
-    static var flacSampleRates: [AudioSampleRate] {
-        return allCases
-    }
-    
     static var defaultSampleRates: [AudioSampleRate] {
         return [.hz22050, .hz44100, .hz48000, .hz96000]
-    }
-    
-    static var aiffSampleRates: [AudioSampleRate] {
-        return allCases  // AIFF supports all sample rates we have defined
-    }
-    
-    static var wavSampleRates: [AudioSampleRate] {
-        return allCases  // WAV supports all sample rates we have defined
     }
 }
 
@@ -100,21 +84,6 @@ enum AudioSampleSize: Int, CaseIterable {
         return "\(rawValue) bits"
     }
     
-    static var flacSampleSizes: [AudioSampleSize] {
-        return [.bits16, .bits24]
-    }
-    
-    static var alacSampleSizes: [AudioSampleSize] {
-        return [.bits16, .bits20, .bits24]
-    }
-    
-    static var aiffSampleSizes: [AudioSampleSize] {
-        return [.bits16, .bits24, .bits32]
-    }
-    
-    static var wavSampleSizes: [AudioSampleSize] {
-        return [.bits16, .bits24, .bits32]
-    }
 }
 
 struct AudioOptions {
@@ -125,47 +94,11 @@ struct AudioOptions {
     var useVariableBitRate: Bool = false
     
     func ffmpegArguments(for format: FFmpegFormat? = nil) -> [String] {
-        var args: [String] = []
-        
-        // Bit rate (only for formats that support it, not for lossless formats like FLAC, ALAC, WAV, and AIFF)
-        if format != .flac && format != .alac && format != .wav && format != .aiff {
-            if useVariableBitRate {
-                // Variable bit rate - map bit rate to quality level
-                let qualityLevel: String
-                switch bitRate.rawValue {
-                case ...128:
-                    qualityLevel = "4" // Lower quality
-                case 129...192:
-                    qualityLevel = "2" // Medium quality  
-                case 193...256:
-                    qualityLevel = "1" // High quality
-                default:
-                    qualityLevel = "0" // Very high quality
-                }
-                args.append(contentsOf: ["-q:a", qualityLevel])
-            } else {
-                // Constant bit rate
-                args.append(contentsOf: ["-b:a", "\(bitRate.rawValue)k"])
-            }
+        guard let format = format,
+              let config = FormatRegistry.shared.config(for: format) else {
+            return []
         }
         
-        // Channels
-        args.append(contentsOf: ["-ac", "\(channels.channelCount)"])
-        
-        // Sample rate
-        args.append(contentsOf: ["-ar", "\(sampleRate.rawValue)"])
-        
-        // Sample size (only for lossless formats like FLAC, ALAC, WAV, and AIFF)
-        if format == .flac || format == .alac {
-            args.append(contentsOf: ["-sample_fmt", "s\(sampleSize.rawValue)"])
-        } else if format == .wav {
-            // WAV uses little-endian format
-            args.append(contentsOf: ["-sample_fmt", "s\(sampleSize.rawValue)le"])
-        } else if format == .aiff {
-            // AIFF uses big-endian format
-            args.append(contentsOf: ["-sample_fmt", "s\(sampleSize.rawValue)be"])
-        }
-        
-        return args
+        return config.audioArguments(audioOptions: self)
     }
 }

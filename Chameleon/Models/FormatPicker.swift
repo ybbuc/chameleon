@@ -131,27 +131,11 @@ struct FormatPicker: View {
         (.ico, "ICO")
     ]
     
-    static let mediaFormats: [(FFmpegFormat, String)] = [
-        // Video formats
-        (.mp4, "MP4"),
-        (.mov, "MOV"),
-        (.avi, "AVI"),
-        (.mkv, "MKV"),
-        (.webm, "WebM"),
-        (.flv, "Flash Video"),
-        (.wmv, "WMV"),
-        (.m4v, "iTunes Video"),
-        
-        // Audio formats
-        (.mp3, "MP3"),
-        (.aac, "AAC"),
-        (.wav, "WAV"),
-        (.flac, "FLAC"),
-        (.alac, "ALAC"),
-        (.ogg, "OGG"),
-        (.wma, "WMA"),
-        (.aiff, "AIFF")
-    ]
+    static var mediaFormats: [(FFmpegFormat, String)] {
+        return FormatRegistry.shared.allConfigs().map { config in
+            (config.format, config.displayName)
+        }
+    }
     
     private var compatibleServices: [(ConversionService, String)] {
         guard !inputFileURLs.isEmpty else {
@@ -244,7 +228,7 @@ struct FormatPicker: View {
         case .imagemagick(let format):
             return Self.imageFormats.first { $0.0 == format }?.1 ?? format.displayName
         case .ffmpeg(let format):
-            return Self.mediaFormats.first { $0.0 == format }?.1 ?? format.displayName
+            return FormatRegistry.shared.config(for: format)?.displayName ?? format.displayName
         }
     }
     
@@ -255,7 +239,7 @@ struct FormatPicker: View {
         case .imagemagick(let format):
             return format.description
         case .ffmpeg(let format):
-            return format.description
+            return FormatRegistry.shared.config(for: format)?.description
         }
     }
     

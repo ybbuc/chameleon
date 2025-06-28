@@ -243,153 +243,33 @@ enum FFmpegFormat: String, CaseIterable {
     case aiff = "aiff"
     
     var displayName: String {
-        switch self {
-        case .mp4: return "MP4 Video"
-        case .mov: return "QuickTime Movie"
-        case .avi: return "AVI Video"
-        case .mkv: return "Matroska Video"
-        case .webm: return "WebM Video"
-        case .flv: return "Flash Video"
-        case .wmv: return "Windows Media Video"
-        case .m4v: return "iTunes Video"
-        case .mp3: return "MP3 Audio"
-        case .aac: return "AAC Audio"
-        case .wav: return "WAV Audio"
-        case .flac: return "FLAC Audio"
-        case .alac: return "ALAC Audio"
-        case .ogg: return "Ogg Vorbis"
-        case .wma: return "Windows Media Audio"
-        case .aiff: return "AIFF Audio"
-        }
+        return FormatRegistry.shared.config(for: self)?.displayName ?? rawValue.uppercased()
     }
     
     var description: String? {
-        switch self {
-        case .mp4: return nil
-        case .mov: return nil
-        case .avi: return nil
-        case .mkv: return nil
-        case .webm: return nil
-        case .flv: return nil
-        case .wmv: return nil
-        case .m4v: return nil
-        case .aiff: return "Lossless, but the files are quite large. Standard on Apple platforms, but less common than WAV elsewhere."
-        case .mp3: return "Lossy, but the files are very compact and can be played in almost any application."
-        case .aac: return "Lossy, though less than MP3. The files are very compact, and are generally well supported by most applications."
-        case .wav: return "Lossless, but the files are enormous. They can be played by almost any application."
-        case .flac: return "Lossless, but the files are quite large. It's popular among audiophiles, but playback is supported in few audio players."
-        case .alac: return "Lossless, but the files are quite large. Standard on Apple platforms, but less universal elsewhere."
-        case .ogg: return "Lossy, with quality often better than MP3 at similar bitrates. While the files are compact, it's not as universally supported as MP3 or AAC."
-        case .wma: return "Lossy, with quality comparable to MP3. It's well-supported on Windows but less common on other platforms."
-        }
+        return FormatRegistry.shared.config(for: self)?.description
     }
     
     var fileExtension: String {
-        switch self {
-        case .aac, .alac:
-            return "m4a"
-        default:
-            return rawValue
-        }
+        return FormatRegistry.shared.config(for: self)?.fileExtension ?? rawValue
     }
     
     var isVideo: Bool {
-        switch self {
-        case .mp4, .mov, .avi, .mkv, .webm, .flv, .wmv, .m4v:
-            return true
-        case .mp3, .aac, .wav, .flac, .alac, .ogg, .wma, .aiff:
-            return false
-        }
+        return FormatRegistry.shared.config(for: self)?.isVideo ?? false
     }
     
     func arguments(quality: FFmpegQuality) -> [String] {
-        var args: [String] = []
-        
-        switch self {
-        case .mp4:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "aac"])
-            args.append(contentsOf: quality.videoArguments)
-        case .mov:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "aac"])
-            args.append(contentsOf: quality.videoArguments)
-        case .avi:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "mp3"])
-            args.append(contentsOf: quality.videoArguments)
-        case .mkv:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "aac"])
-            args.append(contentsOf: quality.videoArguments)
-        case .webm:
-            args.append(contentsOf: ["-c:v", "libvpx-vp9", "-c:a", "libvorbis"])
-            args.append(contentsOf: quality.videoArguments)
-        case .flv:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "aac"])
-            args.append(contentsOf: quality.videoArguments)
-        case .wmv:
-            args.append(contentsOf: ["-c:v", "wmv2", "-c:a", "wmav2"])
-            args.append(contentsOf: quality.videoArguments)
-        case .m4v:
-            args.append(contentsOf: ["-c:v", "libx264", "-c:a", "aac"])
-            args.append(contentsOf: quality.videoArguments)
-        case .mp3:
-            args.append(contentsOf: ["-c:a", "libmp3lame"])
-            args.append(contentsOf: quality.audioArguments)
-        case .aac:
-            args.append(contentsOf: ["-c:a", "aac"])
-            args.append(contentsOf: quality.audioArguments)
-        case .wav:
-            // WAV codec and sample format will be handled by AudioOptions
-            args.append(contentsOf: ["-c:a", "pcm_s16le"])
-        case .flac:
-            args.append(contentsOf: ["-c:a", "flac"])
-        case .alac:
-            args.append(contentsOf: ["-c:a", "alac"])
-        case .ogg:
-            args.append(contentsOf: ["-c:a", "libvorbis"])
-            args.append(contentsOf: quality.audioArguments)
-        case .wma:
-            args.append(contentsOf: ["-c:a", "wmav2"])
-            args.append(contentsOf: quality.audioArguments)
-        case .aiff:
-            // AIFF codec and sample format will be handled by AudioOptions
-            args.append(contentsOf: ["-f", "aiff"])
+        guard let config = FormatRegistry.shared.config(for: self) else {
+            return []
         }
         
+        var args = config.codecArguments()
+        args.append(contentsOf: config.qualityArguments(quality: quality))
         return args
     }
     
     func codecArguments() -> [String] {
-        switch self {
-        case .mp4, .mov:
-            return ["-c:v", "libx264", "-c:a", "aac"]
-        case .avi:
-            return ["-c:v", "libx264", "-c:a", "libmp3lame"]
-        case .mkv:
-            return ["-c:v", "libx264", "-c:a", "aac"]
-        case .webm:
-            return ["-c:v", "libvpx-vp9", "-c:a", "libvorbis"]
-        case .flv:
-            return ["-c:v", "libx264", "-c:a", "aac"]
-        case .wmv:
-            return ["-c:v", "wmv2", "-c:a", "wmav2"]
-        case .m4v:
-            return ["-c:v", "libx264", "-c:a", "aac"]
-        case .mp3:
-            return ["-c:a", "libmp3lame"]
-        case .aac:
-            return ["-c:a", "aac"]
-        case .wav:
-            return ["-c:a", "pcm_s16le"]
-        case .flac:
-            return ["-c:a", "flac"]
-        case .alac:
-            return ["-c:a", "alac"]
-        case .ogg:
-            return ["-c:a", "libvorbis"]
-        case .wma:
-            return ["-c:a", "wmav2"]
-        case .aiff:
-            return ["-f", "aiff"]
-        }
+        return FormatRegistry.shared.config(for: self)?.codecArguments() ?? []
     }
     
     // Accurate format detection using ffprobe analysis
