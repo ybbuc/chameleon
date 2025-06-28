@@ -131,6 +131,28 @@ struct FormatPicker: View {
         (.ico, "ICO")
     ]
     
+    static let mediaFormats: [(FFmpegFormat, String)] = [
+        // Video formats
+        (.mp4, "MP4"),
+        (.mov, "MOV"),
+        (.avi, "AVI"),
+        (.mkv, "MKV"),
+        (.webm, "WebM"),
+        (.flv, "Flash Video"),
+        (.wmv, "WMV"),
+        (.m4v, "iTunes Video"),
+        
+        // Audio formats
+        (.mp3, "MP3"),
+        (.aac, "AAC"),
+        (.wav, "WAV"),
+        (.flac, "FLAC"),
+        (.alac, "ALAC"),
+        (.ogg, "OGG"),
+        (.wma, "WMA"),
+        (.aiff, "AIFF")
+    ]
+    
     private var compatibleServices: [(ConversionService, String)] {
         guard !inputFileURLs.isEmpty else {
             // Return empty array when no files are present
@@ -146,12 +168,15 @@ struct FormatPicker: View {
             return Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) }.sorted { $0.1 < $1.1 }
         }
         
-        // Detect if inputs are documents or images (excluding PDFs)
+        // Detect if inputs are documents, images, or media files (excluding PDFs)
         let documentFormats = inputFileURLs.compactMap { url in
             url.pathExtension.lowercased() == "pdf" ? nil : PandocFormat.detectFormat(from: url)
         }
         let imageFormats = inputFileURLs.compactMap { url in
             url.pathExtension.lowercased() == "pdf" ? nil : ImageFormat.detectFormat(from: url)
+        }
+        let mediaFormats = inputFileURLs.compactMap { url in
+            url.pathExtension.lowercased() == "pdf" ? nil : FFmpegFormat.detectFormat(from: url)
         }
         
         var compatibleServices: [(ConversionService, String)] = []
@@ -171,17 +196,45 @@ struct FormatPicker: View {
             compatibleServices.append(contentsOf: Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
         }
         
+        if !mediaFormats.isEmpty {
+            // Media conversion with FFmpeg
+            let allInputsAreAudio = mediaFormats.allSatisfy { !$0.isVideo }
+            let compatibleMediaFormats: [FFmpegFormat]
+            
+            if allInputsAreAudio {
+                // If all inputs are audio, only show audio output formats
+                compatibleMediaFormats = FFmpegFormat.allCases.filter { !$0.isVideo }
+            } else {
+                // If any input is video, show all formats
+                compatibleMediaFormats = FFmpegFormat.allCases
+            }
+            
+            compatibleServices.append(contentsOf: Self.mediaFormats.filter { compatibleMediaFormats.contains($0.0) }.map { (.ffmpeg($0.0), $0.1) })
+        }
+        
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
     var body: some View {
-        Picker("Output Format", selection: $selectedService) {
-            ForEach(compatibleServices, id: \.0) { service, name in
-                Text(name).tag(service)
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Output Format", selection: $selectedService) {
+                ForEach(compatibleServices, id: \.0) { service, name in
+                    Text(name).tag(service)
+                }
+            }
+            .pickerStyle(.menu)
+            .disabled(inputFileURLs.isEmpty)
+            .padding(.top, 8)
+            
+            // Format description
+            if let description = getFormatDescription(for: selectedService) {
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 4)
             }
         }
-        .pickerStyle(.menu)
-        .disabled(inputFileURLs.isEmpty)
     }
     
     private func getServiceDisplayName(_ service: ConversionService) -> String {
@@ -190,6 +243,19 @@ struct FormatPicker: View {
             return Self.documentFormats.first { $0.0 == format }?.1 ?? format.rawValue
         case .imagemagick(let format):
             return Self.imageFormats.first { $0.0 == format }?.1 ?? format.displayName
+        case .ffmpeg(let format):
+            return Self.mediaFormats.first { $0.0 == format }?.1 ?? format.displayName
+        }
+    }
+    
+    private func getFormatDescription(for service: ConversionService) -> String? {
+        switch service {
+        case .pandoc(let format):
+            return format.description
+        case .imagemagick(let format):
+            return format.description
+        case .ffmpeg(let format):
+            return format.description
         }
     }
     
@@ -198,6 +264,8 @@ struct FormatPicker: View {
         case (.pandoc(let f1), .pandoc(let f2)):
             return f1 == f2
         case (.imagemagick(let f1), .imagemagick(let f2)):
+            return f1 == f2
+        case (.ffmpeg(let f1), .ffmpeg(let f2)):
             return f1 == f2
         default:
             return false

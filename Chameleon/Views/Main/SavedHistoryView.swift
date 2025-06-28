@@ -325,6 +325,7 @@ struct SavedHistoryRow: View {
         case "png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp", "tif": return "photo"
         case "html", "htm": return "globe"
         case "md", "txt": return "doc.text"
+        case "aac", "mp3", "wav", "flac", "ogg": return "waveform"
         default: return "doc"
         }
     }

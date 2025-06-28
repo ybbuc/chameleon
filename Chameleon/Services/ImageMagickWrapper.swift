@@ -178,6 +178,23 @@ enum ImageFormat: String, CaseIterable {
         }
     }
     
+    var description: String? {
+        switch self {
+        case .jpeg, .jpg: return nil // You can add descriptions here
+        case .png: return nil
+        case .gif: return nil
+        case .bmp: return nil
+        case .tiff, .tif: return nil
+        case .webp: return nil
+        case .heic: return nil
+        case .heif: return nil
+        case .pdf: return nil
+        case .svg: return nil
+        case .ico: return nil
+        case .raw: return nil
+        }
+    }
+    
     static func detectFormat(from url: URL) -> ImageFormat? {
         let ext = url.pathExtension.lowercased()
         return ImageFormat.allCases.first { format in

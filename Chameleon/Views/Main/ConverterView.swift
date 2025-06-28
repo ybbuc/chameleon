@@ -66,11 +66,14 @@ struct ConverterView: View {
     @State private var isTargeted = false
     @State private var dashPhase: CGFloat = 0
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
+    @State private var audioOptions = AudioOptions()
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
     @State private var imageMagickWrapper: ImageMagickWrapper?
     @State private var imageMagickInitError: String?
+    @State private var ffmpegWrapper: FFmpegWrapper?
+    @State private var ffmpegInitError: String?
     @State private var conversionTask: Task<Void, Never>?
     
     
@@ -384,6 +387,14 @@ struct ConverterView: View {
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
+                // Show audio options for FFmpeg audio conversions
+                if shouldShowAudioOptions {
+                    AudioOptionsView(audioOptions: $audioOptions, outputFormat: currentFFmpegFormat)
+                        .padding(.top, 8)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                }
+                
                 Spacer()
                 
                 VStack {
@@ -425,6 +436,7 @@ struct ConverterView: View {
         .onAppear {
             initializePandoc()
             initializeImageMagick()
+            initializeFFmpeg()
         }
         .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") {
@@ -458,6 +470,7 @@ struct ConverterView: View {
         // Cancel any running processes
         pandocWrapper?.cancel()
         imageMagickWrapper?.cancel()
+        ffmpegWrapper?.cancel()
         
         // Reset conversion state
         isConverting = false
@@ -498,6 +511,19 @@ struct ConverterView: View {
         }
     }
     
+    private func initializeFFmpeg() {
+        do {
+            print("Attempting to initialize FFmpeg...")
+            ffmpegWrapper = try FFmpegWrapper()
+            ffmpegInitError = nil
+            print("FFmpeg initialized successfully")
+        } catch {
+            print("FFmpeg initialization failed: \(error)")
+            ffmpegWrapper = nil
+            ffmpegInitError = error.localizedDescription
+        }
+    }
+    
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         for provider in providers {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (urlData, error) in
@@ -511,16 +537,7 @@ struct ConverterView: View {
                             return
                         }
                         
-                        // Detect format of the new file (document or image)
-                        let newDocumentFormat = PandocFormat.detectFormat(from: url)
-                        var newImageFormat = ImageFormat.detectFormat(from: url)
-                        
-                        // Special handling for PDF - can be treated as both document and image
-                        if url.pathExtension.lowercased() == "pdf" {
-                            newImageFormat = .pdf
-                        }
-                        
-                        guard newDocumentFormat != nil || newImageFormat != nil else {
+                        guard self.isSupportedFileType(url) else {
                             self.showError("Unsupported file type: \(url.pathExtension)")
                             return
                         }
@@ -537,19 +554,32 @@ struct ConverterView: View {
                         let existingURLs = self.files.compactMap { $0.url }
                         let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
                         let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+                        let existingMediaFormats = existingURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
+                        
+                        let newDocumentFormat = PandocFormat.detectFormat(from: url)
+                        var newImageFormat = ImageFormat.detectFormat(from: url)
+                        let newMediaFormat = FFmpegFormat.detectFormat(from: url)
+                        
+                        // Special handling for PDF - can be treated as both document and image
+                        if url.pathExtension.lowercased() == "pdf" {
+                            newImageFormat = .pdf
+                        }
                         
                         let isNewDocument = newDocumentFormat != nil
                         let isNewImage = newImageFormat != nil
+                        let isNewMedia = newMediaFormat != nil
                         let hasExistingDocuments = !existingDocumentFormats.isEmpty
                         let hasExistingImages = !existingImageFormats.isEmpty
+                        let hasExistingMedia = !existingMediaFormats.isEmpty
                         
                         // Allow if new file type matches existing file types
                         // Special case: PDFs can be treated as both documents and images
                         let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
                                          existingURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                         
-                        if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
-                           (isNewImage && hasExistingImages && !hasExistingDocuments) ||
+                        if (isNewDocument && hasExistingDocuments && !hasExistingImages && !hasExistingMedia) ||
+                           (isNewImage && hasExistingImages && !hasExistingDocuments && !hasExistingMedia) ||
+                           (isNewMedia && hasExistingMedia && !hasExistingDocuments && !hasExistingImages) ||
                            isPDFMixing {
                             self.files.append(.input(url))
                             self.errorMessage = nil
@@ -598,16 +628,7 @@ struct ConverterView: View {
                     continue
                 }
                 
-                // Detect format of the new file (document or image)
-                let newDocumentFormat = PandocFormat.detectFormat(from: url)
-                var newImageFormat = ImageFormat.detectFormat(from: url)
-                
-                // Special handling for PDF - can be treated as both document and image
-                if url.pathExtension.lowercased() == "pdf" {
-                    newImageFormat = .pdf
-                }
-                
-                guard newDocumentFormat != nil || newImageFormat != nil else {
+                guard isSupportedFileType(url) else {
                     showError("Unsupported file type: \(url.pathExtension)")
                     continue
                 }
@@ -623,19 +644,32 @@ struct ConverterView: View {
                 let existingURLs = files.compactMap { $0.url }
                 let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
                 let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+                let existingMediaFormats = existingURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
+                
+                let newDocumentFormat = PandocFormat.detectFormat(from: url)
+                var newImageFormat = ImageFormat.detectFormat(from: url)
+                let newMediaFormat = FFmpegFormat.detectFormat(from: url)
+                
+                // Special handling for PDF - can be treated as both document and image
+                if url.pathExtension.lowercased() == "pdf" {
+                    newImageFormat = .pdf
+                }
                 
                 let isNewDocument = newDocumentFormat != nil
                 let isNewImage = newImageFormat != nil
+                let isNewMedia = newMediaFormat != nil
                 let hasExistingDocuments = !existingDocumentFormats.isEmpty
                 let hasExistingImages = !existingImageFormats.isEmpty
+                let hasExistingMedia = !existingMediaFormats.isEmpty
                 
                 // Allow if new file type matches existing file types
                 // Special case: PDFs can be treated as both documents and images
                 let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
                                  existingURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                 
-                if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
-                   (isNewImage && hasExistingImages && !hasExistingDocuments) ||
+                if (isNewDocument && hasExistingDocuments && !hasExistingImages && !hasExistingMedia) ||
+                   (isNewImage && hasExistingImages && !hasExistingDocuments && !hasExistingMedia) ||
+                   (isNewMedia && hasExistingMedia && !hasExistingDocuments && !hasExistingImages) ||
                    isPDFMixing {
                     files.append(.input(url))
                     updateOutputService()
@@ -678,6 +712,12 @@ struct ConverterView: View {
             guard imageMagickWrapper != nil else {
                 print("convertFile: ImageMagick not available")
                 showError("ImageMagick is not available")
+                return
+            }
+        case .ffmpeg(_):
+            guard ffmpegWrapper != nil else {
+                print("convertFile: FFmpeg not available")
+                showError("FFmpeg is not available")
                 return
             }
         }
@@ -744,6 +784,36 @@ struct ConverterView: View {
                         dpi: pdfToDpi
                     )
                     
+                case .ffmpeg(let format):
+                    try await ffmpegWrapper!.convertFile(
+                        inputURL: inputURL,
+                        outputURL: tempURL,
+                        format: format,
+                        quality: .medium,
+                        audioOptions: format.isVideo ? nil : audioOptions
+                    )
+                    
+                    // Single file output for FFmpeg
+                    let data = try Data(contentsOf: tempURL)
+                    let baseName = inputURL.deletingPathExtension().lastPathComponent
+                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                    
+                    let convertedFile = ConvertedFile(
+                        originalURL: inputURL,
+                        data: data,
+                        fileName: fileName
+                    )
+                    
+                    // Replace the converting file with the converted file
+                    if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                        files[fileIndex] = .converted(convertedFile)
+                    }
+                    
+                    try FileManager.default.removeItem(at: tempURL)
+                }
+                
+                // ImageMagick-specific handling
+                if case .imagemagick = outputService {
                     // Strip EXIF metadata if requested (preserving orientation)
                     // Skip EXIF stripping for PDF conversions as they don't have original EXIF data
                     if removeExifMetadata && inputURL.pathExtension.lowercased() != "pdf" {
@@ -936,7 +1006,23 @@ struct ConverterView: View {
             return pandocWrapper != nil
         case .imagemagick(_):
             return imageMagickWrapper != nil
+        case .ffmpeg(_):
+            return ffmpegWrapper != nil
         }
+    }
+    
+    private func isSupportedFileType(_ url: URL) -> Bool {
+        // Detect format of the file (document, image, or media)
+        let documentFormat = PandocFormat.detectFormat(from: url)
+        var imageFormat = ImageFormat.detectFormat(from: url)
+        let mediaFormat = FFmpegFormat.detectFormat(from: url)
+        
+        // Special handling for PDF - can be treated as both document and image
+        if url.pathExtension.lowercased() == "pdf" {
+            imageFormat = .pdf
+        }
+        
+        return documentFormat != nil || imageFormat != nil || mediaFormat != nil
     }
     
     private func updateOutputService() {
@@ -959,9 +1045,10 @@ struct ConverterView: View {
             return []
         }
         
-        // Detect if inputs are documents or images
+        // Detect if inputs are documents, images, or media files
         let documentFormats = inputURLs.compactMap { PandocFormat.detectFormat(from: $0) }
         var imageFormats = inputURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        let mediaFormats = inputURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
         
         // Special handling for PDF - can be treated as both document and image
         let hasPDF = inputURLs.contains { $0.pathExtension.lowercased() == "pdf" }
@@ -986,6 +1073,12 @@ struct ConverterView: View {
             compatibleServices.append(contentsOf: FormatPicker.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
         }
         
+        if !mediaFormats.isEmpty {
+            // Media conversion with FFmpeg
+            let compatibleMediaFormats = FFmpegFormat.allCases
+            compatibleServices.append(contentsOf: FormatPicker.mediaFormats.filter { compatibleMediaFormats.contains($0.0) }.map { (.ffmpeg($0.0), $0.1) })
+        }
+        
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
@@ -994,6 +1087,8 @@ struct ConverterView: View {
         case .pandoc(let format):
             return format.rawValue
         case .imagemagick(let format):
+            return format.rawValue
+        case .ffmpeg(let format):
             return format.rawValue
         }
     }
@@ -1006,6 +1101,22 @@ struct ConverterView: View {
         let hasPdfInput = inputURLs.contains { $0.pathExtension.lowercased() == "pdf" }
         let isImageOutput = if case .imagemagick(_) = outputService { true } else { false }
         return hasPdfInput && isImageOutput
+    }
+    
+    private var shouldShowAudioOptions: Bool {
+        // Show audio options when:
+        // 1. We're converting to an audio format with FFmpeg
+        if case .ffmpeg(let format) = outputService {
+            return !format.isVideo
+        }
+        return false
+    }
+    
+    private var currentFFmpegFormat: FFmpegFormat? {
+        if case .ffmpeg(let format) = outputService {
+            return format
+        }
+        return nil
     }
     
     private var pdfToDpiIndex: Int {

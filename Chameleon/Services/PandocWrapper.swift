@@ -272,6 +272,109 @@ enum PandocFormat: String {
     case csv = "csv"
     case tsv = "tsv"
     case ansi = "ansi"
+    
+    var description: String? {
+        switch self {
+        // Common formats
+        case .markdown: return nil // You can add descriptions here
+        case .html: return nil
+        case .latex: return nil
+        case .pdf: return nil
+        case .docx: return nil
+        case .rtf: return nil
+        case .epub: return nil
+        case .plain: return nil
+        
+        // Markdown variants
+        case .commonmark: return nil
+        case .gfm: return nil
+        case .markdownStrict: return nil
+        case .markdownPhpextra: return nil
+        case .markdownMmd: return nil
+        
+        // Lightweight markup
+        case .rst: return nil
+        case .asciidoc: return nil
+        case .textile: return nil
+        case .org: return nil
+        case .muse: return nil
+        case .creole: return nil
+        case .djot: return nil
+        case .markua: return nil
+        case .txt2tags: return nil
+        
+        // Wiki formats
+        case .mediawiki: return nil
+        case .dokuwiki: return nil
+        case .tikiwiki: return nil
+        case .twiki: return nil
+        case .vimwiki: return nil
+        case .xwiki: return nil
+        case .zimwiki: return nil
+        case .jira: return nil
+        
+        // HTML variants
+        case .html4: return nil
+        case .html5: return nil
+        case .chunkedhtml: return nil
+        
+        // Ebook formats
+        case .epub2: return nil
+        case .epub3: return nil
+        case .fb2: return nil
+        
+        // Documentation formats
+        case .man: return nil
+        case .ms: return nil
+        case .mdoc: return nil
+        case .texinfo: return nil
+        case .haddock: return nil
+        
+        // XML formats
+        case .docbook: return nil
+        case .docbook4: return nil
+        case .docbook5: return nil
+        case .jats: return nil
+        case .jatsArchiving: return nil
+        case .jatsPublishing: return nil
+        case .jatsArticleauthoring: return nil
+        case .bits: return nil
+        case .tei: return nil
+        case .opml: return nil
+        case .opendocument: return nil
+        
+        // Office formats
+        case .odt: return nil
+        case .powerpoint: return nil
+        case .openoffice: return nil
+        
+        // Academic formats
+        case .context: return nil
+        case .biblatex: return nil
+        case .bibtex: return nil
+        case .csljson: return nil
+        case .ris: return nil
+        case .endnotexml: return nil
+        
+        // Presentation formats
+        case .beamer: return nil
+        case .slidy: return nil
+        case .slideous: return nil
+        case .dzslides: return nil
+        case .revealjs: return nil
+        case .s5: return nil
+        
+        // Other formats
+        case .json: return nil
+        case .native: return nil
+        case .icml: return nil
+        case .typst: return nil
+        case .ipynb: return nil
+        case .csv: return nil
+        case .tsv: return nil
+        case .ansi: return nil
+        }
+    }
 }
 
 enum PandocError: LocalizedError {
