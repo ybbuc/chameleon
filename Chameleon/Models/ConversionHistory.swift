@@ -10,7 +10,7 @@ import AppKit
 import SwiftData
 
 @Model
-class ConversionRecord {
+class ConversionRecord: @unchecked Sendable {
     var id: UUID
     var inputFileName: String
     var inputFormat: String

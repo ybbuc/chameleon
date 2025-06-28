@@ -116,6 +116,7 @@ struct SavedHistoryRow: View {
     let savedHistoryManager: SavedHistoryManager
     let searchText: String
     @State private var isHovering = false
+    @State private var showingDeleteAlert = false
     
     var body: some View {
         HStack(spacing: 16) {
@@ -136,6 +137,8 @@ struct SavedHistoryRow: View {
                         .font(.system(size: 24))
                         .foregroundColor(.secondary)
                         .frame(width: 40, height: 40)
+                        .background(Color.secondary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
             
@@ -239,7 +242,7 @@ struct SavedHistoryRow: View {
                     }
                     
                     Button {
-                        savedHistoryManager.removeConversion(record)
+                        showingDeleteAlert = true
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 16))
@@ -260,6 +263,14 @@ struct SavedHistoryRow: View {
                 isHovering = hovering
             }
         }
+        .alert("Remove from Saved History", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Remove", role: .destructive) {
+                savedHistoryManager.removeConversion(record)
+            }
+        } message: {
+            Text("Are you sure you want to remove \"\(record.outputFileName)\" from your saved history?")
+        }
         .contextMenu {
             if record.isFileAccessible {
                 Button("Quick Look") {
@@ -278,7 +289,7 @@ struct SavedHistoryRow: View {
             }
             
             Button("Remove from Saved History", role: .destructive) {
-                savedHistoryManager.removeConversion(record)
+                showingDeleteAlert = true
             }
         }
     }
