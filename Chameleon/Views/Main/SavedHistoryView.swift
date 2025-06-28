@@ -119,11 +119,25 @@ struct SavedHistoryRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // File icon
-            Image(systemName: fileIcon)
-                .font(.system(size: 24))
-                .foregroundColor(.secondary)
-                .frame(width: 40, height: 40)
+            // Thumbnail or file icon
+            Group {
+                if let thumbnailImage = record.thumbnailImage {
+                    Image(nsImage: thumbnailImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 40, height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                        )
+                } else {
+                    Image(systemName: fileIcon)
+                        .font(.system(size: 24))
+                        .foregroundColor(.secondary)
+                        .frame(width: 40, height: 40)
+                }
+            }
             
             VStack(alignment: .leading, spacing: 6) {
                 // File name with search highlighting and file size

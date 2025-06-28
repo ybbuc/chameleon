@@ -42,6 +42,15 @@ class SavedHistoryManager: ObservableObject {
         modelContext.insert(record)
         try? modelContext.save()
         loadSavedHistory()
+        
+        // Generate thumbnail asynchronously
+        Task {
+            let thumbnailData = await record.generateThumbnailAsync()
+            await MainActor.run {
+                record.thumbnailData = thumbnailData
+                try? modelContext.save()
+            }
+        }
     }
     
     func removeConversion(_ record: ConversionRecord) {

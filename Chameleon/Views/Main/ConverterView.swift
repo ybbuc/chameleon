@@ -78,10 +78,10 @@ struct ConverterView: View {
         HStack(spacing: 0) {
             VStack {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.1))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 8)
                                 .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: isTargeted ? 2.5 : 2, dash: [8, 8]))
                                 .animation(.easeInOut(duration: 0.2), value: isTargeted)
                         )
@@ -125,56 +125,81 @@ struct ConverterView: View {
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 
-                                VStack(spacing: 0) {
-                                    Divider()
-                                        .padding(.horizontal)
-                                    
-                                    HStack(spacing: 12) {
-                                        switch fileState {
-                                        case .input(let url):
-                                            PreviewButton(action: {
-                                                QuickLookManager.shared.previewFile(at: url)
-                                            })
-                                            
+                                if case .converting = fileState {
+                                    VStack(spacing: 0) {
+                                        Divider()
+                                            .padding(.horizontal)
+                                        
+                                        HStack(spacing: 12) {
                                             ClearButton(
                                                 label: "Reset",
-                                                isDisabled: false
+                                                isDisabled: true
                                             ) {
                                                 files = []
                                                 errorMessage = nil
                                             }
-                                        case .converting:
-                                            EmptyView()
-                                        case .converted(let convertedFile):
-                                            PreviewButton(action: {
-                                                QuickLookManager.shared.previewFile(data: convertedFile.data, fileName: convertedFile.fileName)
-                                            })
                                             
-                                            SaveAllButton(
-                                                label: "Save"
-                                            ) {
-                                                saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
-                                            }
-                                            
-                                            ClearButton(
-                                                label: "Reset",
-                                                isDisabled: false
-                                            ) {
-                                                files = []
-                                                errorMessage = nil
-                                            }
-                                        case .error:
-                                            ClearButton(
-                                                label: "Reset",
-                                                isDisabled: false
-                                            ) {
-                                                files = []
-                                                errorMessage = nil
+                                            if let url = fileState.url {
+                                                PreviewButton(action: {
+                                                    QuickLookManager.shared.previewFile(at: url)
+                                                })
                                             }
                                         }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 6)
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
+                                } else {
+                                    VStack(spacing: 0) {
+                                        Divider()
+                                            .padding(.horizontal)
+                                        
+                                        HStack(spacing: 12) {
+                                            switch fileState {
+                                            case .input(let url):
+                                                ClearButton(
+                                                    label: "Reset",
+                                                    isDisabled: false
+                                                ) {
+                                                    files = []
+                                                    errorMessage = nil
+                                                }
+                                                
+                                                PreviewButton(action: {
+                                                    QuickLookManager.shared.previewFile(at: url)
+                                                })
+                                            case .converting:
+                                                EmptyView()
+                                            case .converted(let convertedFile):
+                                                ClearButton(
+                                                    label: "Reset",
+                                                    isDisabled: false
+                                                ) {
+                                                    files = []
+                                                    errorMessage = nil
+                                                }
+                                                
+                                                PreviewButton(action: {
+                                                    QuickLookManager.shared.previewFile(data: convertedFile.data, fileName: convertedFile.fileName)
+                                                })
+                                                
+                                                SaveAllButton(
+                                                    label: "Save"
+                                                ) {
+                                                    saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
+                                                }
+                                            case .error:
+                                                ClearButton(
+                                                    label: "Reset",
+                                                    isDisabled: false
+                                                ) {
+                                                    files = []
+                                                    errorMessage = nil
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 6)
+                                    }
                                 }
                             }
                         } else {
@@ -205,12 +230,21 @@ struct ConverterView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
+                                .padding(8)
                                 
                                 VStack(spacing: 0) {
                                     Divider()
                                         .padding(.horizontal)
                                     
                                     HStack(spacing: 12) {
+                                        ClearButton(
+                                            label: "Reset",
+                                            isDisabled: false
+                                        ) {
+                                            files = []
+                                            errorMessage = nil
+                                        }
+                                        
                                         if files.contains(where: { if case .converted = $0 { true } else { false } }) {
                                             let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
                                             SaveAllButton(
@@ -218,14 +252,6 @@ struct ConverterView: View {
                                             ) {
                                                 saveAllFiles()
                                             }
-                                        }
-                                        
-                                        ClearButton(
-                                            label: "Reset",
-                                            isDisabled: false
-                                        ) {
-                                            files = []
-                                            errorMessage = nil
                                         }
                                     }
                                     .padding(.horizontal)
@@ -696,7 +722,6 @@ struct ConverterView: View {
                         
                         
                         var pageIndex = 0
-                        var foundFiles = false
                         
                         // Based on the debug output, ImageMagick uses: filename-N.ext
                         var pageFiles: [ConvertedFile] = []
@@ -716,7 +741,6 @@ struct ConverterView: View {
                                 pageFiles.append(convertedFile)
                                 
                                 try FileManager.default.removeItem(at: testURL)
-                                foundFiles = true
                                 pageIndex += 1
                             } else {
                                 break
@@ -724,31 +748,35 @@ struct ConverterView: View {
                         }
                         
                         // Replace the converting file with converted files
+                        print("PDF conversion found \(pageFiles.count) page files")
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
-                            files.remove(at: fileIndex)
-                            // Insert all converted files at the same position
-                            for (i, convertedFile) in pageFiles.enumerated() {
-                                files.insert(.converted(convertedFile), at: fileIndex + i)
+                            if pageFiles.isEmpty {
+                                // If no numbered files were found, check for the original filename
+                                if FileManager.default.fileExists(atPath: tempURL.path) {
+                                    print("PDF conversion: Using fallback single file approach")
+                                    let data = try Data(contentsOf: tempURL)
+                                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                                    
+                                    let convertedFile = ConvertedFile(
+                                        originalURL: inputURL,
+                                        data: data,
+                                        fileName: fileName
+                                    )
+                                    
+                                    // Replace the converting file with the converted file
+                                    files[fileIndex] = .converted(convertedFile)
+                                    print("Files array now has \(files.count) items after fallback")
+                                    
+                                    try FileManager.default.removeItem(at: tempURL)
+                                }
+                            } else {
+                                // Remove the converting file and insert all page files
+                                files.remove(at: fileIndex)
+                                for (i, convertedFile) in pageFiles.enumerated() {
+                                    files.insert(.converted(convertedFile), at: fileIndex + i)
+                                }
+                                print("Files array now has \(files.count) items")
                             }
-                        }
-                        
-                        // If no numbered files were found, check for the original filename
-                        if !foundFiles && FileManager.default.fileExists(atPath: tempURL.path) {
-                            let data = try Data(contentsOf: tempURL)
-                            let fileName = "\(baseName).\(outputService.fileExtension)"
-                            
-                            let convertedFile = ConvertedFile(
-                                originalURL: inputURL,
-                                data: data,
-                                fileName: fileName
-                            )
-                            
-                            // Replace the converting file with the converted file
-                            if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
-                                files[fileIndex] = .converted(convertedFile)
-                            }
-                            
-                            try FileManager.default.removeItem(at: tempURL)
                         }
                     } else {
                         // Single file output for non-PDF images
