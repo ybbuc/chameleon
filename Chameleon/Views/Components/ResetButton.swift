@@ -1,5 +1,5 @@
 //
-//  SaveButton.swift
+//  ResetButton.swift
 //  Chameleon
 //
 //  Created by Jakob Wells on 27.06.25.
@@ -7,14 +7,16 @@
 
 import SwiftUI
 
-struct SaveButton: View {
+struct ResetButton: View {
+    let label: String
+    let isDisabled: Bool
     let action: () -> Void
     
     var body: some View {
         StandardButton(
-            icon: "arrow.down.to.line.compact",
-            foregroundColor: Color(red: 0.0, green: 0.5, blue: 0.0),
-            backgroundColor: Color.clear,
+            label: label,
+            icon: "arrow.clockwise",
+            isDisabled: isDisabled,
             action: action
         )
     }

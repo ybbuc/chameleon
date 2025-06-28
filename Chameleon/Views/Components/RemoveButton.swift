@@ -7,10 +7,6 @@
 
 
 import SwiftUI
-import UniformTypeIdentifiers
-import AppKit
-import ActivityIndicatorView
-import ProgressIndicatorView
 
 struct RemoveButton: View {
     let action: () -> Void

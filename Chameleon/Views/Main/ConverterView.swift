@@ -95,15 +95,27 @@ struct ConverterView: View {
                             VStack(spacing: 0) {
                                 VStack(spacing: 12) {
                                     
-                                    switch fileState {
-                                    case .input(let url):
-                                        FilePreviewView(url: url)
-                                    case .converting(let url, _):
-                                        FilePreviewView(url: url)
-                                    case .converted(let convertedFile):
-                                        FilePreviewView(data: convertedFile.data, fileName: convertedFile.fileName)
-                                    case .error(let url, _):
-                                        FilePreviewView(url: url)
+                                    ZStack {
+                                        switch fileState {
+                                        case .input(let url):
+                                            FilePreviewView(url: url)
+                                        case .converting(let url, _):
+                                            FilePreviewView(url: url)
+                                        case .converted(let convertedFile):
+                                            FilePreviewView(data: convertedFile.data, fileName: convertedFile.fileName)
+                                        case .error(let url, _):
+                                            FilePreviewView(url: url)
+                                        }
+                                        
+                                        if case .converting = fileState {
+                                            Rectangle()
+                                                .fill(Color.black.opacity(0.6))
+                                                .overlay(
+                                                    ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
+                                                        .frame(width: 40, height: 20)
+                                                        .foregroundStyle(.white)
+                                                )
+                                        }
                                     }
                                     
                                     Text(fileState.fileName)
@@ -111,11 +123,7 @@ struct ConverterView: View {
                                         .lineLimit(2)
                                         .multilineTextAlignment(.center)
                                     
-                                    if case .converting = fileState {
-                                        ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
-                                            .frame(width: 40, height: 20)
-                                            .foregroundStyle(.blue)
-                                    } else if case .error(_, let message) = fileState {
+                                    if case .error(_, let message) = fileState {
                                         Text(message)
                                             .font(.caption)
                                             .foregroundColor(.red)
@@ -132,7 +140,7 @@ struct ConverterView: View {
                                             .padding(.horizontal)
                                         
                                         HStack(spacing: 12) {
-                                            ClearButton(
+                                            ResetButton(
                                                 label: "Reset",
                                                 isDisabled: true
                                             ) {
@@ -157,7 +165,7 @@ struct ConverterView: View {
                                         HStack(spacing: 12) {
                                             switch fileState {
                                             case .input(let url):
-                                                ClearButton(
+                                                ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
                                                 ) {
@@ -171,7 +179,7 @@ struct ConverterView: View {
                                             case .converting:
                                                 EmptyView()
                                             case .converted(let convertedFile):
-                                                ClearButton(
+                                                ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
                                                 ) {
@@ -189,7 +197,7 @@ struct ConverterView: View {
                                                     saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
                                                 }
                                             case .error:
-                                                ClearButton(
+                                                ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
                                                 ) {
@@ -225,7 +233,7 @@ struct ConverterView: View {
                                         .padding(.horizontal)
                                     
                                     HStack(spacing: 12) {
-                                        ClearButton(
+                                        ResetButton(
                                             label: "Reset",
                                             isDisabled: false
                                         ) {
@@ -282,7 +290,7 @@ struct ConverterView: View {
             .padding()
             .frame(maxWidth: .infinity)
             
-            // Convert pane (middle)
+            // MARK: - Convert pane
             VStack {
                 FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url })
                     .padding(.top)
@@ -844,8 +852,8 @@ struct ConverterView: View {
                     files[fileIndex] = .error(inputURL, errorMessage: error.localizedDescription)
                 }
                 
-                showError("Failed to convert \(inputURL.lastPathComponent): \(error.localizedDescription)")
-                break
+                // Continue to next file instead of stopping entire conversion
+                continue
             }
         }
         
@@ -1036,7 +1044,7 @@ struct ConverterView: View {
     private func fileRow(for fileState: FileState) -> some View {
         switch fileState {
         case .input(let url):
-            FileContentRow(
+            FileRow(
                 url: url,
                 onRemove: {
                     files.removeAll { $0.id == fileState.id }
