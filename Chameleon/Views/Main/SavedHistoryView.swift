@@ -138,12 +138,13 @@ struct SavedHistoryRow: View {
     @State private var isHovering = false
     @State private var showingDeleteAlert = false
     @State private var isFileAccessible: Bool = true
+    @State private var cachedThumbnail: NSImage?
     
     var body: some View {
         HStack(spacing: 16) {
             // Thumbnail or file icon
             Group {
-                if let thumbnailImage = record.thumbnailImage {
+                if let thumbnailImage = cachedThumbnail {
                     Image(nsImage: thumbnailImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -312,6 +313,7 @@ struct SavedHistoryRow: View {
         }
         .onAppear {
             isFileAccessible = record.isFileAccessible
+            cachedThumbnail = record.thumbnailImage
         }
     }
     
