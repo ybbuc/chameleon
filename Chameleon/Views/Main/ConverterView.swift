@@ -82,9 +82,11 @@ struct ConverterView: View {
                         .fill(Color.gray.opacity(0.1))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: isTargeted ? 3 : 2, dash: [8, 8]))
+                                .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: isTargeted ? 2.5 : 2, dash: [8, 8]))
                                 .animation(.easeInOut(duration: 0.2), value: isTargeted)
                         )
+                        .shadow(color: isTargeted ? Color.accentColor.opacity(0.4) : Color.clear, radius: isTargeted ? 12 : 0)
+                        .animation(.easeInOut(duration: 0.2), value: isTargeted)
                     
                     if !files.isEmpty {
                         if files.count == 1 {

@@ -92,7 +92,7 @@ struct SavedHistoryView: View {
                             
                             if record.id != filteredConversions.last?.id {
                                 Divider()
-                                    .padding(.leading, 24)
+                                    .padding(.horizontal, 24)
                             }
                         }
                     }
@@ -121,17 +121,25 @@ struct SavedHistoryRow: View {
         HStack(spacing: 16) {
             // File icon
             Image(systemName: fileIcon)
-                .font(.system(size: 32))
-                .foregroundColor(.accentColor)
+                .font(.system(size: 24))
+                .foregroundColor(.secondary)
                 .frame(width: 40, height: 40)
             
             VStack(alignment: .leading, spacing: 6) {
-                // File name with search highlighting
-                Text(highlightedText(record.outputFileName, searchText: searchText))
-                    .font(.system(.body, design: .default))
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
+                // File name with search highlighting and file size
+                HStack {
+                    Text(highlightedText(record.outputFileName, searchText: searchText))
+                        .font(.system(.body, design: .default))
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Text(record.formattedFileSize)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
                 HStack(spacing: 12) {
                     // Format conversion badge
@@ -161,8 +169,8 @@ struct SavedHistoryRow: View {
                     
                     Spacer()
                     
-                    // Timestamp
-                    Text(record.formattedDate)
+                    // Relative time
+                    Text(record.relativeTime)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -170,16 +178,10 @@ struct SavedHistoryRow: View {
             
             Spacer()
             
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(record.formattedFileSize)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if !record.isFileAccessible {
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.orange)
-                        .help("File no longer accessible")
-                }
+            if !record.isFileAccessible {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundColor(.orange)
+                    .help("File no longer accessible")
             }
             
             if isHovering {
@@ -270,13 +272,10 @@ struct SavedHistoryRow: View {
     private var fileIcon: String {
         let ext = record.outputFormat.lowercased()
         switch ext {
-        case "pdf": return "doc.richtext"
-        case "png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp": return "photo"
+        case "pdf", "rtf": return "doc.richtext"
+        case "png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp", "tif": return "photo"
         case "html", "htm": return "globe"
         case "md", "txt": return "doc.text"
-        case "docx", "doc": return "doc"
-        case "xlsx", "xls": return "tablecells"
-        case "pptx", "ppt": return "rectangle.on.rectangle"
         default: return "doc"
         }
     }
