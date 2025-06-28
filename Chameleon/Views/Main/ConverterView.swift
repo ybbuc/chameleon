@@ -383,7 +383,7 @@ struct ConverterView: View {
                         Button(action: {
                             cancelConversion()
                         }) {
-                            Label("Cancel", systemImage: "xmark")
+                            Text("Cancel")
                                 .font(.title3)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
