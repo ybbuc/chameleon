@@ -159,16 +159,12 @@ struct SavedHistoryRow: View {
                 }
                 
                 HStack(spacing: 12) {
-                    // Format conversion badge
+                    // Format conversion
                     HStack(spacing: 4) {
                         Text(record.inputFormat.uppercased())
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.blue)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .foregroundColor(.secondary)
                         
                         Image(systemName: "arrow.right")
                             .font(.caption2)
@@ -177,11 +173,7 @@ struct SavedHistoryRow: View {
                         Text(record.outputFormat.uppercased())
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.green)
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .foregroundColor(.secondary)
                     }
                     
                     Spacer()
