@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 import AppKit
 import ActivityIndicatorView
@@ -51,6 +52,7 @@ enum FileState: Identifiable {
 
 
 struct ConverterView: View {
+    @ObservedObject var savedHistoryManager: SavedHistoryManager
     @State private var files: [FileState] = []
     @State private var outputService: ConversionService = .pandoc(.html)
     @State private var isConverting = false
@@ -62,7 +64,7 @@ struct ConverterView: View {
     @AppStorage("useLossyCompression") private var useLossyCompression: Bool = false
     @AppStorage("removeExifMetadata") private var removeExifMetadata: Bool = false
     @State private var isTargeted = false
-    @State private var showingRecentConversions = false
+    @State private var dashPhase: CGFloat = 0
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
     
     @State private var pandocWrapper: PandocWrapper?
@@ -70,7 +72,6 @@ struct ConverterView: View {
     @State private var imageMagickWrapper: ImageMagickWrapper?
     @State private var imageMagickInitError: String?
     
-    @StateObject private var historyManager = ConversionHistoryManager()
     
     // MARK: - File pane
     var body: some View {
@@ -81,7 +82,8 @@ struct ConverterView: View {
                         .fill(Color.gray.opacity(0.1))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
+                                .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: isTargeted ? 3 : 2, dash: [8, 8]))
+                                .animation(.easeInOut(duration: 0.2), value: isTargeted)
                         )
                     
                     if !files.isEmpty {
@@ -233,7 +235,7 @@ struct ConverterView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "doc")
                                 .font(.system(size: 48))
-                                .foregroundStyle(.quaternary)
+                                .foregroundStyle(Color.secondary.opacity(0.3))
                             
                             Text("Drop Files Here")
                                 .font(.headline)
@@ -382,26 +384,6 @@ struct ConverterView: View {
             .frame(width: 300)
             
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showingRecentConversions.toggle()
-                } label: {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .help("Recent Conversions")
-                }
-                .popover(isPresented: $showingRecentConversions, arrowEdge: .bottom) {
-                    RecentConversionsView(historyManager: historyManager)
-                        .frame(
-                            width: 400,
-                            height: historyManager.recentConversions.isEmpty ? 300 :
-                                   min(500, max(200, CGFloat(historyManager.recentConversions.count * 60) + 100))
-                        )
-                }
-            }
-        }
-        .frame(minWidth: 800, minHeight: 400)
-        .navigationTitle("")
         .onAppear {
             initializePandoc()
             initializeImageMagick()
@@ -823,7 +805,7 @@ struct ConverterView: View {
                 // Add to conversion history
                 let inputFormat = originalURL.pathExtension.uppercased()
                 let outputFormat = url.pathExtension.uppercased()
-                historyManager.addConversion(
+                savedHistoryManager.addConversion(
                     inputFileName: originalURL.lastPathComponent,
                     inputFormat: inputFormat,
                     outputFormat: outputFormat,
@@ -859,7 +841,7 @@ struct ConverterView: View {
                     // Add to conversion history
                     let inputFormat = file.originalURL.pathExtension.uppercased()
                     let outputFormat = fileURL.pathExtension.uppercased()
-                    historyManager.addConversion(
+                    savedHistoryManager.addConversion(
                         inputFileName: file.originalURL.lastPathComponent,
                         inputFormat: inputFormat,
                         outputFormat: outputFormat,
@@ -1124,5 +1106,11 @@ extension PandocFormat {
 
 
 #Preview {
-    ConverterView()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
+    let context = container.mainContext
+    let manager = SavedHistoryManager(modelContext: context)
+    
+    ConverterView(savedHistoryManager: manager)
+        .modelContainer(container)
 }

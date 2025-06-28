@@ -1,23 +1,23 @@
 //
-//  ConversionHistoryManager.swift
+//  SavedHistoryManager.swift
 //  Chameleon
 //
-//  Created by Jakob Wells on 27.06.25.
+//  Created by Jakob Wells on 28.06.25.
 //
-
 
 import Foundation
 import AppKit
+import SwiftData
 
-class ConversionHistoryManager: ObservableObject {
-    @Published var recentConversions: [ConversionRecord] = []
+@MainActor
+class SavedHistoryManager: ObservableObject {
+    @Published var savedHistory: [ConversionRecord] = []
     
-    private let maxHistoryCount = 50
-    private let userDefaults = UserDefaults.standard
-    private let historyKey = "ConversionHistory"
+    private var modelContext: ModelContext
     
-    init() {
-        loadHistory()
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        loadSavedHistory()
     }
     
     func addConversion(
@@ -39,25 +39,26 @@ class ConversionHistoryManager: ObservableObject {
             fileSize: fileSize
         )
         
-        // Add to beginning of array
-        recentConversions.insert(record, at: 0)
-        
-        // Keep only the most recent conversions
-        if recentConversions.count > maxHistoryCount {
-            recentConversions = Array(recentConversions.prefix(maxHistoryCount))
-        }
-        
-        saveHistory()
+        modelContext.insert(record)
+        try? modelContext.save()
+        loadSavedHistory()
     }
     
     func removeConversion(_ record: ConversionRecord) {
-        recentConversions.removeAll { $0.id == record.id }
-        saveHistory()
+        modelContext.delete(record)
+        try? modelContext.save()
+        loadSavedHistory()
     }
     
-    func clearHistory() {
-        recentConversions.removeAll()
-        saveHistory()
+    func clearSavedHistory() {
+        let fetchRequest = FetchDescriptor<ConversionRecord>()
+        if let records = try? modelContext.fetch(fetchRequest) {
+            for record in records {
+                modelContext.delete(record)
+            }
+        }
+        try? modelContext.save()
+        loadSavedHistory()
     }
     
     func openFile(_ record: ConversionRecord) {
@@ -70,17 +71,13 @@ class ConversionHistoryManager: ObservableObject {
         NSWorkspace.shared.selectFile(record.outputFileURL.path, inFileViewerRootedAtPath: "")
     }
     
-    private func loadHistory() {
-        guard let data = userDefaults.data(forKey: historyKey),
-              let decoded = try? JSONDecoder().decode([ConversionRecord].self, from: data) else {
-            return
+    private func loadSavedHistory() {
+        let fetchDescriptor = FetchDescriptor<ConversionRecord>(sortBy: [SortDescriptor(\.timestamp, order: .reverse)])
+        if let records = try? modelContext.fetch(fetchDescriptor) {
+            savedHistory = records
+        } else {
+            savedHistory = []
         }
-        recentConversions = decoded
-    }
-    
-    private func saveHistory() {
-        guard let encoded = try? JSONEncoder().encode(recentConversions) else { return }
-        userDefaults.set(encoded, forKey: historyKey)
     }
     
     private func getFileSize(at url: URL) -> Int64 {

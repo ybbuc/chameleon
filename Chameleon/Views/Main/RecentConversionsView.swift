@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct RecentConversionsView: View {
-    @ObservedObject var historyManager: ConversionHistoryManager
+    @ObservedObject var historyManager: SavedHistoryManager
     @State private var showingClearAlert = false
     
     var body: some View {
@@ -21,7 +22,7 @@ struct RecentConversionsView: View {
                 
                 Spacer()
                 
-                if !historyManager.recentConversions.isEmpty {
+                if !historyManager.savedHistory.isEmpty {
                     Button("Clear All") {
                         showingClearAlert = true
                     }
@@ -34,7 +35,7 @@ struct RecentConversionsView: View {
             Divider()
             
             // Content
-            if historyManager.recentConversions.isEmpty {
+            if historyManager.savedHistory.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 48))
@@ -52,10 +53,10 @@ struct RecentConversionsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
-                        ForEach(historyManager.recentConversions) { record in
+                        ForEach(historyManager.savedHistory) { record in
                             RecentConversionRow(record: record, historyManager: historyManager)
                             
-                            if record.id != historyManager.recentConversions.last?.id {
+                            if record.id != historyManager.savedHistory.last?.id {
                                 Divider()
                                     .padding(.leading, 16)
                             }
@@ -68,7 +69,7 @@ struct RecentConversionsView: View {
         .alert("Clear All Conversions", isPresented: $showingClearAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Clear All", role: .destructive) {
-                historyManager.clearHistory()
+                historyManager.clearSavedHistory()
             }
         } message: {
             Text("This will remove all conversion history. This action cannot be undone.")
@@ -77,7 +78,7 @@ struct RecentConversionsView: View {
     
     private func deleteConversions(at offsets: IndexSet) {
         for index in offsets {
-            let record = historyManager.recentConversions[index]
+            let record = historyManager.savedHistory[index]
             historyManager.removeConversion(record)
         }
     }
@@ -85,7 +86,7 @@ struct RecentConversionsView: View {
 
 struct RecentConversionRow: View {
     let record: ConversionRecord
-    let historyManager: ConversionHistoryManager
+    let historyManager: SavedHistoryManager
     @State private var isHovering = false
     
     var body: some View {
@@ -195,5 +196,11 @@ struct RecentConversionRow: View {
 }
 
 #Preview {
-    RecentConversionsView(historyManager: ConversionHistoryManager())
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
+    let context = container.mainContext
+    let manager = SavedHistoryManager(modelContext: context)
+    
+    RecentConversionsView(historyManager: manager)
+        .modelContainer(container)
 }

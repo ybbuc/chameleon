@@ -7,16 +7,18 @@
 
 import Foundation
 import AppKit
+import SwiftData
 
-struct ConversionRecord: Codable, Identifiable {
-    let id: UUID
-    let inputFileName: String
-    let inputFormat: String
-    let outputFormat: String
-    let outputFileName: String
-    let outputFileURL: URL
-    let timestamp: Date
-    let fileSize: Int64
+@Model
+class ConversionRecord {
+    var id: UUID
+    var inputFileName: String
+    var inputFormat: String
+    var outputFormat: String
+    var outputFileName: String
+    var outputFileURL: URL
+    var timestamp: Date
+    var fileSize: Int64
     
     init(inputFileName: String, inputFormat: String, outputFormat: String, outputFileName: String, outputFileURL: URL, timestamp: Date, fileSize: Int64) {
         self.id = UUID()

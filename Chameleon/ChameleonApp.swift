@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct ChamelionApp: App {
@@ -13,5 +14,6 @@ struct ChamelionApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [ConversionRecord.self])
     }
 }
