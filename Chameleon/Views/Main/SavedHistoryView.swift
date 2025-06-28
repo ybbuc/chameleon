@@ -12,6 +12,7 @@ struct SavedHistoryView: View {
     @Binding var searchText: String
     @ObservedObject var savedHistoryManager: SavedHistoryManager
     @State private var showingClearAlert = false
+    @State private var showingClearMissingAlert = false
     
     private var filteredConversions: [ConversionRecord] {
         if searchText.isEmpty {
@@ -28,21 +29,29 @@ struct SavedHistoryView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header - only show when there are conversions
-            if !savedHistoryManager.savedHistory.isEmpty {
-                HStack {
-                    Spacer()
-                    
-                    Button("Clear History") {
-                        showingClearAlert = true
-                    }
-                    .foregroundColor(.red)
-                    .buttonStyle(.bordered)
+            // Header - always show
+            HStack {
+                Spacer()
+                
+                Button("Clear Missing") {
+                    showingClearMissingAlert = true
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-                .padding(.bottom, 16)
+                .foregroundColor(savedHistoryManager.hasMissingFiles ? .orange : .secondary)
+                .buttonStyle(.bordered)
+                .disabled(!savedHistoryManager.hasMissingFiles || savedHistoryManager.savedHistory.isEmpty)
+                
+                Button("Clear History") {
+                    showingClearAlert = true
+                }
+                .foregroundColor(.red)
+                .buttonStyle(.bordered)
+                .disabled(savedHistoryManager.savedHistory.isEmpty)
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 16)
+            
+            Divider()
             
             // Content
             if savedHistoryManager.savedHistory.isEmpty {
@@ -108,6 +117,17 @@ struct SavedHistoryView: View {
         } message: {
             Text("This will remove all saved history. This action cannot be undone.")
         }
+        .alert("Clear Missing Files", isPresented: $showingClearMissingAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Clear Missing", role: .destructive) {
+                savedHistoryManager.clearMissingFiles()
+            }
+        } message: {
+            Text("This will remove all saved history entries for files that no longer exist. This action cannot be undone.")
+        }
+        .onAppear {
+            savedHistoryManager.checkForMissingFiles()
+        }
     }
 }
 
@@ -117,6 +137,7 @@ struct SavedHistoryRow: View {
     let searchText: String
     @State private var isHovering = false
     @State private var showingDeleteAlert = false
+    @State private var isFileAccessible: Bool = true
     
     var body: some View {
         HStack(spacing: 16) {
@@ -134,7 +155,7 @@ struct SavedHistoryRow: View {
                         )
                 } else {
                     Image(systemName: fileIcon)
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
                         .foregroundColor(.secondary)
                         .frame(width: 40, height: 40)
                         .background(Color.secondary.opacity(0.1))
@@ -185,9 +206,9 @@ struct SavedHistoryRow: View {
                 }
             }
             
-            Spacer()
-            
-            if !record.isFileAccessible {
+            if !isFileAccessible {
+                Spacer()
+                
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundColor(.orange)
                     .help("File no longer accessible")
@@ -195,7 +216,7 @@ struct SavedHistoryRow: View {
             
             if isHovering {
                 HStack(spacing: 8) {
-                    if record.isFileAccessible {
+                    if isFileAccessible {
                         Button {
                             QuickLookManager.shared.previewFile(at: record.outputFileURL)
                         } label: {
@@ -247,12 +268,17 @@ struct SavedHistoryRow: View {
                 }
             }
         }
-        .padding(.horizontal, 24)
         .padding(.vertical, 12)
+        .padding(.horizontal, 24)
         .background(isHovering ? Color.secondary.opacity(0.05) : Color.clear)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.2)) {
                 isHovering = hovering
+            }
+            if hovering {
+                // Check file accessibility when hovering
+                isFileAccessible = record.isFileAccessible
+                savedHistoryManager.checkForMissingFiles()
             }
         }
         .alert("Remove from Saved History", isPresented: $showingDeleteAlert) {
@@ -264,7 +290,7 @@ struct SavedHistoryRow: View {
             Text("Are you sure you want to remove \"\(record.outputFileName)\" from your saved history?")
         }
         .contextMenu {
-            if record.isFileAccessible {
+            if isFileAccessible {
                 Button("Quick Look") {
                     QuickLookManager.shared.previewFile(at: record.outputFileURL)
                 }
@@ -283,6 +309,9 @@ struct SavedHistoryRow: View {
             Button("Remove from Saved History", role: .destructive) {
                 showingDeleteAlert = true
             }
+        }
+        .onAppear {
+            isFileAccessible = record.isFileAccessible
         }
     }
     

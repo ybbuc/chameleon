@@ -12,6 +12,7 @@ import SwiftData
 @MainActor
 class SavedHistoryManager: ObservableObject {
     @Published var savedHistory: [ConversionRecord] = []
+    @Published var hasMissingFiles: Bool = false
     
     private var modelContext: ModelContext
     
@@ -70,6 +71,27 @@ class SavedHistoryManager: ObservableObject {
         loadSavedHistory()
     }
     
+    func clearMissingFiles() {
+        let fetchRequest = FetchDescriptor<ConversionRecord>()
+        if let records = try? modelContext.fetch(fetchRequest) {
+            for record in records {
+                if !record.isFileAccessible {
+                    modelContext.delete(record)
+                }
+            }
+        }
+        try? modelContext.save()
+        loadSavedHistory()
+    }
+    
+    private func updateMissingFilesState() {
+        hasMissingFiles = savedHistory.contains { !$0.isFileAccessible }
+    }
+    
+    func checkForMissingFiles() {
+        updateMissingFilesState()
+    }
+    
     func openFile(_ record: ConversionRecord) {
         guard record.isFileAccessible else { return }
         NSWorkspace.shared.open(record.outputFileURL)
@@ -87,6 +109,7 @@ class SavedHistoryManager: ObservableObject {
         } else {
             savedHistory = []
         }
+        updateMissingFilesState()
     }
     
     private func getFileSize(at url: URL) -> Int64 {
