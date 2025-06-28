@@ -9,6 +9,7 @@ import Foundation
 
 class ImageMagickWrapper {
     private let magickPath: String
+    private var currentProcess: Process?
     
     init() throws {
         // Use system magick from PATH (ImageMagick v7)
@@ -95,7 +96,18 @@ class ImageMagickWrapper {
         process.environment = environment
         
         try process.run()
-        process.waitUntilExit()
+        
+        // Wait for completion with cancellation support
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -108,6 +120,11 @@ class ImageMagickWrapper {
             
             throw ImageMagickError.conversionFailed(errorString)
         }
+    }
+    
+    func cancel() {
+        currentProcess?.terminate()
+        currentProcess = nil
     }
 }
 

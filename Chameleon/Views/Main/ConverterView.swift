@@ -71,6 +71,7 @@ struct ConverterView: View {
     @State private var pandocInitError: String?
     @State private var imageMagickWrapper: ImageMagickWrapper?
     @State private var imageMagickInitError: String?
+    @State private var conversionTask: Task<Void, Never>?
     
     
     // MARK: - File pane
@@ -205,13 +206,19 @@ struct ConverterView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
-                                    VStack(spacing: 8) {
+                                    VStack(spacing: 0) {
                                         ForEach(files) { fileState in
                                             fileRow(for: fileState)
+                                            
+                                            if fileState.id != files.last?.id {
+                                                Divider()
+                                                    .padding(.horizontal, 12)
+                                            }
                                         }
                                     }
-                                    .padding(16)
+                                    .padding(8)
                                 }
+                                .padding(8)
                                 
                                 VStack(spacing: 0) {
                                     Divider()
@@ -372,21 +379,35 @@ struct ConverterView: View {
                 Spacer()
                 
                 VStack {
-                    Button(action: {
-                        print("Convert button clicked")
-                        Task {
-                            await convertFile()
+                    if isConverting {
+                        Button(action: {
+                            cancelConversion()
+                        }) {
+                            Label("Cancel", systemImage: "xmark")
+                                .font(.title3)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
                         }
-                    }) {
-                        Label("Convert", systemImage: "arrowshape.zigzag.right")
-                            .font(.title3)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .padding(.bottom)
+                    } else {
+                        Button(action: {
+                            print("Convert button clicked")
+                            conversionTask = Task {
+                                await convertFile()
+                            }
+                        }) {
+                            Label("Convert", systemImage: "arrowshape.zigzag.right")
+                                .font(.title3)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(files.isEmpty || !isConversionServiceAvailable() || files.contains(where: { if case .converting = $0 { true } else { false } }) || !files.contains(where: { if case .input = $0 { true } else { false } }))
+                        .controlSize(.large)
+                        .padding(.bottom)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(files.isEmpty || isConverting || !isConversionServiceAvailable() || files.contains(where: { if case .converting = $0 { true } else { false } }) || !files.contains(where: { if case .input = $0 { true } else { false } }))
-                    .controlSize(.large)
-                    .padding(.bottom)
                 }
             }
             .padding()
@@ -419,6 +440,28 @@ struct ConverterView: View {
     private func showError(_ message: String) {
         errorMessage = message
         showingErrorAlert = true
+    }
+    
+    private func cancelConversion() {
+        // Cancel the Task
+        conversionTask?.cancel()
+        conversionTask = nil
+        
+        // Cancel any running processes
+        pandocWrapper?.cancel()
+        imageMagickWrapper?.cancel()
+        
+        // Reset conversion state
+        isConverting = false
+        currentConversionFile = ""
+        conversionProgress = (current: 0, total: 0)
+        
+        // Reset any converting files back to input state
+        for i in files.indices {
+            if case .converting(let url, _) = files[i] {
+                files[i] = .input(url)
+            }
+        }
     }
     
     private func initializePandoc() {
@@ -639,6 +682,12 @@ struct ConverterView: View {
         conversionProgress = (current: 0, total: inputURLs.count)
         
         for (index, inputURL) in inputURLs.enumerated() {
+            // Check for cancellation
+            if Task.isCancelled {
+                print("Conversion cancelled")
+                return
+            }
+            
             // Mark this file as converting
             if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                 files[fileIndex] = .converting(inputURL, fileName: inputURL.lastPathComponent)
@@ -782,6 +831,12 @@ struct ConverterView: View {
                 
                 print("Successfully converted \(inputURL.lastPathComponent)")
             } catch {
+                // Handle cancellation errors differently
+                if error is CancellationError {
+                    print("Conversion cancelled for \(inputURL.lastPathComponent)")
+                    return
+                }
+                
                 print("Conversion failed for \(inputURL.lastPathComponent): \(error)")
                 
                 // Mark this file as error
@@ -802,6 +857,7 @@ struct ConverterView: View {
         isConverting = false
         currentConversionFile = ""
         conversionProgress = (current: 0, total: 0)
+        conversionTask = nil
     }
     
     private func saveFile(data: Data, fileName: String, originalURL: URL) {

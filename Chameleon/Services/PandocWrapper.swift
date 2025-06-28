@@ -9,6 +9,7 @@ import Foundation
 
 class PandocWrapper {
     private let pandocPath: String
+    private var currentProcess: Process?
     
     init() throws {
         // Use system pandoc from PATH
@@ -76,8 +77,17 @@ class PandocWrapper {
             pipe.fileHandleForWriting.closeFile()
         }
         
-        // Wait for completion
-        process.waitUntilExit()
+        // Wait for completion with cancellation support
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         
         // Read output
         let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
@@ -127,7 +137,18 @@ class PandocWrapper {
         process.standardError = errorPipe
         
         try process.run()
-        process.waitUntilExit()
+        
+        // Wait for completion with cancellation support
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
         
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -144,6 +165,11 @@ class PandocWrapper {
             
             throw PandocError.conversionFailed(errorString)
         }
+    }
+    
+    func cancel() {
+        currentProcess?.terminate()
+        currentProcess = nil
     }
 }
 
