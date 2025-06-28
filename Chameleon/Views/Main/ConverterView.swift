@@ -205,32 +205,13 @@ struct ConverterView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ScrollView {
-                                    HStack(alignment: .top, spacing: 0) {
-                                        // Icon column
-                                        VStack(spacing: 8) {
-                                            ForEach(files) { fileState in
-                                                Image(nsImage: iconForFile(fileState: fileState))
-                                                    .resizable()
-                                                    .frame(width: 32, height: 32)
-                                                    .fixedSize()
-                                            }
+                                    VStack(spacing: 8) {
+                                        ForEach(files) { fileState in
+                                            fileRow(for: fileState)
                                         }
-                                        .padding(.leading, 16)
-                                        .padding(.trailing, 12)
-                                        .padding(.vertical, 16)
-                                        
-                                        // File content column
-                                        VStack(spacing: 8) {
-                                            ForEach(files) { fileState in
-                                                fileRow(for: fileState)
-                                            }
-                                        }
-                                        .padding(.trailing, 16)
-                                        .padding(.vertical, 16)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
+                                    .padding(16)
                                 }
-                                .padding(8)
                                 
                                 VStack(spacing: 0) {
                                     Divider()
@@ -1005,28 +986,8 @@ struct ConverterView: View {
                     files.removeAll { $0.id == fileState.id }
                 }
             )
-        case .converting(_, let fileName):
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(fileName)
-                        .font(.headline)
-                        .lineLimit(1)
-                    
-                    HStack(spacing: 4) {
-                        ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
-                            .frame(width: 20, height: 20)
-                            .foregroundStyle(.blue)
-                        Text("Converting...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.gray.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+        case .converting(let url, let fileName):
+            ConvertingFileRow(url: url, fileName: fileName)
         case .converted(let convertedFile):
             ConvertedFileContentRow(
                 file: convertedFile,
@@ -1034,27 +995,15 @@ struct ConverterView: View {
                     saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
                 }
             )
-        case .error(_, let message):
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(fileState.fileName)
-                        .font(.headline)
-                        .lineLimit(1)
-                    
-                    Text(message)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .lineLimit(2)
-                }
-                Spacer()
-                RemoveButton {
+        case .error(let url, let message):
+            ErrorFileRow(
+                url: url, 
+                fileName: fileState.fileName, 
+                message: message,
+                onRemove: {
                     files.removeAll { $0.id == fileState.id }
                 }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.red.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            )
         }
     }
 }

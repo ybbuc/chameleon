@@ -260,6 +260,7 @@ struct SavedHistoryRow: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 16))
+                            .foregroundColor(.red)
                     }
                     .buttonStyle(.plain)
                     .padding(8)
