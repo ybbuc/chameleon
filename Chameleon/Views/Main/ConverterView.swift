@@ -11,16 +11,51 @@ import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
 
+enum FileState: Identifiable {
+    case input(URL)
+    case converting(URL, fileName: String)
+    case converted(ConvertedFile)
+    case error(URL, errorMessage: String)
+    
+    var id: String {
+        switch self {
+        case .input(let url), .converting(let url, _), .error(let url, _):
+            return url.absoluteString
+        case .converted(let file):
+            return file.id.uuidString
+        }
+    }
+    
+    var fileName: String {
+        switch self {
+        case .input(let url), .error(let url, _):
+            return url.lastPathComponent
+        case .converting(_, let fileName):
+            return fileName
+        case .converted(let file):
+            return file.fileName
+        }
+    }
+    
+    var url: URL? {
+        switch self {
+        case .input(let url), .converting(let url, _), .error(let url, _):
+            return url
+        case .converted(let file):
+            return file.originalURL
+        }
+    }
+}
+
 
 
 
 struct ConverterView: View {
-    @State private var inputFileURLs: [URL] = []
+    @State private var files: [FileState] = []
     @State private var outputService: ConversionService = .pandoc(.html)
     @State private var isConverting = false
     @State private var currentConversionFile = ""
     @State private var conversionProgress = (current: 0, total: 0)
-    @State private var convertedFiles: [ConvertedFile] = []
     @State private var errorMessage: String?
     @State private var showingErrorAlert = false
     @AppStorage("imageQuality") private var imageQuality: Double = 85
@@ -37,7 +72,7 @@ struct ConverterView: View {
     
     @StateObject private var historyManager = ConversionHistoryManager()
     
-    // MARK: - Input pane
+    // MARK: - File pane
     var body: some View {
         HStack(spacing: 0) {
             VStack {
@@ -49,18 +84,39 @@ struct ConverterView: View {
                                 .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
                         )
                     
-                    if !inputFileURLs.isEmpty {
-                        if inputFileURLs.count == 1 {
+                    if !files.isEmpty {
+                        if files.count == 1 {
+                            let fileState = files[0]
                             VStack(spacing: 0) {
                                 VStack(spacing: 12) {
-                                    let fileURL = inputFileURLs[0]
                                     
-                                    FilePreviewView(url: fileURL)
+                                    switch fileState {
+                                    case .input(let url):
+                                        FilePreviewView(url: url)
+                                    case .converting(let url, _):
+                                        FilePreviewView(url: url)
+                                    case .converted(let convertedFile):
+                                        FilePreviewView(data: convertedFile.data, fileName: convertedFile.fileName)
+                                    case .error(let url, _):
+                                        FilePreviewView(url: url)
+                                    }
                                     
-                                    Text(fileURL.lastPathComponent)
+                                    Text(fileState.fileName)
                                         .font(.headline)
                                         .lineLimit(2)
                                         .multilineTextAlignment(.center)
+                                    
+                                    if case .converting = fileState {
+                                        ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
+                                            .frame(width: 40, height: 20)
+                                            .foregroundStyle(.blue)
+                                    } else if case .error(_, let message) = fileState {
+                                        Text(message)
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.center)
+                                    }
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,17 +126,47 @@ struct ConverterView: View {
                                         .padding(.horizontal)
                                     
                                     HStack(spacing: 12) {
-                                        PreviewButton(action: {
-                                            QuickLookManager.shared.previewFile(at: inputFileURLs[0])
-                                        })
-                                        
-                                        ClearButton(
-                                            label: "Clear",
-                                            isDisabled: false
-                                        ) {
-                                            inputFileURLs = []
-                                            convertedFiles = []
-                                            errorMessage = nil
+                                        switch fileState {
+                                        case .input(let url):
+                                            PreviewButton(action: {
+                                                QuickLookManager.shared.previewFile(at: url)
+                                            })
+                                            
+                                            ClearButton(
+                                                label: "Reset",
+                                                isDisabled: false
+                                            ) {
+                                                files = []
+                                                errorMessage = nil
+                                            }
+                                        case .converting:
+                                            EmptyView()
+                                        case .converted(let convertedFile):
+                                            PreviewButton(action: {
+                                                QuickLookManager.shared.previewFile(data: convertedFile.data, fileName: convertedFile.fileName)
+                                            })
+                                            
+                                            SaveAllButton(
+                                                label: "Save"
+                                            ) {
+                                                saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
+                                            }
+                                            
+                                            ClearButton(
+                                                label: "Reset",
+                                                isDisabled: false
+                                            ) {
+                                                files = []
+                                                errorMessage = nil
+                                            }
+                                        case .error:
+                                            ClearButton(
+                                                label: "Reset",
+                                                isDisabled: false
+                                            ) {
+                                                files = []
+                                                errorMessage = nil
+                                            }
                                         }
                                     }
                                     .padding(.horizontal)
@@ -93,8 +179,8 @@ struct ConverterView: View {
                                     HStack(alignment: .top, spacing: 0) {
                                         // Icon column
                                         VStack(spacing: 8) {
-                                            ForEach(inputFileURLs, id: \.self) { url in
-                                                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                                            ForEach(files) { fileState in
+                                                Image(nsImage: iconForFile(fileState: fileState))
                                                     .resizable()
                                                     .frame(width: 32, height: 32)
                                                     .fixedSize()
@@ -106,17 +192,8 @@ struct ConverterView: View {
                                         
                                         // File content column
                                         VStack(spacing: 8) {
-                                            ForEach(inputFileURLs, id: \.self) { url in
-                                                FileContentRow(
-                                                    url: url,
-                                                    onRemove: {
-                                                        inputFileURLs.removeAll { $0 == url }
-                                                        if inputFileURLs.isEmpty {
-                                                            convertedFiles = []
-                                                            errorMessage = nil
-                                                                        }
-                                                    }
-                                                )
+                                            ForEach(files) { fileState in
+                                                fileRow(for: fileState)
                                             }
                                         }
                                         .padding(.trailing, 16)
@@ -129,13 +206,23 @@ struct ConverterView: View {
                                     Divider()
                                         .padding(.horizontal)
                                     
-                                    ClearButton(
-                                        label: "Clear All",
-                                        isDisabled: false
-                                    ) {
-                                        inputFileURLs = []
-                                        convertedFiles = []
-                                        errorMessage = nil
+                                    HStack(spacing: 12) {
+                                        if files.contains(where: { if case .converted = $0 { true } else { false } }) {
+                                            let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
+                                            SaveAllButton(
+                                                label: convertedCount == 1 ? "Save" : "Save All"
+                                            ) {
+                                                saveAllFiles()
+                                            }
+                                        }
+                                        
+                                        ClearButton(
+                                            label: "Reset",
+                                            isDisabled: false
+                                        ) {
+                                            files = []
+                                            errorMessage = nil
+                                        }
                                     }
                                     .padding(.horizontal)
                                     .padding(.vertical, 6)
@@ -179,9 +266,9 @@ struct ConverterView: View {
             
             // Convert pane (middle)
             VStack {
-                FormatPicker(selectedService: $outputService, inputFileURLs: inputFileURLs)
+                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url })
                     .padding(.top)
-                    .disabled(inputFileURLs.isEmpty)
+                    .disabled(files.isEmpty || files.contains(where: { if case .converting = $0 { true } else { false } }))
                 
                 // Show DPI selector when converting PDF to image
                 if shouldShowDpiSelector {
@@ -219,7 +306,7 @@ struct ConverterView: View {
                 }
                 
                 // Show EXIF metadata removal toggle for all image conversions
-                if case .imagemagick = outputService, !inputFileURLs.isEmpty {
+                if case .imagemagick(_) = outputService, !files.isEmpty {
                     HStack {
                         Spacer()
                         Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
@@ -232,7 +319,7 @@ struct ConverterView: View {
                 }
                 
                 // Show quality controls for lossy image conversions
-                if case .imagemagick(let format) = outputService, !inputFileURLs.isEmpty, format.isLossy {
+                if case .imagemagick(let format) = outputService, !files.isEmpty, format.isLossy {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Spacer()
@@ -286,7 +373,7 @@ struct ConverterView: View {
                             .padding(.vertical, 8)
                     }
                     .buttonStyle(.bordered)
-                    .disabled(inputFileURLs.isEmpty || isConverting || !isConversionServiceAvailable())
+                    .disabled(files.isEmpty || isConverting || !isConversionServiceAvailable() || files.contains(where: { if case .converting = $0 { true } else { false } }) || !files.contains(where: { if case .input = $0 { true } else { false } }))
                     .controlSize(.large)
                     .padding(.bottom)
                 }
@@ -294,152 +381,6 @@ struct ConverterView: View {
             .padding()
             .frame(width: 300)
             
-            // MARK: - Output pane
-            VStack {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.1))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                        )
-                    
-                    if isConverting {
-                        VStack(spacing: 12) {
-                            if conversionProgress.total > 1 {
-                                // Use ProgressIndicatorView for multiple files
-                                let progress = Double(conversionProgress.current - 1) / Double(conversionProgress.total)
-                                ProgressIndicatorView(isVisible: .constant(true), type: .impulseBar(progress: .constant(progress), backgroundColor: .gray))
-                                    .frame(width: 120, height: 6)
-                                    .foregroundStyle(.blue)
-                                
-                                Text("Converting file \(conversionProgress.current) of \(conversionProgress.total)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                // Use ActivityIndicatorView for single files
-                                ActivityIndicatorView(isVisible: .constant(true), type: .equalizer(count: 5))
-                                    .frame(width: 40, height: 40)
-                                    .foregroundStyle(.blue)
-                            }
-                            
-                            if !currentConversionFile.isEmpty {
-                                Text(currentConversionFile)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-                        }
-                        .padding()
-                    } else if !convertedFiles.isEmpty {
-                        if convertedFiles.count == 1 {
-                            VStack(spacing: 0) {
-                                VStack(spacing: 12) {
-                                    let file = convertedFiles[0]
-                                    
-                                    FilePreviewView(data: file.data, fileName: file.fileName)
-                                    
-                                    Text(file.fileName)
-                                        .font(.headline)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.center)
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                
-                                VStack(spacing: 0) {
-                                    Divider()
-                                        .padding(.horizontal)
-                                    
-                                    HStack(spacing: 12) {
-                                        PreviewButton(action: {
-                                            QuickLookManager.shared.previewFile(data: convertedFiles[0].data, fileName: convertedFiles[0].fileName)
-                                        })
-                                        
-                                        SaveAllButton(
-                                            label: "Save"
-                                        ) {
-                                            saveFile(data: convertedFiles[0].data, fileName: convertedFiles[0].fileName, originalURL: convertedFiles[0].originalURL)
-                                        }
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
-                                }
-                            }
-                        } else {
-                            VStack(spacing: 0) {
-                                ScrollView {
-                                    HStack(alignment: .top, spacing: 0) {
-                                        // Icon column
-                                        VStack(spacing: 8) {
-                                            ForEach(convertedFiles) { file in
-                                                Image(nsImage: self.iconForFile(fileName: file.fileName))
-                                                    .resizable()
-                                                    .frame(width: 32, height: 32)
-                                                    .fixedSize()
-                                            }
-                                        }
-                                        .padding(.leading, 16)
-                                        .padding(.trailing, 12)
-                                        .padding(.vertical, 16)
-                                        
-                                        // File content column
-                                        VStack(spacing: 8) {
-                                            ForEach(convertedFiles) { file in
-                                                ConvertedFileContentRow(
-                                                    file: file,
-                                                    onSave: {
-                                                        saveFile(data: file.data, fileName: file.fileName, originalURL: file.originalURL)
-                                                    }
-                                                )
-                                            }
-                                        }
-                                        .padding(.trailing, 16)
-                                        .padding(.vertical, 16)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
-                                
-                                VStack(spacing: 0) {
-                                    Divider()
-                                        .padding(.horizontal)
-                                    
-                                    SaveAllButton(
-                                        label: "Save All"
-                                    ) {
-                                        saveAllFiles()
-                                    }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
-                                }
-                            }
-                        }
-                    } else {
-                        VStack(spacing: 12) {
-                            Image("document.badge.sparkles")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.quaternary)
-                            
-                            Text("Converted Files Appear Here")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            Button("") {
-                                // Invisible button for alignment
-                            }
-                            .buttonStyle(.bordered)
-                            .opacity(0)
-                            .disabled(true)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding()
-            .frame(maxWidth: .infinity)
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -460,6 +401,7 @@ struct ConverterView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 400)
+        .navigationTitle("")
         .onAppear {
             initializePandoc()
             initializeImageMagick()
@@ -523,7 +465,7 @@ struct ConverterView: View {
                        let url = URL(string: path) {
                         
                         // Check if file already exists
-                        if self.inputFileURLs.contains(url) {
+                        if self.files.contains(where: { $0.url == url }) {
                             return
                         }
                         
@@ -542,16 +484,17 @@ struct ConverterView: View {
                         }
                         
                         // If this is the first file, allow it
-                        if self.inputFileURLs.isEmpty {
-                            self.inputFileURLs.append(url)
+                        if self.files.isEmpty {
+                            self.files.append(.input(url))
                             self.errorMessage = nil
                             self.updateOutputService()
                             return
                         }
                         
                         // Check if the new file is compatible with existing files
-                        let existingDocumentFormats = self.inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-                        let existingImageFormats = self.inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+                        let existingURLs = self.files.compactMap { $0.url }
+                        let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
+                        let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
                         
                         let isNewDocument = newDocumentFormat != nil
                         let isNewImage = newImageFormat != nil
@@ -561,18 +504,17 @@ struct ConverterView: View {
                         // Allow if new file type matches existing file types
                         // Special case: PDFs can be treated as both documents and images
                         let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
-                                         self.inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+                                         existingURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                         
                         if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
                            (isNewImage && hasExistingImages && !hasExistingDocuments) ||
                            isPDFMixing {
-                            self.inputFileURLs.append(url)
+                            self.files.append(.input(url))
                             self.errorMessage = nil
                             self.updateOutputService()
                         } else {
                             // Replace existing files with the new incompatible file
-                            self.inputFileURLs = [url]
-                            self.convertedFiles = []
+                            self.files = [.input(url)]
                             self.errorMessage = nil
                             self.updateOutputService()
                         }
@@ -610,7 +552,7 @@ struct ConverterView: View {
         if panel.runModal() == .OK {
             for url in panel.urls {
                 // Check if file already exists
-                if inputFileURLs.contains(url) {
+                if files.contains(where: { $0.url == url }) {
                     continue
                 }
                 
@@ -629,15 +571,16 @@ struct ConverterView: View {
                 }
                 
                 // If this is the first file, allow it
-                if inputFileURLs.isEmpty {
-                    inputFileURLs.append(url)
+                if files.isEmpty {
+                    files.append(.input(url))
                     updateOutputService()
                     continue
                 }
                 
                 // Check if the new file is compatible with existing files
-                let existingDocumentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-                let existingImageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+                let existingURLs = files.compactMap { $0.url }
+                let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
+                let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
                 
                 let isNewDocument = newDocumentFormat != nil
                 let isNewImage = newImageFormat != nil
@@ -647,17 +590,16 @@ struct ConverterView: View {
                 // Allow if new file type matches existing file types
                 // Special case: PDFs can be treated as both documents and images
                 let isPDFMixing = url.pathExtension.lowercased() == "pdf" &&
-                                 inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+                                 existingURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                 
                 if (isNewDocument && hasExistingDocuments && !hasExistingImages) ||
                    (isNewImage && hasExistingImages && !hasExistingDocuments) ||
                    isPDFMixing {
-                    inputFileURLs.append(url)
+                    files.append(.input(url))
                     updateOutputService()
                 } else {
                     // Replace existing files with the new incompatible file
-                    inputFileURLs = [url]
-                    convertedFiles = []
+                    files = [.input(url)]
                     errorMessage = nil
                     updateOutputService()
                     break
@@ -671,7 +613,13 @@ struct ConverterView: View {
     }
     
     private func convertFile() async {
-        guard !inputFileURLs.isEmpty else {
+        let inputURLs = files.compactMap { fileState in
+            if case .input(let url) = fileState {
+                return url
+            }
+            return nil
+        }
+        guard !inputURLs.isEmpty else {
             print("convertFile: no input files")
             return
         }
@@ -693,14 +641,17 @@ struct ConverterView: View {
         }
         
         let serviceDescription = getServiceDescription(outputService)
-        print("Starting batch conversion of \(inputFileURLs.count) files to \(serviceDescription)")
+        print("Starting batch conversion of \(inputURLs.count) files to \(serviceDescription)")
         
         isConverting = true
         errorMessage = nil
-        convertedFiles = []
-        conversionProgress = (current: 0, total: inputFileURLs.count)
+        conversionProgress = (current: 0, total: inputURLs.count)
         
-        for (index, inputURL) in inputFileURLs.enumerated() {
+        for (index, inputURL) in inputURLs.enumerated() {
+            // Mark this file as converting
+            if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                files[fileIndex] = .converting(inputURL, fileName: inputURL.lastPathComponent)
+            }
             conversionProgress.current = index + 1
             currentConversionFile = inputURL.lastPathComponent
             do {
@@ -728,7 +679,11 @@ struct ConverterView: View {
                         data: data,
                         fileName: fileName
                     )
-                    convertedFiles.append(convertedFile)
+                    
+                    // Replace the converting file with the converted file
+                    if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                        files[fileIndex] = .converted(convertedFile)
+                    }
                     
                     try FileManager.default.removeItem(at: tempURL)
                     
@@ -760,6 +715,7 @@ struct ConverterView: View {
                         var foundFiles = false
                         
                         // Based on the debug output, ImageMagick uses: filename-N.ext
+                        var pageFiles: [ConvertedFile] = []
                         while true {
                             let testFileName = "\(baseTempName)-\(pageIndex).\(ext)"
                             let testURL = tempDir.appendingPathComponent(testFileName)
@@ -773,13 +729,22 @@ struct ConverterView: View {
                                     data: data,
                                     fileName: fileName
                                 )
-                                convertedFiles.append(convertedFile)
+                                pageFiles.append(convertedFile)
                                 
                                 try FileManager.default.removeItem(at: testURL)
                                 foundFiles = true
                                 pageIndex += 1
                             } else {
                                 break
+                            }
+                        }
+                        
+                        // Replace the converting file with converted files
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            files.remove(at: fileIndex)
+                            // Insert all converted files at the same position
+                            for (i, convertedFile) in pageFiles.enumerated() {
+                                files.insert(.converted(convertedFile), at: fileIndex + i)
                             }
                         }
                         
@@ -793,7 +758,11 @@ struct ConverterView: View {
                                 data: data,
                                 fileName: fileName
                             )
-                            convertedFiles.append(convertedFile)
+                            
+                            // Replace the converting file with the converted file
+                            if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                                files[fileIndex] = .converted(convertedFile)
+                            }
                             
                             try FileManager.default.removeItem(at: tempURL)
                         }
@@ -808,7 +777,11 @@ struct ConverterView: View {
                             data: data,
                             fileName: fileName
                         )
-                        convertedFiles.append(convertedFile)
+                        
+                        // Replace the converting file with the converted file
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            files[fileIndex] = .converted(convertedFile)
+                        }
                         
                         try FileManager.default.removeItem(at: tempURL)
                     }
@@ -817,12 +790,19 @@ struct ConverterView: View {
                 print("Successfully converted \(inputURL.lastPathComponent)")
             } catch {
                 print("Conversion failed for \(inputURL.lastPathComponent): \(error)")
+                
+                // Mark this file as error
+                if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                    files[fileIndex] = .error(inputURL, errorMessage: error.localizedDescription)
+                }
+                
                 showError("Failed to convert \(inputURL.lastPathComponent): \(error.localizedDescription)")
                 break
             }
         }
         
-        if convertedFiles.count == inputFileURLs.count {
+        let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
+        if convertedCount == inputURLs.count {
             print("All files converted successfully!")
         }
         
@@ -863,7 +843,15 @@ struct ConverterView: View {
         panel.prompt = "Choose Folder"
         
         if panel.runModal() == .OK, let folderURL = panel.url {
-            for file in convertedFiles {
+            let convertedFilesList = files.compactMap { file in
+                if case .converted(let convertedFile) = file {
+                    return convertedFile
+                } else {
+                    return nil
+                }
+            }
+            
+            for file in convertedFilesList {
                 let fileURL = folderURL.appendingPathComponent(file.fileName)
                 do {
                     try file.data.write(to: fileURL)
@@ -909,16 +897,17 @@ struct ConverterView: View {
     }
     
     private func getCompatibleServices() -> [(ConversionService, String)] {
-        guard !inputFileURLs.isEmpty else {
+        let inputURLs = files.compactMap { $0.url }
+        guard !inputURLs.isEmpty else {
             return []
         }
         
         // Detect if inputs are documents or images
-        let documentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
-        var imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        let documentFormats = inputURLs.compactMap { PandocFormat.detectFormat(from: $0) }
+        var imageFormats = inputURLs.compactMap { ImageFormat.detectFormat(from: $0) }
         
         // Special handling for PDF - can be treated as both document and image
-        let hasPDF = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
+        let hasPDF = inputURLs.contains { $0.pathExtension.lowercased() == "pdf" }
         if hasPDF && imageFormats.isEmpty {
             imageFormats = [.pdf]
         }
@@ -956,7 +945,8 @@ struct ConverterView: View {
         // Show DPI selector when:
         // 1. We have PDF input files
         // 2. We're converting to an image format
-        let hasPdfInput = inputFileURLs.contains { $0.pathExtension.lowercased() == "pdf" }
+        let inputURLs = files.compactMap { $0.url }
+        let hasPdfInput = inputURLs.contains { $0.pathExtension.lowercased() == "pdf" }
         let isImageOutput = if case .imagemagick(_) = outputService { true } else { false }
         return hasPdfInput && isImageOutput
     }
@@ -974,6 +964,15 @@ struct ConverterView: View {
     }
     
     
+    private func iconForFile(fileState: FileState) -> NSImage {
+        switch fileState {
+        case .input(let url), .converting(let url, _), .error(let url, _):
+            return NSWorkspace.shared.icon(forFile: url.path)
+        case .converted(let file):
+            return iconForFile(fileName: file.fileName)
+        }
+    }
+    
     private func iconForFile(fileName: String) -> NSImage {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         if !FileManager.default.fileExists(atPath: tempURL.path) {
@@ -982,6 +981,69 @@ struct ConverterView: View {
         let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
         try? FileManager.default.removeItem(at: tempURL)
         return icon
+    }
+    
+    @ViewBuilder
+    private func fileRow(for fileState: FileState) -> some View {
+        switch fileState {
+        case .input(let url):
+            FileContentRow(
+                url: url,
+                onRemove: {
+                    files.removeAll { $0.id == fileState.id }
+                }
+            )
+        case .converting(_, let fileName):
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(fileName)
+                        .font(.headline)
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 4) {
+                        ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
+                            .frame(width: 20, height: 20)
+                            .foregroundStyle(.blue)
+                        Text("Converting...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.gray.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        case .converted(let convertedFile):
+            ConvertedFileContentRow(
+                file: convertedFile,
+                onSave: {
+                    saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
+                }
+            )
+        case .error(_, let message):
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(fileState.fileName)
+                        .font(.headline)
+                        .lineLimit(1)
+                    
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .lineLimit(2)
+                }
+                Spacer()
+                RemoveButton {
+                    files.removeAll { $0.id == fileState.id }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.red.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
     }
 }
 

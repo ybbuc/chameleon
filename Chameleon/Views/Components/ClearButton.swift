@@ -22,7 +22,7 @@ struct ClearButton: View {
         Button {
             action()
         } label: {
-            Label(label, systemImage: "xmark")
+            Label(label, systemImage: "arrow.clockwise")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
