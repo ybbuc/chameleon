@@ -76,6 +76,9 @@ class ImageMagickWrapper {
             arguments.append(contentsOf: ["-define", "png:compression-level=9"])
         case .webp:
             arguments.append(contentsOf: ["-define", "webp:lossless=false"])
+        case .bmp:
+            // Ensure BMP3 format for better compatibility with macOS
+            arguments.append(contentsOf: ["-define", "bmp:format=bmp3"])
         default:
             break
         }
