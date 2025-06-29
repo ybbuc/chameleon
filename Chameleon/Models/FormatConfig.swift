@@ -17,6 +17,7 @@ protocol FormatConfig {
 // MARK: - Media Format Config Protocol
 
 protocol MediaFormatConfig: FormatConfig {
+    var displayName: String { get }
     var ffmpegFormat: FFmpegFormat { get }
     var isVideo: Bool { get }
     var isLossless: Bool { get }

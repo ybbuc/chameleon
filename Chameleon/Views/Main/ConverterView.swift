@@ -1029,19 +1029,26 @@ struct ConverterView: View {
             for format in documentFormats.dropFirst() {
                 compatiblePandocFormats.formIntersection(PandocFormat.compatibleOutputFormats(for: format))
             }
-            compatibleServices.append(contentsOf: FormatPicker.documentFormats.filter { compatiblePandocFormats.contains($0.0) }.map { (.pandoc($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatiblePandocFormats.map { format in
+                (.pandoc(format), format.displayName)
+            })
         }
         
         if !imageFormats.isEmpty {
             // Image conversion with ImageMagick
             let compatibleImageFormats = ImageFormat.outputFormats
-            compatibleServices.append(contentsOf: FormatPicker.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatibleImageFormats.map { format in
+                (.imagemagick(format), format.displayName)
+            })
         }
         
         if !mediaFormats.isEmpty {
             // Media conversion with FFmpeg
             let compatibleMediaFormats = FFmpegFormat.allCases
-            compatibleServices.append(contentsOf: FormatPicker.mediaFormats.filter { compatibleMediaFormats.contains($0.0) }.map { (.ffmpeg($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatibleMediaFormats.compactMap { format in
+                guard let config = FormatRegistry.shared.config(for: format) else { return nil }
+                return (.ffmpeg(format), config.displayName)
+            })
         }
         
         return compatibleServices.sorted { $0.1 < $1.1 }

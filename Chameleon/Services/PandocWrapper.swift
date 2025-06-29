@@ -375,6 +375,109 @@ enum PandocFormat: String {
         case .ansi: return nil
         }
     }
+    
+    var displayName: String {
+        switch self {
+        // Common formats
+        case .markdown: return "Markdown"
+        case .html: return "HTML"
+        case .pdf: return "PDF"
+        case .docx: return "Word Document (DOCX)"
+        case .latex: return "LaTeX"
+        case .plain: return "Plain Text"
+        case .rtf: return "Rich Text Format (RTF)"
+        case .epub: return "EPUB"
+        
+        // Markdown variants
+        case .commonmark: return "CommonMark"
+        case .gfm: return "GitHub Flavored Markdown"
+        case .markdownStrict: return "Strict Markdown"
+        case .markdownPhpextra: return "PHP Markdown Extra"
+        case .markdownMmd: return "MultiMarkdown"
+        
+        // Lightweight markup
+        case .rst: return "reStructuredText"
+        case .asciidoc: return "AsciiDoc"
+        case .textile: return "Textile"
+        case .org: return "Org Mode"
+        case .muse: return "Emacs Muse"
+        case .creole: return "Creole"
+        case .djot: return "Djot"
+        case .markua: return "Markua"
+        case .txt2tags: return "txt2tags"
+        
+        // Wiki formats
+        case .mediawiki: return "MediaWiki"
+        case .dokuwiki: return "DokuWiki"
+        case .tikiwiki: return "TikiWiki"
+        case .twiki: return "TWiki"
+        case .vimwiki: return "Vimwiki"
+        case .xwiki: return "XWiki"
+        case .zimwiki: return "ZimWiki"
+        case .jira: return "Jira Wiki"
+        
+        // HTML variants
+        case .html4: return "HTML 4"
+        case .html5: return "HTML 5"
+        case .chunkedhtml: return "Chunked HTML"
+        
+        // Ebook formats
+        case .epub2: return "EPUB 2"
+        case .epub3: return "EPUB 3"
+        case .fb2: return "FictionBook2"
+        
+        // Documentation formats
+        case .man: return "Man Page"
+        case .ms: return "Roff ms"
+        case .mdoc: return "mdoc"
+        case .texinfo: return "GNU TexInfo"
+        case .haddock: return "Haddock"
+        
+        // XML formats
+        case .docbook: return "DocBook"
+        case .docbook4: return "DocBook 4"
+        case .docbook5: return "DocBook 5"
+        case .jats: return "JATS"
+        case .jatsArchiving: return "JATS Archiving"
+        case .jatsPublishing: return "JATS Publishing"
+        case .jatsArticleauthoring: return "JATS Article Authoring"
+        case .bits: return "BITS"
+        case .tei: return "TEI Simple"
+        case .opml: return "OPML"
+        case .opendocument: return "OpenDocument XML"
+        
+        // Office formats
+        case .odt: return "OpenDocument Text (ODT)"
+        case .powerpoint: return "PowerPoint (PPTX)"
+        case .openoffice: return "OpenOffice"
+        
+        // Academic formats
+        case .context: return "ConTeXt"
+        case .biblatex: return "BibLaTeX"
+        case .bibtex: return "BibTeX"
+        case .csljson: return "CSL JSON"
+        case .ris: return "RIS"
+        case .endnotexml: return "EndNote XML"
+        
+        // Presentation formats
+        case .beamer: return "LaTeX Beamer"
+        case .slidy: return "Slidy"
+        case .slideous: return "Slideous"
+        case .dzslides: return "DZSlides"
+        case .revealjs: return "reveal.js"
+        case .s5: return "S5"
+        
+        // Other formats
+        case .json: return "JSON"
+        case .native: return "Native"
+        case .icml: return "InDesign ICML"
+        case .typst: return "Typst"
+        case .ipynb: return "Jupyter Notebook"
+        case .csv: return "CSV"
+        case .tsv: return "TSV"
+        case .ansi: return "ANSI Terminal"
+        }
+    }
 }
 
 enum PandocError: LocalizedError {

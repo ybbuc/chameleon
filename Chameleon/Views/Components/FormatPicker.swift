@@ -13,125 +13,6 @@ struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
     
-    static let documentFormats: [(PandocFormat, String)] = [
-        // Common formats
-        (.markdown, "Markdown"),
-        (.html, "HTML"),
-        (.pdf, "PDF"),
-        (.docx, "Word Document (DOCX)"),
-        (.latex, "LaTeX"),
-        (.plain, "Plain Text"),
-        (.rtf, "Rich Text Format (RTF)"),
-        (.epub, "EPUB"),
-        
-        // Markdown variants
-        (.commonmark, "CommonMark"),
-        (.gfm, "GitHub Flavored Markdown"),
-        (.markdownStrict, "Strict Markdown"),
-        (.markdownPhpextra, "PHP Markdown Extra"),
-        (.markdownMmd, "MultiMarkdown"),
-        
-        // Lightweight markup
-        (.rst, "reStructuredText"),
-        (.asciidoc, "AsciiDoc"),
-        (.textile, "Textile"),
-        (.org, "Org Mode"),
-        (.muse, "Emacs Muse"),
-        (.creole, "Creole"),
-        (.djot, "Djot"),
-        (.markua, "Markua"),
-        (.txt2tags, "txt2tags"),
-        
-        // Wiki formats
-        (.mediawiki, "MediaWiki"),
-        (.dokuwiki, "DokuWiki"),
-        (.tikiwiki, "TikiWiki"),
-        (.twiki, "TWiki"),
-        (.vimwiki, "Vimwiki"),
-        (.xwiki, "XWiki"),
-        (.zimwiki, "ZimWiki"),
-        (.jira, "Jira Wiki"),
-        
-        // HTML variants
-        (.html4, "HTML 4"),
-        (.html5, "HTML 5"),
-        (.chunkedhtml, "Chunked HTML"),
-        
-        // Ebook formats
-        (.epub2, "EPUB 2"),
-        (.epub3, "EPUB 3"),
-        (.fb2, "FictionBook2"),
-        
-        // Documentation formats
-        (.man, "Man Page"),
-        (.ms, "Roff ms"),
-        (.mdoc, "mdoc"),
-        (.texinfo, "GNU TexInfo"),
-        (.haddock, "Haddock"),
-        
-        // XML formats
-        (.docbook, "DocBook"),
-        (.docbook4, "DocBook 4"),
-        (.docbook5, "DocBook 5"),
-        (.jats, "JATS"),
-        (.jatsArchiving, "JATS Archiving"),
-        (.jatsPublishing, "JATS Publishing"),
-        (.jatsArticleauthoring, "JATS Article Authoring"),
-        (.bits, "BITS"),
-        (.tei, "TEI Simple"),
-        (.opml, "OPML"),
-        (.opendocument, "OpenDocument XML"),
-        
-        // Office formats
-        (.odt, "OpenDocument Text (ODT)"),
-        (.powerpoint, "PowerPoint (PPTX)"),
-        (.openoffice, "OpenOffice"),
-        
-        // Academic formats
-        (.context, "ConTeXt"),
-        (.biblatex, "BibLaTeX"),
-        (.bibtex, "BibTeX"),
-        (.csljson, "CSL JSON"),
-        (.ris, "RIS"),
-        (.endnotexml, "EndNote XML"),
-        
-        // Presentation formats
-        (.beamer, "LaTeX Beamer"),
-        (.slidy, "Slidy"),
-        (.slideous, "Slideous"),
-        (.dzslides, "DZSlides"),
-        (.revealjs, "reveal.js"),
-        (.s5, "S5"),
-        
-        // Other formats
-        (.json, "JSON"),
-        (.native, "Native"),
-        (.icml, "InDesign ICML"),
-        (.typst, "Typst"),
-        (.ipynb, "Jupyter Notebook"),
-        (.csv, "CSV"),
-        (.tsv, "TSV"),
-        (.ansi, "ANSI Terminal")
-    ]
-    
-    static let imageFormats: [(ImageFormat, String)] = [
-        (.jpeg, "JPEG"),
-        (.png, "PNG"),
-        (.gif, "GIF"),
-        (.bmp, "BMP"),
-        (.tiff, "TIFF"),
-        (.webp, "WebP"),
-        (.pdf, "PDF (Image)"),
-        (.svg, "SVG"),
-        (.ico, "ICO")
-    ]
-    
-    static var mediaFormats: [(FFmpegFormat, String)] {
-        return FormatRegistry.shared.allConfigs().map { config in
-            (config.ffmpegFormat, config.ffmpegFormat.rawValue.uppercased())
-        }
-    }
-    
     private var compatibleServices: [(ConversionService, String)] {
         guard !inputFileURLs.isEmpty else {
             // Return empty array when no files are present
@@ -144,7 +25,9 @@ struct FormatPicker: View {
         if allPDFs {
             // For PDF files, only show image format options
             let compatibleImageFormats = ImageFormat.outputFormats
-            return Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) }.sorted { $0.1 < $1.1 }
+            return compatibleImageFormats.map { format in 
+                (.imagemagick(format), format.displayName)
+            }.sorted { $0.1 < $1.1 }
         }
         
         // Detect if inputs are documents, images, or media files (excluding PDFs)
@@ -166,13 +49,17 @@ struct FormatPicker: View {
             for format in documentFormats.dropFirst() {
                 compatiblePandocFormats.formIntersection(PandocFormat.compatibleOutputFormats(for: format))
             }
-            compatibleServices.append(contentsOf: Self.documentFormats.filter { compatiblePandocFormats.contains($0.0) }.map { (.pandoc($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatiblePandocFormats.map { format in
+                (.pandoc(format), format.displayName)
+            })
         }
         
         if !imageFormats.isEmpty {
             // Image conversion with ImageMagick
             let compatibleImageFormats = ImageFormat.outputFormats
-            compatibleServices.append(contentsOf: Self.imageFormats.filter { compatibleImageFormats.contains($0.0) }.map { (.imagemagick($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatibleImageFormats.map { format in
+                (.imagemagick(format), format.displayName)
+            })
         }
         
         if !mediaFormats.isEmpty {
@@ -188,7 +75,10 @@ struct FormatPicker: View {
                 compatibleMediaFormats = FFmpegFormat.allCases
             }
             
-            compatibleServices.append(contentsOf: Self.mediaFormats.filter { compatibleMediaFormats.contains($0.0) }.map { (.ffmpeg($0.0), $0.1) })
+            compatibleServices.append(contentsOf: compatibleMediaFormats.compactMap { format in
+                guard let config = FormatRegistry.shared.config(for: format) else { return nil }
+                return (.ffmpeg(format), config.displayName)
+            })
         }
         
         return compatibleServices.sorted { $0.1 < $1.1 }
@@ -216,11 +106,11 @@ struct FormatPicker: View {
     private func getServiceDisplayName(_ service: ConversionService) -> String {
         switch service {
         case .pandoc(let format):
-            return Self.documentFormats.first { $0.0 == format }?.1 ?? format.rawValue
+            return format.displayName
         case .imagemagick(let format):
-            return Self.imageFormats.first { $0.0 == format }?.1 ?? format.displayName
+            return format.displayName
         case .ffmpeg(let format):
-            return format.rawValue.uppercased()
+            return FormatRegistry.shared.config(for: format)?.displayName ?? format.rawValue.uppercased()
         }
     }
     

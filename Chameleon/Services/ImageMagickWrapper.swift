@@ -171,18 +171,8 @@ enum ImageFormat: String, CaseIterable {
     var transparencySupported: Bool { config.transparencySupported }
     var animationSupported: Bool { config.animationSupported }
     
-    var displayName: String {
-        switch self {
-        case .jpeg, .jpg: return "JPEG"
-        case .png: return "PNG"
-        case .gif: return "GIF"
-        case .bmp: return "BMP"
-        case .tiff, .tif: return "TIFF"
-        case .webp: return "WebP"
-        case .pdf: return "PDF"
-        case .svg: return "SVG"
-        case .ico: return "ICO"
-        }
+    var displayName: String { 
+        return config.displayName 
     }
     
     var fileExtension: String {

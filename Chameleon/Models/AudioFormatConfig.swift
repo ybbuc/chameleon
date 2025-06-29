@@ -10,6 +10,7 @@ import Foundation
 // MARK: - Audio Format Configurations
 
 struct MP3Config: MediaFormatConfig {
+    let displayName = "MP3"
     let ffmpegFormat = FFmpegFormat.mp3
     let description: String? = "Lossy, but the files are very compact and can be played in almost any application."
     let fileExtension = "mp3"
@@ -27,6 +28,7 @@ struct MP3Config: MediaFormatConfig {
 }
 
 struct AACConfig: MediaFormatConfig {
+    let displayName = "AAC"
     let ffmpegFormat = FFmpegFormat.aac
     let description: String? = "Lossy, though less than MP3. The files are very compact, and are generally well supported by most applications."
     let fileExtension = "m4a"
@@ -39,6 +41,7 @@ struct AACConfig: MediaFormatConfig {
 }
 
 struct WAVConfig: MediaFormatConfig {
+    let displayName = "WAV"
     let ffmpegFormat = FFmpegFormat.wav
     let description: String? = "Lossless, but the files are enormous. They can be played by almost any application."
     let fileExtension = "wav"
@@ -63,6 +66,7 @@ struct WAVConfig: MediaFormatConfig {
 }
 
 struct FLACConfig: MediaFormatConfig {
+    let displayName = "FLAC"
     let ffmpegFormat = FFmpegFormat.flac
     let description: String? = "Lossless, but the files are quite large. It's popular among audiophiles, but playback is supported in few audio players."
     let fileExtension = "flac"
@@ -83,6 +87,7 @@ struct FLACConfig: MediaFormatConfig {
 }
 
 struct ALACConfig: MediaFormatConfig {
+    let displayName = "ALAC"
     let ffmpegFormat = FFmpegFormat.alac
     let description: String? = "Lossless, but the files are quite large. Standard on Apple platforms, but less universal elsewhere."
     let fileExtension = "m4a"
@@ -103,6 +108,7 @@ struct ALACConfig: MediaFormatConfig {
 }
 
 struct OGGConfig: MediaFormatConfig {
+    let displayName = "OGG"
     let ffmpegFormat = FFmpegFormat.ogg
     let description: String? = "Lossy, with quality often better than MP3 at similar bitrates. While the files are compact, it's not as universally supported as MP3 or AAC."
     let fileExtension = "ogg"
@@ -115,6 +121,7 @@ struct OGGConfig: MediaFormatConfig {
 }
 
 struct WMAConfig: MediaFormatConfig {
+    let displayName = "WMA"
     let ffmpegFormat = FFmpegFormat.wma
     let description: String? = "Lossy, with quality comparable to MP3. It's well-supported on Windows but less common on other platforms."
     let fileExtension = "wma"
@@ -127,6 +134,7 @@ struct WMAConfig: MediaFormatConfig {
 }
 
 struct AIFFConfig: MediaFormatConfig {
+    let displayName = "AIFF"
     let ffmpegFormat = FFmpegFormat.aiff
     let description: String? = "Lossless, but the files are quite large. Standard on Apple platforms, but less common than WAV elsewhere."
     let fileExtension = "aiff"

@@ -9,6 +9,7 @@ import Foundation
 
 
 struct MP4Config: MediaFormatConfig {
+    let displayName = "MP4"
     let ffmpegFormat = FFmpegFormat.mp4
     let description: String? = nil
     let fileExtension = "mp4"
@@ -21,6 +22,7 @@ struct MP4Config: MediaFormatConfig {
 }
 
 struct MOVConfig: MediaFormatConfig {
+    let displayName = "MOV"
     let ffmpegFormat = FFmpegFormat.mov
     let description: String? = nil
     let fileExtension = "mov"
@@ -33,6 +35,7 @@ struct MOVConfig: MediaFormatConfig {
 }
 
 struct AVIConfig: MediaFormatConfig {
+    let displayName = "AVI"
     let ffmpegFormat = FFmpegFormat.avi
     let description: String? = nil
     let fileExtension = "avi"
@@ -45,6 +48,7 @@ struct AVIConfig: MediaFormatConfig {
 }
 
 struct MKVConfig: MediaFormatConfig {
+    let displayName = "MKV"
     let ffmpegFormat = FFmpegFormat.mkv
     let description: String? = nil
     let fileExtension = "mkv"
@@ -57,6 +61,7 @@ struct MKVConfig: MediaFormatConfig {
 }
 
 struct WebMConfig: MediaFormatConfig {
+    let displayName = "WebM"
     let ffmpegFormat = FFmpegFormat.webm
     let description: String? = nil
     let fileExtension = "webm"
@@ -69,6 +74,7 @@ struct WebMConfig: MediaFormatConfig {
 }
 
 struct FLVConfig: MediaFormatConfig {
+    let displayName = "FLV"
     let ffmpegFormat = FFmpegFormat.flv
     let description: String? = nil
     let fileExtension = "flv"
@@ -81,6 +87,7 @@ struct FLVConfig: MediaFormatConfig {
 }
 
 struct WMVConfig: MediaFormatConfig {
+    let displayName = "WMV"
     let ffmpegFormat = FFmpegFormat.wmv
     let description: String? = nil
     let fileExtension = "wmv"
@@ -93,6 +100,7 @@ struct WMVConfig: MediaFormatConfig {
 }
 
 struct M4VConfig: MediaFormatConfig {
+    let displayName = "M4V"
     let ffmpegFormat = FFmpegFormat.m4v
     let description: String? = nil
     let fileExtension = "m4v"
