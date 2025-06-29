@@ -354,7 +354,7 @@ struct ConverterView: View {
                 }
             }
             .padding()
-            .frame(width: 300)
+            .frame(width: 320)
             
         }
         .onAppear {
