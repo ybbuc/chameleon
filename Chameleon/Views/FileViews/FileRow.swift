@@ -26,13 +26,17 @@ struct FileRow: View {
         } actions: {
             // Actions
             HStack(spacing: 4) {
-                PreviewButton(action: {
-                    QuickLookManager.shared.previewFile(at: url)
-                })
-                
-                FinderButton(action: {
-                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                })
+                if isHoveringRow {
+                    PreviewButton(action: {
+                        QuickLookManager.shared.previewFile(at: url)
+                    })
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    
+                    FinderButton(action: {
+                        NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                    })
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
                 
                 RemoveButton(action: onRemove)
             }

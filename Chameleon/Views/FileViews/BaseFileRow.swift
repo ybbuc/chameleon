@@ -62,10 +62,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
             Spacer()
             
             // Actions area
-            if isHoveringRow.wrappedValue {
-                actions()
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
-            }
+            actions()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
