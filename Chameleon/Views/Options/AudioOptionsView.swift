@@ -33,17 +33,26 @@ struct AudioOptionsView: View {
             if let format = outputFormat,
                let config = FormatRegistry.shared.config(for: format),
                config.supportsBitRate {
-                Picker("Bit Rate", selection: $audioOptions.bitRate) {
+                Picker("Bit Rate:", selection: $audioOptions.bitRate) {
                     ForEach(AudioBitRate.allCases, id: \.self) { bitRate in
                         Text(bitRate.displayName).tag(bitRate)
                     }
                 }
                 .pickerStyle(.menu)
+                .disabled(config.supportsVariableBitRate && audioOptions.useVariableBitRate)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
             
+            // Variable Bit Rate toggle (only for formats that support it)
+            if let format = outputFormat,
+               let config = FormatRegistry.shared.config(for: format),
+               config.supportsVariableBitRate {
+                Toggle("Use Variable Bit Rate (VBR)", isOn: $audioOptions.useVariableBitRate)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            
             // Channels dropdown (for all audio formats)
-            Picker("Channels", selection: $audioOptions.channels) {
+            Picker("Channels:", selection: $audioOptions.channels) {
                 ForEach(AudioChannels.allCases, id: \.self) { channels in
                     Text(channels.displayName).tag(channels)
                 }
@@ -52,7 +61,7 @@ struct AudioOptionsView: View {
             .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Sample Rate dropdown (for all audio formats)
-            Picker("Sample Rate", selection: $audioOptions.sampleRate) {
+            Picker("Sample Rate:", selection: $audioOptions.sampleRate) {
                 ForEach(availableSampleRates, id: \.self) { sampleRate in
                     Text(sampleRate.displayName).tag(sampleRate)
                 }
@@ -74,21 +83,13 @@ struct AudioOptionsView: View {
             if let format = outputFormat,
                let config = FormatRegistry.shared.config(for: format),
                config.supportsSampleSize {
-                Picker("Sample Size", selection: $audioOptions.sampleSize) {
+                Picker("Sample Size:", selection: $audioOptions.sampleSize) {
                     ForEach(availableSampleSizes, id: \.self) { sampleSize in
                         Text(sampleSize.displayName).tag(sampleSize)
                     }
                 }
                 .pickerStyle(.menu)
                 .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-            
-            // Variable Bit Rate toggle (only for formats that support it)
-            if let format = outputFormat,
-               let config = FormatRegistry.shared.config(for: format),
-               config.supportsVariableBitRate {
-                Toggle("Use Variable Bit Rate (VBR)", isOn: $audioOptions.useVariableBitRate)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
