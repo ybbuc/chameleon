@@ -62,7 +62,7 @@ struct ImageOptionsView: View {
                             value: Binding(
                                 get: { Double(pdfToDpiIndex) },
                                 set: { newValue in
-                                    let dpiValues = [72, 150, 300, 600, 1200]
+                                    let dpiValues = [72, 150, 300, 600, 1200, 2400]
                                     let index = Int(newValue)
                                     pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
                                 }
