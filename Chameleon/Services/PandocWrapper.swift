@@ -471,7 +471,7 @@ extension PandocFormat {
         case "tex":
             return .latex
         case "pdf":
-            return .pdf
+            return nil // PDFs are treated as image format, not document format
         case "docx":
             return .docx
         case "odt":

@@ -7,10 +7,7 @@
 
 
 import SwiftUI
-import UniformTypeIdentifiers
-import AppKit
-import ActivityIndicatorView
-import ProgressIndicatorView
+
 
 struct FormatPicker: View {
     @Binding var selectedService: ConversionService
@@ -124,8 +121,6 @@ struct FormatPicker: View {
         (.bmp, "BMP"),
         (.tiff, "TIFF"),
         (.webp, "WebP"),
-        (.heic, "HEIC"),
-        (.heif, "HEIF"),
         (.pdf, "PDF (Image)"),
         (.svg, "SVG"),
         (.ico, "ICO")
@@ -208,16 +203,13 @@ struct FormatPicker: View {
             }
             .pickerStyle(.menu)
             .disabled(inputFileURLs.isEmpty)
-            .padding(.top, 8)
             
             // Format description
-            if let description = getFormatDescription(for: selectedService) {
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 4)
-            }
+            Text(getFormatDescription(for: selectedService) ?? "")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 36, alignment: .topLeading)
         }
     }
     

@@ -137,21 +137,39 @@ enum ImageFormat: String, CaseIterable {
     case tiff = "tiff"
     case tif = "tif"
     case webp = "webp"
-    case heic = "heic"
-    case heif = "heif"
     case pdf = "pdf"
     case svg = "svg"
     case ico = "ico"
-    case raw = "raw"
     
-    var isLossy: Bool {
+    var config: ImageFormatConfig {
         switch self {
-        case .jpeg, .jpg, .webp, .heic, .heif:
-            return true
-        default:
-            return false
+        case .jpeg, .jpg:
+            return JPEGConfig()
+        case .png:
+            return PNGConfig()
+        case .gif:
+            return GIFConfig()
+        case .bmp:
+            return BMPConfig()
+        case .tiff, .tif:
+            return TIFFConfig()
+        case .webp:
+            return WebPConfig()
+        case .pdf:
+            return PDFConfig()
+        case .svg:
+            return SVGConfig()
+        case .ico:
+            return ICOConfig()
         }
     }
+    
+    var isLossy: Bool { config.isLossy }
+    var supportsExifMetadata: Bool { config.supportsExifMetadata }
+    var requiresDpiConfiguration: Bool { config.requiresDpiConfiguration }
+    var compressionSupported: Bool { config.compressionSupported }
+    var transparencySupported: Bool { config.transparencySupported }
+    var animationSupported: Bool { config.animationSupported }
     
     var displayName: String {
         switch self {
@@ -161,12 +179,9 @@ enum ImageFormat: String, CaseIterable {
         case .bmp: return "BMP"
         case .tiff, .tif: return "TIFF"
         case .webp: return "WebP"
-        case .heic: return "HEIC"
-        case .heif: return "HEIF"
         case .pdf: return "PDF"
         case .svg: return "SVG"
         case .ico: return "ICO"
-        case .raw: return "RAW"
         }
     }
     
@@ -178,22 +193,7 @@ enum ImageFormat: String, CaseIterable {
         }
     }
     
-    var description: String? {
-        switch self {
-        case .jpeg, .jpg: return nil // You can add descriptions here
-        case .png: return nil
-        case .gif: return nil
-        case .bmp: return nil
-        case .tiff, .tif: return nil
-        case .webp: return nil
-        case .heic: return nil
-        case .heif: return nil
-        case .pdf: return nil
-        case .svg: return nil
-        case .ico: return nil
-        case .raw: return nil
-        }
-    }
+    var description: String? { config.description }
     
     static func detectFormat(from url: URL) -> ImageFormat? {
         let ext = url.pathExtension.lowercased()
