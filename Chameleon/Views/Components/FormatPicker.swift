@@ -107,7 +107,7 @@ struct FormatPicker: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: 36, alignment: .topLeading)
+                .frame(minHeight: 40, alignment: .topLeading)
         }
     }
     

@@ -154,7 +154,7 @@ enum OCRFormat: String, CaseIterable {
     var description: String {
         switch self {
         case .txt:
-            return "Use text recognition to extract text from images and save as plain text files."
+            return "Use text recognition to extract text from images and save as plain text."
         }
     }
 }

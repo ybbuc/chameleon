@@ -24,6 +24,7 @@ struct OCROptionsView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 220)
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
             
             HStack {
                 Spacer()
@@ -39,6 +40,7 @@ struct OCROptionsView: View {
                     ocrOptions.recognitionLanguages = [newValue]
                 }
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
             
             HStack {
                 Spacer()
@@ -49,6 +51,7 @@ struct OCROptionsView: View {
                         ocrOptions.usesLanguageCorrection = newValue
                     }
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
         }
         .onAppear {
             // Verify that the selected language exists in the supported languages

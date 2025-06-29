@@ -43,6 +43,7 @@ struct AudioOptionsView: View {
                     .pickerStyle(.menu)
                     .frame(width: 200)
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
             
             // Channels dropdown
@@ -56,6 +57,7 @@ struct AudioOptionsView: View {
                 .pickerStyle(.menu)
                 .frame(width: 200)
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Sample Rate dropdown
             HStack {
@@ -78,6 +80,7 @@ struct AudioOptionsView: View {
                     }
                 }
             }
+            .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Sample Size dropdown (only for lossless formats)
             if let format = outputFormat,
@@ -105,6 +108,7 @@ struct AudioOptionsView: View {
                         .toggleStyle(.switch)
                         .controlSize(.small)
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
