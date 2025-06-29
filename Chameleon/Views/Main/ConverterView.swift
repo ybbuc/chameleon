@@ -286,14 +286,77 @@ struct ConverterView: View {
                 
                 // Show image conversion options
                 if case .imagemagick(let format) = outputService, !files.isEmpty {
-                    ImageOptionsView(
-                        imageQuality: $imageQuality,
-                        useLossyCompression: $useLossyCompression,
-                        removeExifMetadata: $removeExifMetadata,
-                        pdfToDpi: $pdfToDpi,
-                        outputFormat: format,
-                        inputFileURLs: files.compactMap { $0.url }
-                    )
+                    Form {
+                        // Show DPI selector when converting PDF to image
+                        if files.contains(where: { fileState in
+                            guard let url = fileState.url,
+                                  let format = ImageFormat.detectFormat(from: url) else { return false }
+                            return format.requiresDpiConfiguration
+                        }) {
+                            HStack {
+                                Text("PDF Resolution")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(pdfToDpi) DPI")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .monospacedDigit()
+                            }
+                            
+                            Slider(
+                                value: Binding(
+                                    get: { 
+                                        let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                        return Double(dpiValues.firstIndex(of: pdfToDpi) ?? 1)
+                                    },
+                                    set: { newValue in
+                                        let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                        let index = Int(newValue)
+                                        pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
+                                    }
+                                ),
+                                in: 0...5,
+                                step: 1
+                            )
+                            .labelsHidden()
+                        }
+                        
+                        // Show EXIF metadata removal toggle for image conversions
+                        if format.supportsExifMetadata {
+                            Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
+                        }
+                        
+                        // Show quality controls for lossy image conversions
+                        if format.isLossy {
+                            Group {
+                                Toggle("Lossy Compression", isOn: $useLossyCompression)
+                                
+                                HStack {
+                                    Text("Image Quality")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text(useLossyCompression ? "\(Int(imageQuality))" : "Default")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                }
+                                
+                                Slider(
+                                    value: $imageQuality,
+                                    in: 1...100,
+                                    minimumValueLabel: Text("1").font(.caption2),
+                                    maximumValueLabel: Text("100").font(.caption2),
+                                    label: {
+                                        Text("Image Quality")
+                                    }
+                                )
+                                .labelsHidden()
+                                .disabled(!useLossyCompression)
+                            }
+                        }
+                    }
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: outputService)
