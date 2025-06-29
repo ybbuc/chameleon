@@ -131,6 +131,7 @@ struct ConverterView: View {
                                             ) {
                                                 files = []
                                                 errorMessage = nil
+                                                outputService = .pandoc(.html)
                                             }
                                             
                                             if let url = fileState.url {
@@ -156,6 +157,7 @@ struct ConverterView: View {
                                                 ) {
                                                     files = []
                                                     errorMessage = nil
+                                                    outputService = .pandoc(.html)
                                                 }
                                                 
                                                 PreviewButton(action: {
@@ -170,6 +172,7 @@ struct ConverterView: View {
                                                 ) {
                                                     files = []
                                                     errorMessage = nil
+                                                    outputService = .pandoc(.html)
                                                 }
                                                 
                                                 PreviewButton(action: {
@@ -188,6 +191,7 @@ struct ConverterView: View {
                                                 ) {
                                                     files = []
                                                     errorMessage = nil
+                                                    outputService = .pandoc(.html)
                                                 }
                                             }
                                         }
@@ -224,6 +228,7 @@ struct ConverterView: View {
                                         ) {
                                             files = []
                                             errorMessage = nil
+                                            outputService = .pandoc(.html)
                                         }
                                         
                                         let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
