@@ -10,6 +10,7 @@ enum ConversionService: Hashable {
     case pandoc(PandocFormat)
     case imagemagick(ImageFormat)
     case ffmpeg(FFmpegFormat)
+    case ocr(OCRFormat)
     
     var fileExtension: String {
         switch self {
@@ -19,6 +20,8 @@ enum ConversionService: Hashable {
             return format.fileExtension
         case .ffmpeg(let format):
             return format.rawValue
+        case .ocr(let format):
+            return format.fileExtension
         }
     }
 }

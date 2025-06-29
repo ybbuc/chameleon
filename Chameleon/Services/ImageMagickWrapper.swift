@@ -197,7 +197,7 @@ enum ImageFormat: String, CaseIterable {
     
     // Output formats that ImageMagick can write
     static let outputFormats: Set<ImageFormat> = [
-        .jpeg, .jpg, .png, .gif, .bmp, .tiff, .tif, .webp, .pdf, .svg, .ico
+        .jpeg, .png, .gif, .bmp, .tiff, .webp, .pdf, .svg, .ico
     ]
 }
 

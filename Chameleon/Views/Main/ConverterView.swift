@@ -36,7 +36,11 @@ struct ConverterView: View {
     @State private var imageMagickInitError: String?
     @State private var ffmpegWrapper: FFmpegWrapper?
     @State private var ffmpegInitError: String?
+    @State private var ocrService: OCRService?
     @State private var conversionTask: Task<Void, Never>?
+    @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
+    @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
+    @State private var ocrOptions = OCRService.Options()
     
     private let completionSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "complete", withExtension: "aac") else {
@@ -275,89 +279,16 @@ struct ConverterView: View {
                     .padding(.top)
                     .disabled(files.isEmpty || files.contains(where: { if case .converting = $0 { true } else { false } }))
                 
-                // Show DPI selector when converting PDF to image
-                if shouldShowDpiSelector {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("PDF Resolution")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text("\(pdfToDpi) DPI")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .monospacedDigit()
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Slider(
-                                value: Binding(
-                                    get: { Double(pdfToDpiIndex) },
-                                    set: { newValue in
-                                        let dpiValues = [72, 150, 300, 600, 1200]
-                                        let index = Int(newValue)
-                                        pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
-                                    }
-                                ),
-                                in: 0...5,
-                                step: 1
-                            )
-                        }
-                        
-                    }
-                    .padding(.top, 8)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: shouldShowDpiSelector)
-                }
-                
-                // Show EXIF metadata removal toggle for image conversions (but not PDFs)
-                if shouldShowExifOption {
-                    HStack {
-                        Spacer()
-                        Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
-                    .padding(.top, 8)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: shouldShowExifOption)
-                }
-                
-                // Show quality controls for lossy image conversions
-                if case .imagemagick(let format) = outputService, !files.isEmpty, format.isLossy {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Spacer()
-                            Toggle("Lossy Compression", isOn: $useLossyCompression)
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
-                            
-                        }
-                        
-                        HStack {
-                            Text("Image Quality")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(useLossyCompression ? "\(Int(imageQuality))" : "Default")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .monospacedDigit()
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Slider(value: $imageQuality,
-                                    in: 1...100,
-                                    minimumValueLabel: Text("1").font(.caption2),
-                                    maximumValueLabel: Text("100").font(.caption2),
-                                    label: {
-                                        Text("Quality")
-                                    }
-                                )
-                            .labelsHidden()
-                            .disabled(!useLossyCompression)
-                        }
-                    }
+                // Show image conversion options
+                if case .imagemagick(let format) = outputService, !files.isEmpty {
+                    ImageOptionsView(
+                        imageQuality: $imageQuality,
+                        useLossyCompression: $useLossyCompression,
+                        removeExifMetadata: $removeExifMetadata,
+                        pdfToDpi: $pdfToDpi,
+                        outputFormat: format,
+                        inputFileURLs: files.compactMap { $0.url }
+                    )
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: outputService)
@@ -369,6 +300,18 @@ struct ConverterView: View {
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
+                }
+                
+                // Show OCR options
+                if shouldShowOCROptions {
+                    OCROptionsView(
+                        ocrOptions: $ocrOptions,
+                        ocrUseLanguageCorrection: $ocrUseLanguageCorrection,
+                        ocrSelectedLanguage: $ocrSelectedLanguage
+                    )
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
                 Spacer()
@@ -413,6 +356,7 @@ struct ConverterView: View {
             initializePandoc()
             initializeImageMagick()
             initializeFFmpeg()
+            initializeOCR()
         }
         .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") {
@@ -447,6 +391,7 @@ struct ConverterView: View {
         pandocWrapper?.cancel()
         imageMagickWrapper?.cancel()
         ffmpegWrapper?.cancel()
+        ocrService?.cancel()
         
         // Reset conversion state
         isConverting = false
@@ -498,6 +443,15 @@ struct ConverterView: View {
             ffmpegWrapper = nil
             ffmpegInitError = error.localizedDescription
         }
+    }
+    
+    private func initializeOCR() {
+        print("Initializing OCR Service...")
+        ocrService = OCRService()
+        // Initialize OCR options with saved preferences
+        ocrOptions.usesLanguageCorrection = ocrUseLanguageCorrection
+        ocrOptions.recognitionLanguages = [ocrSelectedLanguage]
+        print("OCR Service initialized successfully")
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -679,6 +633,12 @@ struct ConverterView: View {
                 showError("FFmpeg is not available")
                 return
             }
+        case .ocr(_):
+            guard ocrService != nil else {
+                print("convertFile: OCR not available")
+                showError("OCR is not available")
+                return
+            }
         }
         
         let serviceDescription = getServiceDescription(outputService)
@@ -769,6 +729,30 @@ struct ConverterView: View {
                     }
                     
                     try FileManager.default.removeItem(at: tempURL)
+                    
+                case .ocr(_):
+                    // Perform OCR on the image
+                    let recognizedText = try await ocrService!.recognizeText(
+                        from: inputURL,
+                        options: ocrOptions
+                    )
+                    
+                    // Convert text to data
+                    let outputData = recognizedText.data(using: .utf8) ?? Data()
+                    
+                    let baseName = inputURL.deletingPathExtension().lastPathComponent
+                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                    
+                    let convertedFile = ConvertedFile(
+                        originalURL: inputURL,
+                        data: outputData,
+                        fileName: fileName
+                    )
+                    
+                    // Replace the converting file with the converted file
+                    if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                        files[fileIndex] = .converted(convertedFile)
+                    }
                 }
                 
                 // ImageMagick-specific handling
@@ -984,6 +968,8 @@ struct ConverterView: View {
             return imageMagickWrapper != nil
         case .ffmpeg(_):
             return ffmpegWrapper != nil
+        case .ocr(_):
+            return ocrService != nil
         }
     }
     
@@ -1062,6 +1048,8 @@ struct ConverterView: View {
             return format.rawValue
         case .ffmpeg(let format):
             return format.rawValue
+        case .ocr(let format):
+            return "OCR to \(format.rawValue)"
         }
     }
     
@@ -1081,6 +1069,14 @@ struct ConverterView: View {
         // 1. We're converting to an audio format with FFmpeg
         if case .ffmpeg(let format) = outputService {
             return !format.isVideo
+        }
+        return false
+    }
+    
+    private var shouldShowOCROptions: Bool {
+        // Show OCR options when using OCR service
+        if case .ocr(_) = outputService {
+            return true
         }
         return false
     }

@@ -23,11 +23,16 @@ struct FormatPicker: View {
         let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         
         if allPDFs {
-            // For PDF files, only show image format options
+            // For PDF files, show image format options and OCR
             let compatibleImageFormats = ImageFormat.outputFormats
-            return compatibleImageFormats.map { format in 
-                (.imagemagick(format), format.displayName)
-            }.sorted { $0.1 < $1.1 }
+            var services: [(ConversionService, String)] = compatibleImageFormats.map { format in 
+                (ConversionService.imagemagick(format), format.displayName)
+            }
+            
+            // Add OCR option for PDF
+            services.append((ConversionService.ocr(.txt), "Text (OCR)"))
+            
+            return services.sorted { $0.1 < $1.1 }
         }
         
         // Detect if inputs are documents, images, or media files (excluding PDFs)
@@ -60,6 +65,9 @@ struct FormatPicker: View {
             compatibleServices.append(contentsOf: compatibleImageFormats.map { format in
                 (.imagemagick(format), format.displayName)
             })
+            
+            // OCR text extraction
+            compatibleServices.append((ConversionService.ocr(.txt), "Text (OCR)"))
         }
         
         if !mediaFormats.isEmpty {
@@ -111,6 +119,8 @@ struct FormatPicker: View {
             return format.displayName
         case .ffmpeg(let format):
             return FormatRegistry.shared.config(for: format)?.displayName ?? format.rawValue.uppercased()
+        case .ocr(_):
+            return "Text"
         }
     }
     
@@ -122,6 +132,8 @@ struct FormatPicker: View {
             return format.description
         case .ffmpeg(let format):
             return FormatRegistry.shared.config(for: format)?.description
+        case .ocr(let format):
+            return format.description
         }
     }
     
@@ -132,6 +144,8 @@ struct FormatPicker: View {
         case (.imagemagick(let f1), .imagemagick(let f2)):
             return f1 == f2
         case (.ffmpeg(let f1), .ffmpeg(let f2)):
+            return f1 == f2
+        case (.ocr(let f1), .ocr(let f2)):
             return f1 == f2
         default:
             return false
