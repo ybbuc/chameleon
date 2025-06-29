@@ -12,6 +12,19 @@ struct OCROptionsView: View {
     @Binding var ocrUseLanguageCorrection: Bool
     @Binding var ocrSelectedLanguage: String
     
+    private var languageSelectionBinding: Binding<String> {
+            Binding<String>(
+                get: {
+                    // Read the first language from the model, defaulting to "automatic".
+                    ocrOptions.recognitionLanguages.first ?? "automatic"
+                },
+                set: { newLanguage in
+                    // When the picker's value changes, update the model directly.
+                    ocrOptions.recognitionLanguages = [newLanguage]
+                }
+            )
+        }
+    
     var body: some View {
             Form {
                 Picker("Quality:", selection: $ocrOptions.recognitionLevel) {
@@ -22,7 +35,7 @@ struct OCROptionsView: View {
                 .pickerStyle(.segmented)
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 
-                Picker("Language:", selection: $ocrSelectedLanguage) {
+                Picker("Language:", selection: languageSelectionBinding) {
                     // Automatic option
                     Text("Automatic").tag("automatic")
                     
@@ -39,25 +52,8 @@ struct OCROptionsView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 
-                Toggle("Language Correction", isOn: $ocrUseLanguageCorrection)
-                    .onChange(of: ocrUseLanguageCorrection) { _, newValue in
-                        ocrOptions.usesLanguageCorrection = newValue
-                    }
+                Toggle("Language Correction", isOn: $ocrOptions.usesLanguageCorrection)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-            .onAppear {
-                // Verify that the selected language exists in the supported languages
-                let supportedLanguages = OCRService.Language.supportedLanguages
-                let supportedCodes = supportedLanguages.map { $0.id }
-                
-                // If the current selection is not in the supported list, reset to automatic
-                if !supportedCodes.contains(ocrSelectedLanguage) {
-                    ocrSelectedLanguage = "automatic"
-                    ocrOptions.recognitionLanguages = ["automatic"]
-                } else {
-                    // Ensure ocrOptions is synced with the current selection
-                    ocrOptions.recognitionLanguages = [ocrSelectedLanguage]
-                }
             }
     }
 }
