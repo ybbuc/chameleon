@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Darwin
 
 class FFmpegWrapper {
     private let ffmpegPath: String
@@ -86,7 +87,25 @@ class FFmpegWrapper {
         
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT to FFmpeg for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
+                
+                // Give FFmpeg a moment to clean up
+                for _ in 0..<10 { // Wait up to 1 second
+                    if !process.isRunning {
+                        break
+                    }
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+                
+                // Force terminate if still running
+                if process.isRunning {
+                    process.terminate()
+                }
+                
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -100,8 +119,15 @@ class FFmpegWrapper {
     }
     
     func cancel() {
-        currentProcess?.terminate()
-        currentProcess = nil
+        if let process = currentProcess {
+            // FFmpeg handles SIGINT gracefully and will clean up properly
+            let processID = process.processIdentifier
+            if processID > 0 {
+                // Send SIGINT (Ctrl+C) which FFmpeg handles gracefully
+                kill(processID, SIGINT)
+            }
+            currentProcess = nil
+        }
     }
     
     func getFileInfo(url: URL) async throws -> MediaFileInfo {
