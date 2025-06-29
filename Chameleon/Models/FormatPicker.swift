@@ -133,7 +133,7 @@ struct FormatPicker: View {
     
     static var mediaFormats: [(FFmpegFormat, String)] {
         return FormatRegistry.shared.allConfigs().map { config in
-            (config.format, config.displayName)
+            (config.ffmpegFormat, config.ffmpegFormat.rawValue.uppercased())
         }
     }
     
@@ -228,7 +228,7 @@ struct FormatPicker: View {
         case .imagemagick(let format):
             return Self.imageFormats.first { $0.0 == format }?.1 ?? format.displayName
         case .ffmpeg(let format):
-            return FormatRegistry.shared.config(for: format)?.displayName ?? format.displayName
+            return format.rawValue.uppercased()
         }
     }
     

@@ -7,11 +7,17 @@
 
 import Foundation
 
+// MARK: - Base Format Config Protocol
+
 protocol FormatConfig {
-    var format: FFmpegFormat { get }
-    var displayName: String { get }
     var description: String? { get }
     var fileExtension: String { get }
+}
+
+// MARK: - Media Format Config Protocol
+
+protocol MediaFormatConfig: FormatConfig {
+    var ffmpegFormat: FFmpegFormat { get }
     var isVideo: Bool { get }
     var isLossless: Bool { get }
     
@@ -28,8 +34,10 @@ protocol FormatConfig {
     func audioArguments(audioOptions: AudioOptions) -> [String]
 }
 
-// Default implementations for common patterns
-extension FormatConfig {
+// MARK: - Default Implementations
+
+// Media format defaults
+extension MediaFormatConfig {
     var supportsBitRate: Bool { !isLossless }
     var supportsSampleSize: Bool { isLossless }
     var supportsVariableBitRate: Bool { false }
@@ -80,9 +88,8 @@ extension FormatConfig {
 
 // MARK: - Video Format Configurations
 
-struct MP4Config: FormatConfig {
-    let format = FFmpegFormat.mp4
-    let displayName = "MP4 Video"
+struct MP4Config: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.mp4
     let description: String? = nil
     let fileExtension = "mp4"
     let isVideo = true
@@ -93,9 +100,8 @@ struct MP4Config: FormatConfig {
     }
 }
 
-struct MOVConfig: FormatConfig {
-    let format = FFmpegFormat.mov
-    let displayName = "QuickTime Movie"
+struct MOVConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.mov
     let description: String? = nil
     let fileExtension = "mov"
     let isVideo = true
@@ -106,9 +112,8 @@ struct MOVConfig: FormatConfig {
     }
 }
 
-struct AVIConfig: FormatConfig {
-    let format = FFmpegFormat.avi
-    let displayName = "AVI Video"
+struct AVIConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.avi
     let description: String? = nil
     let fileExtension = "avi"
     let isVideo = true
@@ -119,9 +124,8 @@ struct AVIConfig: FormatConfig {
     }
 }
 
-struct MKVConfig: FormatConfig {
-    let format = FFmpegFormat.mkv
-    let displayName = "Matroska Video"
+struct MKVConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.mkv
     let description: String? = nil
     let fileExtension = "mkv"
     let isVideo = true
@@ -131,7 +135,12 @@ struct MKVConfig: FormatConfig {
         return ["-c:v", "libx264", "-c:a", "aac"]
     }
 }
-  
+
+struct WebMConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.webm
+    let description: String? = nil
+    let fileExtension = "webm"
+    let isVideo = true
     let isLossless = false
     
     func codecArguments() -> [String] {
@@ -139,9 +148,8 @@ struct MKVConfig: FormatConfig {
     }
 }
 
-struct FLVConfig: FormatConfig {
-    let format = FFmpegFormat.flv
-    let displayName = "Flash Video"
+struct FLVConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.flv
     let description: String? = nil
     let fileExtension = "flv"
     let isVideo = true
@@ -152,9 +160,8 @@ struct FLVConfig: FormatConfig {
     }
 }
 
-struct WMVConfig: FormatConfig {
-    let format = FFmpegFormat.wmv
-    let displayName = "Windows Media Video"
+struct WMVConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.wmv
     let description: String? = nil
     let fileExtension = "wmv"
     let isVideo = true
@@ -165,9 +172,8 @@ struct WMVConfig: FormatConfig {
     }
 }
 
-struct M4VConfig: FormatConfig {
-    let format = FFmpegFormat.m4v
-    let displayName = "iTunes Video"
+struct M4VConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.m4v
     let description: String? = nil
     let fileExtension = "m4v"
     let isVideo = true
@@ -180,9 +186,8 @@ struct M4VConfig: FormatConfig {
 
 // MARK: - Audio Format Configurations
 
-struct MP3Config: FormatConfig {
-    let format = FFmpegFormat.mp3
-    let displayName = "MP3 Audio"
+struct MP3Config: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.mp3
     let description: String? = "Lossy, but the files are very compact and can be played in almost any application."
     let fileExtension = "mp3"
     let isVideo = false
@@ -198,9 +203,8 @@ struct MP3Config: FormatConfig {
     }
 }
 
-struct AACConfig: FormatConfig {
-    let format = FFmpegFormat.aac
-    let displayName = "AAC Audio"
+struct AACConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.aac
     let description: String? = "Lossy, though less than MP3. The files are very compact, and are generally well supported by most applications."
     let fileExtension = "m4a"
     let isVideo = false
@@ -211,9 +215,8 @@ struct AACConfig: FormatConfig {
     }
 }
 
-struct WAVConfig: FormatConfig {
-    let format = FFmpegFormat.wav
-    let displayName = "WAV Audio"
+struct WAVConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.wav
     let description: String? = "Lossless, but the files are enormous. They can be played by almost any application."
     let fileExtension = "wav"
     let isVideo = false
@@ -236,9 +239,8 @@ struct WAVConfig: FormatConfig {
     }
 }
 
-struct FLACConfig: FormatConfig {
-    let format = FFmpegFormat.flac
-    let displayName = "FLAC Audio"
+struct FLACConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.flac
     let description: String? = "Lossless, but the files are quite large. It's popular among audiophiles, but playback is supported in few audio players."
     let fileExtension = "flac"
     let isVideo = false
@@ -257,9 +259,8 @@ struct FLACConfig: FormatConfig {
     }
 }
 
-struct ALACConfig: FormatConfig {
-    let format = FFmpegFormat.alac
-    let displayName = "ALAC Audio"
+struct ALACConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.alac
     let description: String? = "Lossless, but the files are quite large. Standard on Apple platforms, but less universal elsewhere."
     let fileExtension = "m4a"
     let isVideo = false
@@ -278,9 +279,8 @@ struct ALACConfig: FormatConfig {
     }
 }
 
-struct OGGConfig: FormatConfig {
-    let format = FFmpegFormat.ogg
-    let displayName = "Ogg Vorbis"
+struct OGGConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.ogg
     let description: String? = "Lossy, with quality often better than MP3 at similar bitrates. While the files are compact, it's not as universally supported as MP3 or AAC."
     let fileExtension = "ogg"
     let isVideo = false
@@ -291,9 +291,8 @@ struct OGGConfig: FormatConfig {
     }
 }
 
-struct WMAConfig: FormatConfig {
-    let format = FFmpegFormat.wma
-    let displayName = "Windows Media Audio"
+struct WMAConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.wma
     let description: String? = "Lossy, with quality comparable to MP3. It's well-supported on Windows but less common on other platforms."
     let fileExtension = "wma"
     let isVideo = false
@@ -304,9 +303,8 @@ struct WMAConfig: FormatConfig {
     }
 }
 
-struct AIFFConfig: FormatConfig {
-    let format = FFmpegFormat.aiff
-    let displayName = "AIFF Audio"
+struct AIFFConfig: MediaFormatConfig {
+    let ffmpegFormat = FFmpegFormat.aiff
     let description: String? = "Lossless, but the files are quite large. Standard on Apple platforms, but less common than WAV elsewhere."
     let fileExtension = "aiff"
     let isVideo = false
@@ -329,15 +327,18 @@ struct AIFFConfig: FormatConfig {
     }
 }
 
+// NOTE: Document and Image format configs can be added in future iterations
+// For now, we're focusing on the media format system
+
 // MARK: - Format Registry
 
 class FormatRegistry {
     static let shared = FormatRegistry()
     
-    private let configs: [FFmpegFormat: FormatConfig]
+    private let mediaConfigs: [FFmpegFormat: MediaFormatConfig]
     
     private init() {
-        configs = [
+        mediaConfigs = [
             // Video formats
             .mp4: MP4Config(),
             .mov: MOVConfig(),
@@ -360,27 +361,30 @@ class FormatRegistry {
         ]
     }
     
-    func config(for format: FFmpegFormat) -> FormatConfig? {
-        return configs[format]
+    // Media format methods (for backward compatibility)
+    func config(for format: FFmpegFormat) -> MediaFormatConfig? {
+        return mediaConfigs[format]
     }
     
-    func allConfigs() -> [FormatConfig] {
-        return Array(configs.values)
+    func allConfigs() -> [MediaFormatConfig] {
+        return Array(mediaConfigs.values)
     }
     
-    func videoConfigs() -> [FormatConfig] {
-        return configs.values.filter { $0.isVideo }
+    func videoConfigs() -> [MediaFormatConfig] {
+        return mediaConfigs.values.filter { $0.isVideo }
     }
     
-    func audioConfigs() -> [FormatConfig] {
-        return configs.values.filter { !$0.isVideo }
+    func audioConfigs() -> [MediaFormatConfig] {
+        return mediaConfigs.values.filter { !$0.isVideo }
     }
     
-    func losslessConfigs() -> [FormatConfig] {
-        return configs.values.filter { $0.isLossless }
+    func losslessConfigs() -> [MediaFormatConfig] {
+        return mediaConfigs.values.filter { $0.isLossless }
     }
     
-    func lossyConfigs() -> [FormatConfig] {
-        return configs.values.filter { !$0.isLossless }
+    func lossyConfigs() -> [MediaFormatConfig] {
+        return mediaConfigs.values.filter { !$0.isLossless }
     }
+    
+    // TODO: Document and image format methods can be added in future iterations
 }

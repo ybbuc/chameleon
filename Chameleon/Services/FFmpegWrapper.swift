@@ -243,7 +243,7 @@ enum FFmpegFormat: String, CaseIterable {
     case aiff = "aiff"
     
     var displayName: String {
-        return FormatRegistry.shared.config(for: self)?.displayName ?? rawValue.uppercased()
+        return rawValue.uppercased()
     }
     
     var description: String? {
