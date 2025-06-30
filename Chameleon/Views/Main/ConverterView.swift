@@ -106,7 +106,8 @@ struct ConverterView: View {
                                     
                                     Text(fileState.fileName)
                                         .font(.headline)
-                                        .lineLimit(2)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
                                         .multilineTextAlignment(.center)
                                     
                                     if case .error(_, let message) = fileState {
@@ -139,10 +140,13 @@ struct ConverterView: View {
                                                 PreviewButton(action: {
                                                     QuickLookManager.shared.previewFile(at: url)
                                                 })
+                                                FinderButton(action: {
+                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                                                })
                                             }
                                         }
                                         .padding(.horizontal)
-                                        .padding(.vertical, 6)
+                                        .padding(.vertical, 8)
                                     }
                                 } else {
                                     VStack(spacing: 0) {
@@ -205,7 +209,7 @@ struct ConverterView: View {
                                             }
                                         }
                                         .padding(.horizontal)
-                                        .padding(.vertical, 6)
+                                        .padding(.vertical, 8)
                                     }
                                 }
                             }

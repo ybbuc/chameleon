@@ -41,4 +41,13 @@ enum FileState: Identifiable {
             return file.originalURL
         }
     }
+    
+    var isConverting: Bool {
+        switch self {
+        case .converting:
+            return true
+        default:
+            return false
+        }
+    }
 }
