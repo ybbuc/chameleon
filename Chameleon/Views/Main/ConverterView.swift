@@ -29,6 +29,7 @@ struct ConverterView: View {
     @State private var dashPhase: CGFloat = 0
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
     @State private var audioOptions = AudioOptions()
+    @State private var videoOptions = VideoOptions()
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
@@ -44,7 +45,6 @@ struct ConverterView: View {
     
     private let completionSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "complete", withExtension: "aac") else {
-            print("Could not find completion.aac in bundle")
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
@@ -52,7 +52,6 @@ struct ConverterView: View {
     
     private let failureSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "failure", withExtension: "aac") else {
-            print("Could not find failure.aac in bundle")
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
@@ -232,10 +231,12 @@ struct ConverterView: View {
                                         }
                                         
                                         let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
-                                        SaveAllButton(
-                                            label: convertedCount == 1 ? "Save" : "Save All"
-                                        ) {
-                                            saveAllFiles()
+                                        if convertedCount > 0 {
+                                            SaveAllButton(
+                                                label: convertedCount == 1 ? "Save" : "Save All"
+                                            ) {
+                                                saveAllFiles()
+                                            }
                                         }
                                     }
                                     .padding(.horizontal)
@@ -365,6 +366,14 @@ struct ConverterView: View {
                 // Show audio options for FFmpeg audio conversions
                 if shouldShowAudioOptions {
                     AudioOptionsView(audioOptions: $audioOptions, outputFormat: currentFFmpegFormat)
+                        .padding(.top, 8)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                }
+                
+                // Show video options for FFmpeg video conversions
+                if shouldShowVideoOptions {
+                    VideoOptionsView(videoOptions: $videoOptions, outputFormat: currentFFmpegFormat)
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
@@ -776,8 +785,9 @@ struct ConverterView: View {
                         inputURL: inputURL,
                         outputURL: tempURL,
                         format: format,
-                        quality: .medium,
-                        audioOptions: format.isVideo ? nil : audioOptions
+                        quality: format.isVideo ? videoOptions.quality : .medium,
+                        audioOptions: format.isVideo ? nil : audioOptions,
+                        videoOptions: format.isVideo ? videoOptions : nil
                     )
                     
                     // Single file output for FFmpeg
@@ -1137,6 +1147,15 @@ struct ConverterView: View {
         // 1. We're converting to an audio format with FFmpeg
         if case .ffmpeg(let format) = outputService {
             return !format.isVideo
+        }
+        return false
+    }
+    
+    private var shouldShowVideoOptions: Bool {
+        // Show video options when:
+        // 1. We're converting to a video format with FFmpeg
+        if case .ffmpeg(let format) = outputService {
+            return format.isVideo
         }
         return false
     }

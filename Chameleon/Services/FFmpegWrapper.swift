@@ -53,7 +53,7 @@ class FFmpegWrapper {
         throw FFmpegError.ffmpegNotInstalled
     }
     
-    func convertFile(inputURL: URL, outputURL: URL, format: FFmpegFormat, quality: FFmpegQuality = .medium, audioOptions: AudioOptions? = nil) async throws {
+    func convertFile(inputURL: URL, outputURL: URL, format: FFmpegFormat, quality: FFmpegQuality = .medium, audioOptions: AudioOptions? = nil, videoOptions: VideoOptions? = nil) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ffmpegPath)
         
@@ -67,6 +67,10 @@ class FFmpegWrapper {
             // Use custom audio options for audio formats
             arguments.append(contentsOf: format.codecArguments())
             arguments.append(contentsOf: audioOptions.ffmpegArguments(for: format))
+        } else if let videoOptions = videoOptions, format.isVideo {
+            // Use custom video options for video formats
+            arguments.append(contentsOf: format.codecArguments())
+            arguments.append(contentsOf: videoOptions.ffmpegArguments(for: format))
         } else {
             // Use default format arguments
             arguments.append(contentsOf: format.arguments(quality: quality))
