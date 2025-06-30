@@ -7,6 +7,26 @@
 
 import Foundation
 
+// CRF support information for different codecs
+enum VideoCodecCRFSupport {
+    case supported(min: Int, max: Int, default: Int)
+    case notSupported
+    
+    static func forCodec(_ codec: String) -> VideoCodecCRFSupport {
+        switch codec {
+        case "libx264":
+            return .supported(min: 0, max: 51, default: 23)
+        case "libx265":
+            return .supported(min: 0, max: 51, default: 28)
+        case "libvpx", "libvpx-vp9":
+            return .supported(min: 0, max: 63, default: 31)
+        case "libaom-av1":
+            return .supported(min: 0, max: 63, default: 30)
+        default:
+            return .notSupported
+        }
+    }
+}
 
 struct MP4Config: MediaFormatConfig {
     let displayName = "MP4"
@@ -18,6 +38,15 @@ struct MP4Config: MediaFormatConfig {
     
     func codecArguments() -> [String] {
         return ["-c:v", "libx264", "-c:a", "aac"]
+    }
+    
+    func codecArguments(for encoder: VideoEncoder?) -> [String] {
+        let videoEncoder = encoder?.encoderName ?? "libx264"
+        return ["-c:v", videoEncoder, "-c:a", "aac"]
+    }
+    
+    func supportedVideoEncoders() -> [VideoEncoder] {
+        return [.x264, .x265]
     }
 }
 
@@ -31,6 +60,15 @@ struct MOVConfig: MediaFormatConfig {
     
     func codecArguments() -> [String] {
         return ["-c:v", "libx264", "-c:a", "aac"]
+    }
+    
+    func codecArguments(for encoder: VideoEncoder?) -> [String] {
+        let videoEncoder = encoder?.encoderName ?? "libx264"
+        return ["-c:v", videoEncoder, "-c:a", "aac"]
+    }
+    
+    func supportedVideoEncoders() -> [VideoEncoder] {
+        return [.x264, .x265]
     }
 }
 
@@ -57,6 +95,15 @@ struct MKVConfig: MediaFormatConfig {
     
     func codecArguments() -> [String] {
         return ["-c:v", "libx264", "-c:a", "aac"]
+    }
+    
+    func codecArguments(for encoder: VideoEncoder?) -> [String] {
+        let videoEncoder = encoder?.encoderName ?? "libx264"
+        return ["-c:v", videoEncoder, "-c:a", "aac"]
+    }
+    
+    func supportedVideoEncoders() -> [VideoEncoder] {
+        return [.x264, .x265]
     }
 }
 
@@ -109,5 +156,24 @@ struct M4VConfig: MediaFormatConfig {
     
     func codecArguments() -> [String] {
         return ["-c:v", "libx264", "-c:a", "aac"]
+    }
+}
+
+struct AnimatedGIFConfig: MediaFormatConfig {
+    let displayName = "GIF"
+    let ffmpegFormat = FFmpegFormat.gif
+    let description: String? = ""
+    let fileExtension = "gif"
+    let isVideo = true
+    let isLossless = true  // GIF uses lossless compression but limited colors
+    
+    func codecArguments() -> [String] {
+        // GIF doesn't use video codecs in the traditional sense
+        return []
+    }
+    
+    func qualityArguments(quality: FFmpegQuality) -> [String] {
+        // Override quality arguments for GIF
+        return []
     }
 }

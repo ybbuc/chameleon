@@ -13,6 +13,42 @@ struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
     
+    private var hasMediaFormats: Bool {
+        compatibleServices.contains { service, _ in
+            if case .ffmpeg = service {
+                return true
+            }
+            return false
+        }
+    }
+    
+    private var audioServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .ffmpeg(let format) = service {
+                return !format.isVideo
+            }
+            return false
+        }
+    }
+    
+    private var videoServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .ffmpeg(let format) = service {
+                return format.isVideo
+            }
+            return false
+        }
+    }
+    
+    private var nonMediaServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .ffmpeg = service {
+                return false
+            }
+            return true
+        }
+    }
+    
     private var compatibleServices: [(ConversionService, String)] {
         guard !inputFileURLs.isEmpty else {
             // Return empty array when no files are present
@@ -95,8 +131,53 @@ struct FormatPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Output Format", selection: $selectedService) {
-                ForEach(compatibleServices, id: \.0) { service, name in
-                    Text(name).tag(service)
+                if hasMediaFormats && nonMediaServices.isEmpty {
+                    // Only media formats available
+                    if !audioServices.isEmpty {
+                        Section("Audio Formats") {
+                            ForEach(audioServices, id: \.0) { service, name in
+                                Text(name).tag(service)
+                            }
+                        }
+                    }
+                    
+                    if !videoServices.isEmpty {
+                        Section("Video Formats") {
+                            ForEach(videoServices, id: \.0) { service, name in
+                                Text(name).tag(service)
+                            }
+                        }
+                    }
+                } else if hasMediaFormats && !nonMediaServices.isEmpty {
+                    // Mixed formats available (e.g., when selecting images that can be converted to video)
+                    ForEach(nonMediaServices, id: \.0) { service, name in
+                        Text(name).tag(service)
+                    }
+                    
+                    if !audioServices.isEmpty || !videoServices.isEmpty {
+                        Divider()
+                        
+                        if !audioServices.isEmpty {
+                            Section("Audio Formats") {
+                                ForEach(audioServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
+                        if !videoServices.isEmpty {
+                            Section("Video Formats") {
+                                ForEach(videoServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // No media formats, just show all compatible services
+                    ForEach(compatibleServices, id: \.0) { service, name in
+                        Text(name).tag(service)
+                    }
                 }
             }
             .pickerStyle(.menu)

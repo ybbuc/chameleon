@@ -54,6 +54,23 @@ class FFmpegWrapper {
     }
     
     func convertFile(inputURL: URL, outputURL: URL, format: FFmpegFormat, quality: FFmpegQuality = .medium, audioOptions: AudioOptions? = nil, videoOptions: VideoOptions? = nil) async throws {
+        // Special handling for GIF with palette optimization
+        if format == .gif, let videoOptions = videoOptions, videoOptions.gifOptions.usePalette {
+            try await performGIFConversionWithPalette(inputURL: inputURL, outputURL: outputURL, videoOptions: videoOptions)
+            return
+        }
+        
+        // Check if we need two-pass encoding
+        if let videoOptions = videoOptions,
+           format.isVideo,
+           videoOptions.qualityMode == .bitrate,
+           videoOptions.useTwoPassEncoding {
+            // Perform two-pass encoding
+            try await performTwoPassEncoding(inputURL: inputURL, outputURL: outputURL, format: format, videoOptions: videoOptions)
+            return
+        }
+        
+        // Single-pass encoding
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ffmpegPath)
         
@@ -69,7 +86,11 @@ class FFmpegWrapper {
             arguments.append(contentsOf: audioOptions.ffmpegArguments(for: format))
         } else if let videoOptions = videoOptions, format.isVideo {
             // Use custom video options for video formats
-            arguments.append(contentsOf: format.codecArguments())
+            if let config = FormatRegistry.shared.config(for: format) {
+                arguments.append(contentsOf: config.codecArguments(for: videoOptions.encoder))
+            } else {
+                arguments.append(contentsOf: format.codecArguments())
+            }
             arguments.append(contentsOf: videoOptions.ffmpegArguments(for: format))
         } else {
             // Use default format arguments
@@ -131,6 +152,195 @@ class FFmpegWrapper {
                 kill(processID, SIGINT)
             }
             currentProcess = nil
+        }
+    }
+    
+    private func performTwoPassEncoding(inputURL: URL, outputURL: URL, format: FFmpegFormat, videoOptions: VideoOptions) async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+        let logFileBase = tempDir.appendingPathComponent("ffmpeg2pass-\(UUID().uuidString)")
+        
+        // First pass
+        try await runPass(1, inputURL: inputURL, outputURL: URL(fileURLWithPath: "/dev/null"), format: format, videoOptions: videoOptions, logFile: logFileBase.path)
+        
+        // Second pass
+        try await runPass(2, inputURL: inputURL, outputURL: outputURL, format: format, videoOptions: videoOptions, logFile: logFileBase.path)
+        
+        // Clean up log files
+        try? FileManager.default.removeItem(at: logFileBase.appendingPathExtension("0.log"))
+        try? FileManager.default.removeItem(at: logFileBase.appendingPathExtension("0.log.mbtree"))
+    }
+    
+    private func runPass(_ pass: Int, inputURL: URL, outputURL: URL, format: FFmpegFormat, videoOptions: VideoOptions, logFile: String) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: ffmpegPath)
+        
+        var arguments = [
+            "-i", inputURL.path,
+            "-y" // Overwrite output file
+        ]
+        
+        // Add codec arguments
+        if let config = FormatRegistry.shared.config(for: format) {
+            arguments.append(contentsOf: config.codecArguments(for: videoOptions.encoder))
+        } else {
+            arguments.append(contentsOf: format.codecArguments())
+        }
+        
+        // Add pass-specific arguments
+        arguments.append(contentsOf: videoOptions.ffmpegArgumentsForPass(pass, for: format, logFile: logFile))
+        
+        if pass == 1 {
+            // First pass outputs to null
+            arguments.append("/dev/null")
+        } else {
+            // Second pass outputs to final file
+            arguments.append(outputURL.path)
+        }
+        
+        process.arguments = arguments
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        
+        try process.run()
+        
+        // Wait for completion with cancellation support
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                // Send SIGINT to FFmpeg for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
+                
+                // Give FFmpeg a moment to clean up
+                for _ in 0..<10 { // Wait up to 1 second
+                    if !process.isRunning {
+                        break
+                    }
+                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                }
+                
+                // Force terminate if still running
+                if process.isRunning {
+                    process.terminate()
+                    process.waitUntilExit()
+                }
+                
+                throw CancellationError()
+            }
+            
+            try await Task.sleep(nanoseconds: 100_000_000) // Check every 100ms
+        }
+        
+        // Check if process exited successfully
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw FFmpegError.conversionFailed("FFmpeg pass \(pass) failed: \(errorString)")
+        }
+    }
+    
+    private func performGIFConversionWithPalette(inputURL: URL, outputURL: URL, videoOptions: VideoOptions) async throws {
+        let tempDir = FileManager.default.temporaryDirectory
+        let paletteFile = tempDir.appendingPathComponent("palette_\(UUID().uuidString).png")
+        
+        // First pass: Generate palette
+        try await generateGIFPalette(inputURL: inputURL, outputURL: paletteFile, videoOptions: videoOptions)
+        
+        // Second pass: Use palette to create GIF
+        try await createGIFWithPalette(inputURL: inputURL, paletteURL: paletteFile, outputURL: outputURL, videoOptions: videoOptions)
+        
+        // Clean up palette file
+        try? FileManager.default.removeItem(at: paletteFile)
+    }
+    
+    private func generateGIFPalette(inputURL: URL, outputURL: URL, videoOptions: VideoOptions) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: ffmpegPath)
+        
+        // Build filter for palette generation
+        var filters: [String] = []
+        filters.append("fps=\(videoOptions.gifOptions.fps)")
+        
+        // Scale filter
+        filters.append("scale=\(videoOptions.gifOptions.width):-1:flags=lanczos")
+        
+        filters.append("palettegen")
+        
+        process.arguments = [
+            "-i", inputURL.path,
+            "-vf", filters.joined(separator: ","),
+            "-y",
+            outputURL.path
+        ]
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        
+        try process.run()
+        
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                kill(process.processIdentifier, SIGINT)
+                throw CancellationError()
+            }
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw FFmpegError.conversionFailed("Failed to generate GIF palette: \(errorString)")
+        }
+    }
+    
+    private func createGIFWithPalette(inputURL: URL, paletteURL: URL, outputURL: URL, videoOptions: VideoOptions) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: ffmpegPath)
+        
+        // Build complex filter for GIF creation with palette
+        let fps = videoOptions.gifOptions.fps
+        let width = videoOptions.gifOptions.width
+        let filterComplex = "fps=\(fps),scale=\(width):-1:flags=lanczos[x];[x][1:v]paletteuse"
+        
+        let arguments = [
+            "-i", inputURL.path,
+            "-i", paletteURL.path,
+            "-filter_complex", filterComplex,
+            "-loop", "\(videoOptions.gifOptions.loop)",
+            "-y",
+            outputURL.path
+        ]
+        
+        process.arguments = arguments
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        
+        try process.run()
+        
+        currentProcess = process
+        defer { currentProcess = nil }
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                kill(process.processIdentifier, SIGINT)
+                throw CancellationError()
+            }
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw FFmpegError.conversionFailed("Failed to create GIF: \(errorString)")
         }
     }
     
@@ -261,6 +471,7 @@ enum FFmpegFormat: String, CaseIterable {
     case flv = "flv"
     case wmv = "wmv"
     case m4v = "m4v"
+    case gif = "gif"
     
     // Audio formats
     case mp3 = "mp3"
@@ -302,6 +513,40 @@ enum FFmpegFormat: String, CaseIterable {
         return FormatRegistry.shared.config(for: self)?.codecArguments() ?? []
     }
     
+    var primaryVideoCodec: String? {
+        guard let config = FormatRegistry.shared.config(for: self),
+              config.isVideo else { return nil }
+        
+        let codecArgs = config.codecArguments()
+        // Find the video codec argument (follows -c:v)
+        if let index = codecArgs.firstIndex(of: "-c:v"),
+           index + 1 < codecArgs.count {
+            return codecArgs[index + 1]
+        }
+        return nil
+    }
+    
+    func primaryVideoCodec(for encoder: VideoEncoder?) -> String? {
+        guard let config = FormatRegistry.shared.config(for: self),
+              config.isVideo else { return nil }
+        
+        let codecArgs = config.codecArguments(for: encoder)
+        // Find the video codec argument (follows -c:v)
+        if let index = codecArgs.firstIndex(of: "-c:v"),
+           index + 1 < codecArgs.count {
+            return codecArgs[index + 1]
+        }
+        return nil
+    }
+    
+    var supportsCRF: Bool {
+        guard let codec = primaryVideoCodec else { return false }
+        if case .supported = VideoCodecCRFSupport.forCodec(codec) {
+            return true
+        }
+        return false
+    }
+    
     // Accurate format detection using ffprobe analysis
     static func detectFormatAccurate(from url: URL) async -> FFmpegFormat? {
         do {
@@ -335,6 +580,8 @@ enum FFmpegFormat: String, CaseIterable {
             return .wmv
         case "m4v":
             return .m4v
+        case "gif":
+            return .gif
         case "mp3":
             return .mp3
         case "aac":

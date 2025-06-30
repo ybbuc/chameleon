@@ -785,7 +785,7 @@ struct ConverterView: View {
                         inputURL: inputURL,
                         outputURL: tempURL,
                         format: format,
-                        quality: format.isVideo ? videoOptions.quality : .medium,
+                        quality: format.isVideo ? videoOptions.crfQuality : .medium,
                         audioOptions: format.isVideo ? nil : audioOptions,
                         videoOptions: format.isVideo ? videoOptions : nil
                     )

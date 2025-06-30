@@ -31,8 +31,10 @@ protocol MediaFormatConfig: FormatConfig {
     
     // FFmpeg arguments
     func codecArguments() -> [String]
+    func codecArguments(for encoder: VideoEncoder?) -> [String]
     func qualityArguments(quality: FFmpegQuality) -> [String]
     func audioArguments(audioOptions: AudioOptions) -> [String]
+    func supportedVideoEncoders() -> [VideoEncoder]
 }
 
 // MARK: - Default Implementations
@@ -44,6 +46,17 @@ extension MediaFormatConfig {
     var supportsVariableBitRate: Bool { false }
     var availableSampleRates: [AudioSampleRate] { AudioSampleRate.defaultSampleRates }
     var availableSampleSizes: [AudioSampleSize] { AudioSampleSize.allCases }
+    
+    // Default implementation for codec arguments with specific encoder
+    func codecArguments(for encoder: VideoEncoder?) -> [String] {
+        // If no encoder specified or format doesn't support multiple encoders, use default
+        return codecArguments()
+    }
+    
+    // Default implementation for supported encoders (empty for formats that don't support encoder selection)
+    func supportedVideoEncoders() -> [VideoEncoder] {
+        return []
+    }
     
     func qualityArguments(quality: FFmpegQuality) -> [String] {
         isVideo ? quality.videoArguments : quality.audioArguments
@@ -110,6 +123,7 @@ class FormatRegistry {
             .flv: FLVConfig(),
             .wmv: WMVConfig(),
             .m4v: M4VConfig(),
+            .gif: AnimatedGIFConfig(),
             
             // Audio formats
             .mp3: MP3Config(),
