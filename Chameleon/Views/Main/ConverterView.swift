@@ -28,6 +28,8 @@ struct ConverterView: View {
     @State private var isTargeted = false
     @State private var dashPhase: CGFloat = 0
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
+    @AppStorage("useNativePDFConversion") private var useNativePDFConversion: Bool = false
+    @AppStorage("pdfNativeScale") private var pdfNativeScale: Double = 2.0
     @State private var audioOptions = AudioOptions()
     @State private var videoOptions = VideoOptions()
     
@@ -288,39 +290,73 @@ struct ConverterView: View {
                 // Show image conversion options
                 if case .imagemagick(let format) = outputService, !files.isEmpty {
                     Form {
-                        // Show DPI selector when converting PDF to image
+                        // Show PDF-specific options when converting PDF to image
                         if files.contains(where: { fileState in
                             guard let url = fileState.url,
-                                  let format = ImageFormat.detectFormat(from: url) else { return false }
-                            return format.requiresDpiConfiguration
+                                  let inputFormat = ImageFormat.detectFormat(from: url) else { return false }
+                            return inputFormat.requiresDpiConfiguration
                         }) {
-                            HStack {
-                                Text("PDF Resolution")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("\(pdfToDpi) DPI")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .monospacedDigit()
+                            // Only show native PDF option for formats that PDFKit supports
+                            if format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Picker("Engine", selection: $useNativePDFConversion) {
+                                        Text("ImageMagick").tag(false)
+                                        Text("PDFKit").tag(true)
+                                    }
+                                    .pickerStyle(.segmented)
+                                    .help("Choose between ImageMagick (external tool) or PDFKit (native macOS)")
+                                }
+                                .padding(.bottom, 8)
                             }
                             
-                            Slider(
-                                value: Binding(
-                                    get: { 
-                                        let dpiValues = [72, 150, 300, 600, 1200, 2400]
-                                        return Double(dpiValues.firstIndex(of: pdfToDpi) ?? 1)
-                                    },
-                                    set: { newValue in
-                                        let dpiValues = [72, 150, 300, 600, 1200, 2400]
-                                        let index = Int(newValue)
-                                        pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
-                                    }
-                                ),
-                                in: 0...5,
-                                step: 1
-                            )
-                            .labelsHidden()
+                            if useNativePDFConversion && (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif) {
+                                HStack {
+                                    Text("PDF Scale")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text("\(pdfNativeScale, specifier: "%.1f")x")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                }
+                                
+                                Slider(
+                                    value: $pdfNativeScale,
+                                    in: 0.5...4.0,
+                                    step: 0.5
+                                )
+                                .labelsHidden()
+                                .help("Scale factor for PDF rendering (1x = 72 DPI, 2x = 144 DPI, etc.)")
+                            } else {
+                                HStack {
+                                    Text("PDF Resolution")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text("\(pdfToDpi) DPI")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .monospacedDigit()
+                                }
+                                
+                                Slider(
+                                    value: Binding(
+                                        get: { 
+                                            let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                            return Double(dpiValues.firstIndex(of: pdfToDpi) ?? 1)
+                                        },
+                                        set: { newValue in
+                                            let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                            let index = Int(newValue)
+                                            pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
+                                        }
+                                    ),
+                                    in: 0...5,
+                                    step: 1
+                                )
+                                .labelsHidden()
+                            }
                         }
                         
                         // Show EXIF metadata removal toggle for image conversions
@@ -772,13 +808,72 @@ struct ConverterView: View {
                     try FileManager.default.removeItem(at: tempURL)
                     
                 case .imagemagick(let format):
-                    try await imageMagickWrapper!.convertImage(
-                        inputURL: inputURL,
-                        outputURL: tempURL,
-                        to: format,
-                        quality: useLossyCompression ? Int(imageQuality) : 100,
-                        dpi: pdfToDpi
-                    )
+                    // Check if we should use native PDF conversion
+                    if useNativePDFConversion && inputURL.pathExtension.lowercased() == "pdf" {
+                        // Use PDFKit for PDF to image conversion
+                        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                        
+                        let options = PDFKitService.PDFConversionOptions(
+                            scale: CGFloat(pdfNativeScale),
+                            format: mapImageFormatToPDFKitFormat(format),
+                            backgroundColor: .white,
+                            jpegQuality: CGFloat(imageQuality) / 100.0
+                        )
+                        
+                        let outputURLs = try await PDFKitService.convertPDFToImages(
+                            at: inputURL,
+                            outputDirectory: tempDir,
+                            options: options
+                        )
+                        
+                        // PDFKit handles multi-page PDFs directly, no need for the complex file detection
+                        // Skip to the end of the ImageMagick-specific handling
+                        
+                        // Handle the converted files
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            if outputURLs.count == 1 {
+                                // Single page PDF
+                                let data = try Data(contentsOf: outputURLs[0])
+                                let baseName = inputURL.deletingPathExtension().lastPathComponent
+                                let fileName = "\(baseName).\(format.fileExtension)"
+                                
+                                let convertedFile = ConvertedFile(
+                                    originalURL: inputURL,
+                                    data: data,
+                                    fileName: fileName
+                                )
+                                files[fileIndex] = .converted(convertedFile)
+                            } else {
+                                // Multi-page PDF
+                                files.remove(at: fileIndex)
+                                for (i, outputURL) in outputURLs.enumerated() {
+                                    let data = try Data(contentsOf: outputURL)
+                                    let convertedFile = ConvertedFile(
+                                        originalURL: inputURL,
+                                        data: data,
+                                        fileName: outputURL.lastPathComponent
+                                    )
+                                    files.insert(.converted(convertedFile), at: fileIndex + i)
+                                }
+                            }
+                        }
+                        
+                        // Clean up temporary directory
+                        try FileManager.default.removeItem(at: tempDir)
+                        
+                        // Skip the rest of ImageMagick handling for this file
+                        continue
+                    } else {
+                        // Use ImageMagick for regular image conversion
+                        try await imageMagickWrapper!.convertImage(
+                            inputURL: inputURL,
+                            outputURL: tempURL,
+                            to: format,
+                            quality: useLossyCompression ? Int(imageQuality) : 100,
+                            dpi: pdfToDpi
+                        )
+                    }
                     
                 case .ffmpeg(let format):
                     try await ffmpegWrapper!.convertFile(
@@ -1244,6 +1339,20 @@ struct ConverterView: View {
                     files.removeAll { $0.id == fileState.id }
                 }
             )
+        }
+    }
+    
+    private func mapImageFormatToPDFKitFormat(_ format: ImageFormat) -> PDFKitService.PDFConversionOptions.ImageFormat {
+        switch format {
+        case .png:
+            return .png
+        case .jpeg, .jpg:
+            return .jpeg
+        case .tiff, .tif:
+            return .tiff
+        default:
+            // Default to PNG for unsupported formats
+            return .png
         }
     }
 }
