@@ -46,7 +46,9 @@ struct FilePreviewView: View {
                                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                        .frame(maxWidth: 200, maxHeight: 150)
+                        .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(20)
                 } else {
                     fileIcon
                 }

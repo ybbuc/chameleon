@@ -59,28 +59,23 @@ struct FormatPicker: View {
         let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         
         if allPDFs {
-            // For PDF files, show image format options and OCR
+            // For PDF files, show image format options and text extraction
             let compatibleImageFormats = ImageFormat.outputFormats
             var services: [(ConversionService, String)] = compatibleImageFormats.map { format in 
                 (ConversionService.imagemagick(format), format.displayName)
             }
             
-            // Add OCR option for PDF
-            services.append((ConversionService.ocr(.txt), "Text (OCR)"))
+            // Add both text extraction options for PDFs
+            services.append((ConversionService.ocr(.txtExtract), "Text (Extract)"))
+            services.append((ConversionService.ocr(.txtOCR), "Text (OCR)"))
             
             return services.sorted { $0.1 < $1.1 }
         }
         
-        // Detect if inputs are documents, images, or media files (excluding PDFs)
-        let documentFormats = inputFileURLs.compactMap { url in
-            url.pathExtension.lowercased() == "pdf" ? nil : PandocFormat.detectFormat(from: url)
-        }
-        let imageFormats = inputFileURLs.compactMap { url in
-            url.pathExtension.lowercased() == "pdf" ? nil : ImageFormat.detectFormat(from: url)
-        }
-        let mediaFormats = inputFileURLs.compactMap { url in
-            url.pathExtension.lowercased() == "pdf" ? nil : FFmpegFormat.detectFormat(from: url)
-        }
+        // Detect if inputs are documents, images, or media files
+        let documentFormats = inputFileURLs.compactMap { PandocFormat.detectFormat(from: $0) }
+        let imageFormats = inputFileURLs.compactMap { ImageFormat.detectFormat(from: $0) }
+        let mediaFormats = inputFileURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
         
         var compatibleServices: [(ConversionService, String)] = []
         
@@ -101,9 +96,20 @@ struct FormatPicker: View {
             compatibleServices.append(contentsOf: compatibleImageFormats.map { format in
                 (.imagemagick(format), format.displayName)
             })
-            
-            // OCR text extraction
-            compatibleServices.append((ConversionService.ocr(.txt), "Text (OCR)"))
+        }
+        
+        // Add OCR/Text extraction for mixed PDFs and images
+        let hasPDFs = inputFileURLs.contains { url in
+            url.pathExtension.lowercased() == "pdf"
+        }
+        let hasImages = !imageFormats.isEmpty
+        
+        if hasPDFs && hasImages {
+            // Both PDFs and images: show generic text option
+            compatibleServices.append((.ocr(.txt), "Text (OCR)"))
+        } else if hasImages && !hasPDFs {
+            // Only images: show text OCR option
+            compatibleServices.append((.ocr(.txt), "Text (OCR)"))
         }
         
         if !mediaFormats.isEmpty {
@@ -200,8 +206,8 @@ struct FormatPicker: View {
             return format.displayName
         case .ffmpeg(let format):
             return FormatRegistry.shared.config(for: format)?.displayName ?? format.rawValue.uppercased()
-        case .ocr(_):
-            return "Text"
+        case .ocr(let format):
+            return format.displayName
         }
     }
     

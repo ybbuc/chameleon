@@ -53,7 +53,11 @@ struct AudioOptionsView: View {
             
             // Channels dropdown (for all audio formats)
             Picker("Channels:", selection: $audioOptions.channels) {
-                ForEach(AudioChannels.allCases, id: \.self) { channels in
+                Text(AudioChannels.automatic.displayName).tag(AudioChannels.automatic)
+                
+                Divider()
+                
+                ForEach(AudioChannels.allCases.filter { $0 != .automatic }, id: \.self) { channels in
                     Text(channels.displayName).tag(channels)
                 }
             }

@@ -30,18 +30,21 @@ enum AudioBitRate: Int, CaseIterable {
 }
 
 enum AudioChannels: String, CaseIterable {
+    case automatic = "auto"
     case mono = "mono"
     case stereo = "stereo"
     
     var displayName: String {
         switch self {
+        case .automatic: return "Automatic"
         case .mono: return "Mono"
         case .stereo: return "Stereo"
         }
     }
     
-    var channelCount: Int {
+    var channelCount: Int? {
         switch self {
+        case .automatic: return nil
         case .mono: return 1
         case .stereo: return 2
         }
@@ -88,7 +91,7 @@ enum AudioSampleSize: Int, CaseIterable {
 
 struct AudioOptions {
     var bitRate: AudioBitRate = .kbps192
-    var channels: AudioChannels = .stereo
+    var channels: AudioChannels = .automatic
     var sampleRate: AudioSampleRate = .hz44100
     var sampleSize: AudioSampleSize = .bits16
     var useVariableBitRate: Bool = false

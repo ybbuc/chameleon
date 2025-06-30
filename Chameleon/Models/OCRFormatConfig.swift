@@ -32,7 +32,7 @@ struct TXTConfig: OCRFormatConfig {
 extension FormatRegistry {
     func config(for format: OCRFormat) -> OCRFormatConfig? {
         switch format {
-        case .txt:
+        case .txt, .txtExtract, .txtOCR:
             return TXTConfig()
         }
     }

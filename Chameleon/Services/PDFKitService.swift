@@ -66,30 +66,33 @@ class PDFKitService {
                 height: pageBounds.height * options.scale
             )
             
+            // Create the scaled image
+            let scaledImage = NSImage(size: scaledSize)
+            scaledImage.lockFocus()
+            
+            // Fill background
+            options.backgroundColor.setFill()
+            NSRect(origin: .zero, size: scaledSize).fill()
+            
             // Create an image from the PDF page
-            let image = NSImage(size: scaledSize, flipped: false, drawingHandler: { rect in
-                NSGraphicsContext.saveGraphicsState()
-                
-                // Fill background
-                options.backgroundColor.setFill()
-                rect.fill()
-                
-                // Set up the transform to scale the PDF page
-                let transform = NSAffineTransform()
-                transform.scale(by: options.scale)
-                transform.concat()
-                
-                // Draw the PDF page
-                if let context = NSGraphicsContext.current?.cgContext {
-                    page.draw(with: .mediaBox, to: context)
-                }
-                
-                NSGraphicsContext.restoreGraphicsState()
-                return true
-            })
+            NSGraphicsContext.saveGraphicsState()
+            
+            // Set up the transform to scale the PDF page
+            let transform = NSAffineTransform()
+            transform.scale(by: options.scale)
+            transform.concat()
+            
+            // Draw the PDF page
+            if let context = NSGraphicsContext.current?.cgContext {
+                page.draw(with: .mediaBox, to: context)
+            }
+            
+            NSGraphicsContext.restoreGraphicsState()
+            
+            scaledImage.unlockFocus()
             
             // Convert NSImage to data
-            guard let tiffData = image.tiffRepresentation,
+            guard let tiffData = scaledImage.tiffRepresentation,
                   let bitmap = NSBitmapImageRep(data: tiffData) else {
                 throw ConversionError.conversionFailed("Failed to create bitmap representation")
             }

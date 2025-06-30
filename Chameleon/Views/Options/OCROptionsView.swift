@@ -12,19 +12,6 @@ struct OCROptionsView: View {
     @Binding var ocrUseLanguageCorrection: Bool
     @Binding var ocrSelectedLanguage: String
     
-    private var languageSelectionBinding: Binding<String> {
-            Binding<String>(
-                get: {
-                    // Read the first language from the model, defaulting to "automatic".
-                    ocrOptions.recognitionLanguages.first ?? "automatic"
-                },
-                set: { newLanguage in
-                    // When the picker's value changes, update the model directly.
-                    ocrOptions.recognitionLanguages = [newLanguage]
-                }
-            )
-        }
-    
     var body: some View {
         Form {
             Picker("Quality:", selection: $ocrOptions.recognitionLevel) {
@@ -41,7 +28,7 @@ struct OCROptionsView: View {
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
             
-            Picker("Language:", selection: languageSelectionBinding) {
+            Picker("Language:", selection: $ocrSelectedLanguage) {
                 // Automatic option
                 Text("Automatic").tag("automatic")
                 
@@ -60,7 +47,19 @@ struct OCROptionsView: View {
             
             Toggle("Language Correction", isOn: $ocrOptions.usesLanguageCorrection)
                 .disabled(ocrOptions.recognitionLevel == .fast)
+                .onChange(of: ocrOptions.usesLanguageCorrection) { _, newValue in
+                    ocrUseLanguageCorrection = newValue
+                }
                 .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+        .onAppear {
+            // Ensure initial sync
+            if ocrOptions.recognitionLanguages.first != ocrSelectedLanguage {
+                ocrOptions.recognitionLanguages = [ocrSelectedLanguage]
+            }
+            if ocrOptions.usesLanguageCorrection != ocrUseLanguageCorrection {
+                ocrOptions.usesLanguageCorrection = ocrUseLanguageCorrection
+            }
         }
     }
 }

@@ -140,21 +140,32 @@ class OCRService {
 // OCR output format options
 enum OCRFormat: String, CaseIterable {
     case txt = "txt"
+    case txtExtract = "txt_extract"  // PDF text extraction using PDFKit
+    case txtOCR = "txt_ocr"          // OCR using Vision framework
     
     var displayName: String {
         switch self {
         case .txt: return "Text"
+        case .txtExtract: return "Text (Extract)"
+        case .txtOCR: return "Text (OCR)"
         }
     }
     
     var fileExtension: String {
-        return self.rawValue
+        switch self {
+        case .txt, .txtExtract, .txtOCR:
+            return "txt"
+        }
     }
     
     var description: String {
         switch self {
         case .txt:
             return "Use text recognition to extract text from images and save as plain text."
+        case .txtExtract:
+            return "Extract text directly from PDFs using PDFKit. Best for PDFs with selectable text."
+        case .txtOCR:
+            return "Use OCR (Optical Character Recognition) to extract text. Best for scanned PDFs or images."
         }
     }
 }

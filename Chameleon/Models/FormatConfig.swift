@@ -81,8 +81,10 @@ extension MediaFormatConfig {
             }
         }
         
-        // Channels
-        args.append(contentsOf: ["-ac", "\(audioOptions.channels.channelCount)"])
+        // Channels (only specify if not automatic)
+        if let channelCount = audioOptions.channels.channelCount {
+            args.append(contentsOf: ["-ac", "\(channelCount)"])
+        }
         
         // Sample rate
         args.append(contentsOf: ["-ar", "\(audioOptions.sampleRate.rawValue)"])

@@ -30,6 +30,7 @@ struct ConverterView: View {
     @AppStorage("pdfToDpi") private var pdfToDpi: Int = 300
     @AppStorage("useNativePDFConversion") private var useNativePDFConversion: Bool = false
     @AppStorage("pdfNativeScale") private var pdfNativeScale: Double = 2.0
+    @AppStorage("pdfNativeAddBackground") private var pdfNativeAddBackground: Bool = true
     @State private var audioOptions = AudioOptions()
     @State private var videoOptions = VideoOptions()
     
@@ -46,7 +47,7 @@ struct ConverterView: View {
     @State private var ocrOptions = OCRService.Options()
     
     private let completionSound: NSSound? = {
-        guard let soundURL = Bundle.main.url(forResource: "complete", withExtension: "aac") else {
+        guard let soundURL = Bundle.main.url(forResource: "completed", withExtension: "wav") else {
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
@@ -313,10 +314,10 @@ struct ConverterView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Picker("Engine", selection: $useNativePDFConversion) {
                                         Text("ImageMagick").tag(false)
-                                        Text("PDFKit").tag(true)
+                                        Text("Native").tag(true)
                                     }
                                     .pickerStyle(.segmented)
-                                    .help("Choose between ImageMagick (external tool) or PDFKit (native macOS)")
+                                    .help("Choose between ImageMagick or native")
                                 }
                                 .padding(.bottom, 8)
                             }
@@ -339,7 +340,13 @@ struct ConverterView: View {
                                     step: 0.5
                                 )
                                 .labelsHidden()
-                                .help("Scale factor for PDF rendering (1x = 72 DPI, 2x = 144 DPI, etc.)")
+                                .help("Scale factor for PDF rendering")
+                                
+                                // Only show background toggle for formats that support transparency
+                                if format == .png || format == .tiff || format == .tif {
+                                    Toggle("Add white background", isOn: $pdfNativeAddBackground)
+                                        .help("Add a white background to transparent areas of the PDF")
+                                }
                             } else {
                                 HStack {
                                     Text("PDF Resolution")
@@ -826,10 +833,14 @@ struct ConverterView: View {
                         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
                         
+                        // JPEG always needs a background since it doesn't support transparency
+                        let backgroundColor: NSColor = (format == .jpeg || format == .jpg) ? .white : 
+                                                      (pdfNativeAddBackground ? .white : .clear)
+                        
                         let options = PDFKitService.PDFConversionOptions(
                             scale: CGFloat(pdfNativeScale),
                             format: mapImageFormatToPDFKitFormat(format),
-                            backgroundColor: .white,
+                            backgroundColor: backgroundColor,
                             jpegQuality: CGFloat(imageQuality) / 100.0
                         )
                         
@@ -915,19 +926,39 @@ struct ConverterView: View {
                     
                     try FileManager.default.removeItem(at: tempURL)
                     
-                case .ocr(_):
+                case .ocr(let format):
                     let recognizedText: String
                     
-                    // Check if input is a PDF
-                    if inputURL.pathExtension.lowercased() == "pdf" {
-                        // Use PDFKit for text extraction from PDFs
-                        recognizedText = try await PDFTextExtractor.extractText(from: inputURL)
-                    } else {
-                        // Use Vision framework for OCR on images
-                        recognizedText = try await ocrService!.recognizeText(
-                            from: inputURL,
-                            options: ocrOptions
-                        )
+                    switch format {
+                    case .txt:
+                        // Always use Vision OCR for the generic .txt format
+                        if inputURL.pathExtension.lowercased() == "pdf" {
+                            // Use Vision OCR on PDF pages
+                            recognizedText = try await PDFTextExtractor.extractText(from: inputURL, method: .vision)
+                        } else {
+                            // Use Vision framework for OCR on images
+                            recognizedText = try await ocrService!.recognizeText(
+                                from: inputURL,
+                                options: ocrOptions
+                            )
+                        }
+                        
+                    case .txtExtract:
+                        // Direct text extraction using PDFKit
+                        recognizedText = try await PDFTextExtractor.extractText(from: inputURL, method: .pdfKit)
+                        
+                    case .txtOCR:
+                        // OCR using Vision framework
+                        if inputURL.pathExtension.lowercased() == "pdf" {
+                            // Use Vision OCR on PDF pages
+                            recognizedText = try await PDFTextExtractor.extractText(from: inputURL, method: .vision)
+                        } else {
+                            // Use Vision framework for OCR on images
+                            recognizedText = try await ocrService!.recognizeText(
+                                from: inputURL,
+                                options: ocrOptions
+                            )
+                        }
                     }
                     
                     // Convert text to data
@@ -1079,8 +1110,15 @@ struct ConverterView: View {
             return false
         }.count
         
-        if convertingCount == 0 && !files.isEmpty {
-            print("All files converted successfully!")
+        // Count successfully converted files
+        let convertedCount = files.filter {
+            if case .converted = $0 { return true }
+            return false
+        }.count
+        
+        // Only play completion sound if we have at least one successful conversion
+        if convertingCount == 0 && convertedCount > 0 {
+            print("Batch conversion completed with \(convertedCount) successful conversions")
             // Play completion sound
             completionSound?.play()
         }
@@ -1236,8 +1274,15 @@ struct ConverterView: View {
         }
         let hasImages = !imageFormats.isEmpty
         
-        if hasPDFs || hasImages {
-            // Add text extraction option
+        if hasPDFs && hasImages {
+            // Both PDFs and images: show generic text option
+            compatibleServices.append((.ocr(.txt), "Text"))
+        } else if hasPDFs {
+            // Only PDFs: show both extraction methods
+            compatibleServices.append((.ocr(.txtExtract), "Text (Extract)"))
+            compatibleServices.append((.ocr(.txtOCR), "Text (OCR)"))
+        } else if hasImages {
+            // Only images: show generic text option
             compatibleServices.append((.ocr(.txt), "Text"))
         }
         
@@ -1253,7 +1298,14 @@ struct ConverterView: View {
         case .ffmpeg(let format):
             return format.rawValue
         case .ocr(let format):
-            return "OCR to \(format.rawValue)"
+            switch format {
+            case .txt:
+                return "OCR to txt"
+            case .txtExtract:
+                return "Extract text to txt"
+            case .txtOCR:
+                return "OCR to txt"
+            }
         }
     }
     
@@ -1287,9 +1339,14 @@ struct ConverterView: View {
     }
     
     private var shouldShowOCROptions: Bool {
-        // Show OCR options when using OCR service
-        if case .ocr(_) = outputService {
-            return true
+        // Show OCR options only for actual OCR (not for text extraction)
+        if case .ocr(let format) = outputService {
+            switch format {
+            case .txt, .txtOCR:
+                return true
+            case .txtExtract:
+                return false
+            }
         }
         return false
     }
