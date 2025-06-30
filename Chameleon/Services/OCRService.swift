@@ -143,7 +143,7 @@ enum OCRFormat: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .txt: return "Plain Text"
+        case .txt: return "Text"
         }
     }
     

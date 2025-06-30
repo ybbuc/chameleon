@@ -164,6 +164,10 @@ struct ConverterView: View {
                                                 PreviewButton(action: {
                                                     QuickLookManager.shared.previewFile(at: url)
                                                 })
+                                                
+                                                FinderButton(action: {
+                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                                                })
                                             case .converting:
                                                 EmptyView()
                                             case .converted(let convertedFile):
@@ -185,7 +189,7 @@ struct ConverterView: View {
                                                 ) {
                                                     saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
                                                 }
-                                            case .error:
+                                            case .error(let url, _):
                                                 ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
@@ -194,6 +198,10 @@ struct ConverterView: View {
                                                     errorMessage = nil
                                                     outputService = .pandoc(.html)
                                                 }
+                                                
+                                                FinderButton(action: {
+                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                                                })
                                             }
                                         }
                                         .padding(.horizontal)
@@ -904,11 +912,19 @@ struct ConverterView: View {
                     try FileManager.default.removeItem(at: tempURL)
                     
                 case .ocr(_):
-                    // Perform OCR on the image
-                    let recognizedText = try await ocrService!.recognizeText(
-                        from: inputURL,
-                        options: ocrOptions
-                    )
+                    let recognizedText: String
+                    
+                    // Check if input is a PDF
+                    if inputURL.pathExtension.lowercased() == "pdf" {
+                        // Use PDFKit for text extraction from PDFs
+                        recognizedText = try await PDFTextExtractor.extractText(from: inputURL)
+                    } else {
+                        // Use Vision framework for OCR on images
+                        recognizedText = try await ocrService!.recognizeText(
+                            from: inputURL,
+                            options: ocrOptions
+                        )
+                    }
                     
                     // Convert text to data
                     let outputData = recognizedText.data(using: .utf8) ?? Data()
@@ -1208,6 +1224,17 @@ struct ConverterView: View {
                 guard let config = FormatRegistry.shared.config(for: format) else { return nil }
                 return (.ffmpeg(format), config.displayName)
             })
+        }
+        
+        // Add OCR/Text extraction for PDFs and images
+        let hasPDFs = inputURLs.contains { url in
+            url.pathExtension.lowercased() == "pdf"
+        }
+        let hasImages = !imageFormats.isEmpty
+        
+        if hasPDFs || hasImages {
+            // Add text extraction option
+            compatibleServices.append((.ocr(.txt), "Text"))
         }
         
         return compatibleServices.sorted { $0.1 < $1.1 }
