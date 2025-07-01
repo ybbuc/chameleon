@@ -11,6 +11,8 @@ struct HoverButton: View {
     let systemImage: String
     let helpText: String
     let action: () -> Void
+    var size: CGFloat = 12
+    var color: Color = .secondary
     @State private var isHovering = false
     
     var body: some View {
@@ -18,13 +20,13 @@ struct HoverButton: View {
             action()
         } label: {
             Image(systemName: systemImage)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .padding(6)
+                .font(.system(size: size))
+                .foregroundStyle(color)
+                .padding(size >= 16 ? 8 : 6)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(isHovering ? Color.gray.opacity(0.2) : Color.clear)
+        .background(isHovering ? color.opacity(0.15) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .animation(.easeInOut(duration: 0.15), value: isHovering)
         .onHover { hovering in

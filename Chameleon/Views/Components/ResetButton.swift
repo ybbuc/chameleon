@@ -11,13 +11,15 @@ struct ResetButton: View {
     let label: String
     let isDisabled: Bool
     let action: () -> Void
+    var size: CGFloat = 12
     
     var body: some View {
-        StandardButton(
-            label: label,
-            icon: "arrow.clockwise",
-            isDisabled: isDisabled,
-            action: action
+        HoverButton(
+            systemImage: "arrow.uturn.backward",
+            helpText: label,
+            action: action,
+            size: size
         )
+        .disabled(isDisabled)
     }
 }

@@ -118,6 +118,53 @@ struct ConverterView: View {
         }
     }
     
+    // Function to reset all files back to input state
+    private func resetFilesToInput() {
+        // Clean up temp files for converted files
+        for fileState in files {
+            if case .converted(let convertedFile) = fileState {
+                try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
+            }
+        }
+        
+        // Process files, keeping converting files as-is
+        var newFiles: [FileState] = []
+        var seenURLs = Set<URL>()
+        
+        for fileState in files {
+            switch fileState {
+            case .converting:
+                // Keep files that are currently converting
+                newFiles.append(fileState)
+            case .input(let url):
+                // Keep input files if not seen before
+                if !seenURLs.contains(url) {
+                    seenURLs.insert(url)
+                    newFiles.append(fileState)
+                }
+            case .converted(let convertedFile):
+                // Reset converted files to input state if not seen before
+                let originalURL = convertedFile.originalURL
+                if !seenURLs.contains(originalURL) {
+                    seenURLs.insert(originalURL)
+                    newFiles.append(.input(originalURL))
+                }
+            case .error(let url, _):
+                // Reset error files to input state if not seen before
+                if !seenURLs.contains(url) {
+                    seenURLs.insert(url)
+                    newFiles.append(.input(url))
+                }
+            }
+        }
+        
+        // Update files array
+        withAnimation(.easeInOut(duration: 0.2)) {
+            files = newFiles
+            errorMessage = nil
+        }
+    }
+    
     
     // MARK: - File pane
     var body: some View {
@@ -190,9 +237,7 @@ struct ConverterView: View {
                                                 label: "Reset",
                                                 isDisabled: true
                                             ) {
-                                                files = []
-                                                errorMessage = nil
-                                                outputService = .pandoc(.html)
+                                                resetFilesToInput()
                                             }
                                             
                                             if let url = fileState.url {
@@ -217,11 +262,9 @@ struct ConverterView: View {
                                             case .input(let url):
                                                 ResetButton(
                                                     label: "Reset",
-                                                    isDisabled: false
+                                                    isDisabled: true
                                                 ) {
-                                                    files = []
-                                                    errorMessage = nil
-                                                    outputService = .pandoc(.html)
+                                                    resetFilesToInput()
                                                 }
                                                 
                                                 PreviewButton(action: {
@@ -231,40 +274,67 @@ struct ConverterView: View {
                                                 FinderButton(action: {
                                                     NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                                                 })
-                                            case .converting:
-                                                EmptyView()
+                                                
+                                                HoverButton(
+                                                    systemImage: "xmark",
+                                                    helpText: "Clear",
+                                                    action: {
+                                                        files = []
+                                                        errorMessage = nil
+                                                    }
+                                                )
+                                            case .converting(let url, _):
+                                                FinderButton(action: {
+                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                                                })
                                             case .converted(let convertedFile):
                                                 ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
                                                 ) {
-                                                    files = []
-                                                    errorMessage = nil
-                                                    outputService = .pandoc(.html)
+                                                    resetFilesToInput()
                                                 }
                                                 
                                                 PreviewButton(action: {
                                                     QuickLookManager.shared.previewFile(at: convertedFile.tempURL)
                                                 })
                                                 
-                                                SaveAllButton(
-                                                    label: "Save"
-                                                ) {
-                                                    saveFile(convertedFile)
-                                                }
+                                                HoverButton(
+                                                    systemImage: "arrow.down.to.line.compact",
+                                                    helpText: "Save",
+                                                    action: {
+                                                        saveFile(convertedFile)
+                                                    },
+                                                    color: Color(red: 0.0, green: 0.5, blue: 0.0)
+                                                )
+                                                
+                                                HoverButton(
+                                                    systemImage: "xmark",
+                                                    helpText: "Clear",
+                                                    action: {
+                                                        clearConvertedFiles()
+                                                    }
+                                                )
                                             case .error(let url, _):
                                                 ResetButton(
                                                     label: "Reset",
                                                     isDisabled: false
                                                 ) {
-                                                    files = []
-                                                    errorMessage = nil
-                                                    outputService = .pandoc(.html)
+                                                    resetFilesToInput()
                                                 }
                                                 
                                                 FinderButton(action: {
                                                     NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                                                 })
+                                                
+                                                HoverButton(
+                                                    systemImage: "xmark",
+                                                    helpText: "Clear",
+                                                    action: {
+                                                        files = []
+                                                        errorMessage = nil
+                                                    }
+                                                )
                                             }
                                         }
                                         .padding(.horizontal)
@@ -294,30 +364,44 @@ struct ConverterView: View {
                                         .padding(.horizontal)
                                     
                                     HStack(spacing: 12) {
+                                        let hasResettableFiles = files.contains { fileState in
+                                            switch fileState {
+                                            case .converted, .error:
+                                                return true
+                                            default:
+                                                return false
+                                            }
+                                        }
+                                        
                                         ResetButton(
                                             label: "Reset",
-                                            isDisabled: false
-                                        ) {
-                                            files = []
-                                            errorMessage = nil
-                                            outputService = .pandoc(.html)
-                                        }
+                                            isDisabled: !hasResettableFiles,
+                                            action: {
+                                                resetFilesToInput()
+                                            },
+                                            size: 18
+                                        )
                                         
                                         let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
                                         if convertedCount > 0 {
-                                            StandardButton(
-                                                icon: "clear",
+                                            HoverButton(
+                                                systemImage: "checkmark.circle.badge.xmark",
+                                                helpText: "Clear all converted files",
                                                 action: {
                                                     clearConvertedFiles()
-                                                }
+                                                },
+                                                size: 18
                                             )
-                                            .help("Clear all converted files")
                                             
-                                            SaveAllButton(
-                                                label: convertedCount == 1 ? "Save" : "Save All"
-                                            ) {
-                                                saveAllFiles()
-                                            }
+                                            HoverButton(
+                                                systemImage: "arrow.down.to.line.compact",
+                                                helpText: convertedCount == 1 ? "Save" : "Save All",
+                                                action: {
+                                                    saveAllFiles()
+                                                },
+                                                size: 18,
+                                                color: Color(red: 0.0, green: 0.5, blue: 0.0)
+                                            )
                                         }
                                     }
                                     .padding(.horizontal)
