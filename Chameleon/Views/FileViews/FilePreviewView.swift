@@ -11,6 +11,7 @@ import UniformTypeIdentifiers
 import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
+import AVKit
 
 struct FilePreviewView: View {
     let data: Data?
@@ -30,11 +31,24 @@ struct FilePreviewView: View {
     }
     
     var body: some View {
-        if let data = getFileData() {
-            let isImage = ImageFormat.detectFormat(from: URL(fileURLWithPath: fileName)) != nil
+        if let fileURL = url {
+            let isImage = ImageFormat.detectFormat(from: fileURL) != nil
+            let isVideo = FFmpegFormat.detectFormat(from: fileURL)?.isVideo ?? false
             
-            if isImage {
-                if let nsImage = NSImage(data: data) {
+            if isVideo {
+                // Video preview
+                VideoPlayer(player: AVPlayer(url: fileURL))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+                    .overlay(
+                        Rectangle()
+                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    .padding(20)
+            } else if isImage {
+                if let data = try? Data(contentsOf: fileURL),
+                   let nsImage = NSImage(data: data) {
                     let isPDF = fileName.lowercased().hasSuffix(".pdf")
                     
                     Image(nsImage: nsImage)
@@ -63,7 +77,7 @@ struct FilePreviewView: View {
     private var fileIcon: some View {
         Image(nsImage: iconForFile(fileName: fileName))
             .resizable()
-            .frame(width: 64, height: 64)
+            .frame(width: 128, height: 128)
     }
     
     private func getFileData() -> Data? {
@@ -86,6 +100,21 @@ struct FilePreviewView: View {
             let icon = NSWorkspace.shared.icon(forFile: tempURL.path)
             try? FileManager.default.removeItem(at: tempURL)
             return icon
+        }
+    }
+    
+    private func saveDataToTempFile() -> URL? {
+        guard let data = data else { return nil }
+        
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempURL = tempDir.appendingPathComponent(UUID().uuidString + "_" + fileName)
+        
+        do {
+            try data.write(to: tempURL)
+            return tempURL
+        } catch {
+            print("Failed to save temp file: \(error)")
+            return nil
         }
     }
 }

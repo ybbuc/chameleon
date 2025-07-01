@@ -32,7 +32,7 @@ struct ConvertedFileContentRow: View {
             HStack(spacing: 4) {
                 if isHoveringRow {
                     PreviewButton(action: {
-                        QuickLookManager.shared.previewFile(data: file.data, fileName: file.fileName)
+                        QuickLookManager.shared.previewFile(at: file.tempURL)
                     })
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }

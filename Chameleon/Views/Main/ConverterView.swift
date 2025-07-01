@@ -46,6 +46,14 @@ struct ConverterView: View {
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
     @State private var ocrOptions = OCRService.Options()
     
+    private func cleanupTempFiles() {
+        for fileState in files {
+            if case .converted(let convertedFile) = fileState {
+                try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
+            }
+        }
+    }
+    
     private let completionSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "completed", withExtension: "wav") else {
             return nil
@@ -89,7 +97,7 @@ struct ConverterView: View {
                                         case .converting(let url, _):
                                             FilePreviewView(url: url)
                                         case .converted(let convertedFile):
-                                            FilePreviewView(data: convertedFile.data, fileName: convertedFile.fileName)
+                                            FilePreviewView(url: convertedFile.tempURL)
                                         case .error(let url, _):
                                             FilePreviewView(url: url)
                                         }
@@ -186,13 +194,13 @@ struct ConverterView: View {
                                                 }
                                                 
                                                 PreviewButton(action: {
-                                                    QuickLookManager.shared.previewFile(data: convertedFile.data, fileName: convertedFile.fileName)
+                                                    QuickLookManager.shared.previewFile(at: convertedFile.tempURL)
                                                 })
                                                 
                                                 SaveAllButton(
                                                     label: "Save"
                                                 ) {
-                                                    saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
+                                                    saveFile(convertedFile)
                                                 }
                                             case .error(let url, _):
                                                 ResetButton(
@@ -490,6 +498,9 @@ struct ConverterView: View {
             initializeFFmpeg()
             initializeOCR()
         }
+        .onDisappear {
+            cleanupTempFiles()
+        }
         .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") {
                 errorMessage = nil
@@ -717,6 +728,7 @@ struct ConverterView: View {
                     updateOutputService()
                 } else {
                     // Replace existing files with the new incompatible file
+                    cleanupTempFiles()
                     files = [.input(url)]
                     errorMessage = nil
                     updateOutputService()
@@ -809,13 +821,19 @@ struct ConverterView: View {
                     )
                     
                     // Single file output for Pandoc
-                    let data = try Data(contentsOf: tempURL)
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
                     
+                    // Move temp file to a more permanent temp location with proper filename
+                    let finalTempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathComponent(fileName)
+                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                    
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
-                        data: data,
+                        tempURL: finalTempURL,
                         fileName: fileName
                     )
                     
@@ -823,8 +841,6 @@ struct ConverterView: View {
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
-                    try FileManager.default.removeItem(at: tempURL)
                     
                 case .imagemagick(let format):
                     // Check if we should use native PDF conversion
@@ -857,33 +873,39 @@ struct ConverterView: View {
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                             if outputURLs.count == 1 {
                                 // Single page PDF
-                                let data = try Data(contentsOf: outputURLs[0])
                                 let baseName = inputURL.deletingPathExtension().lastPathComponent
                                 let fileName = "\(baseName).\(format.fileExtension)"
                                 
+                                // Move to final temp location with proper filename
+                                let finalTempURL = FileManager.default.temporaryDirectory
+                                    .appendingPathComponent(UUID().uuidString)
+                                    .appendingPathComponent(fileName)
+                                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                try FileManager.default.moveItem(at: outputURLs[0], to: finalTempURL)
+                                
                                 let convertedFile = ConvertedFile(
                                     originalURL: inputURL,
-                                    data: data,
+                                    tempURL: finalTempURL,
                                     fileName: fileName
                                 )
                                 files[fileIndex] = .converted(convertedFile)
+                                
+                                // Clean up the temp directory
+                                try FileManager.default.removeItem(at: tempDir)
                             } else {
-                                // Multi-page PDF
+                                // Multi-page PDF - keep files in their directory
                                 files.remove(at: fileIndex)
                                 for (i, outputURL) in outputURLs.enumerated() {
-                                    let data = try Data(contentsOf: outputURL)
                                     let convertedFile = ConvertedFile(
                                         originalURL: inputURL,
-                                        data: data,
+                                        tempURL: outputURL,
                                         fileName: outputURL.lastPathComponent
                                     )
                                     files.insert(.converted(convertedFile), at: fileIndex + i)
                                 }
+                                // Don't remove tempDir for multi-page since we're using those URLs
                             }
                         }
-                        
-                        // Clean up temporary directory
-                        try FileManager.default.removeItem(at: tempDir)
                         
                         // Skip the rest of ImageMagick handling for this file
                         continue
@@ -909,13 +931,19 @@ struct ConverterView: View {
                     )
                     
                     // Single file output for FFmpeg
-                    let data = try Data(contentsOf: tempURL)
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
                     
+                    // Move temp file to a more permanent temp location with proper filename
+                    let finalTempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathComponent(fileName)
+                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                    
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
-                        data: data,
+                        tempURL: finalTempURL,
                         fileName: fileName
                     )
                     
@@ -923,8 +951,6 @@ struct ConverterView: View {
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
-                    try FileManager.default.removeItem(at: tempURL)
                     
                 case .ocr(let format):
                     let recognizedText: String
@@ -961,15 +987,19 @@ struct ConverterView: View {
                         }
                     }
                     
-                    // Convert text to data
-                    let outputData = recognizedText.data(using: .utf8) ?? Data()
-                    
+                    // Write text to temp file
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
                     
+                    let finalTempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathComponent(fileName)
+                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try recognizedText.write(to: finalTempURL, atomically: true, encoding: .utf8)
+                    
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
-                        data: outputData,
+                        tempURL: finalTempURL,
                         fileName: fileName
                     )
                     
@@ -1009,17 +1039,22 @@ struct ConverterView: View {
                             let testURL = tempDir.appendingPathComponent(testFileName)
                             
                             if FileManager.default.fileExists(atPath: testURL.path) {
-                                let data = try Data(contentsOf: testURL)
                                 let fileName = "\(baseName)-page\(pageIndex + 1).\(outputService.fileExtension)"
+                                
+                                // Move to final location with proper filename
+                                let finalTempURL = FileManager.default.temporaryDirectory
+                                    .appendingPathComponent(UUID().uuidString)
+                                    .appendingPathComponent(fileName)
+                                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                try FileManager.default.moveItem(at: testURL, to: finalTempURL)
                                 
                                 let convertedFile = ConvertedFile(
                                     originalURL: inputURL,
-                                    data: data,
+                                    tempURL: finalTempURL,
                                     fileName: fileName
                                 )
                                 pageFiles.append(convertedFile)
                                 
-                                try FileManager.default.removeItem(at: testURL)
                                 pageIndex += 1
                             } else {
                                 break
@@ -1033,20 +1068,24 @@ struct ConverterView: View {
                                 // If no numbered files were found, check for the original filename
                                 if FileManager.default.fileExists(atPath: tempURL.path) {
                                     print("PDF conversion: Using fallback single file approach")
-                                    let data = try Data(contentsOf: tempURL)
                                     let fileName = "\(baseName).\(outputService.fileExtension)"
+                                    
+                                    // Move to final location with proper filename
+                                    let finalTempURL = FileManager.default.temporaryDirectory
+                                        .appendingPathComponent(UUID().uuidString)
+                                        .appendingPathComponent(fileName)
+                                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                    try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
                                     
                                     let convertedFile = ConvertedFile(
                                         originalURL: inputURL,
-                                        data: data,
+                                        tempURL: finalTempURL,
                                         fileName: fileName
                                     )
                                     
                                     // Replace the converting file with the converted file
                                     files[fileIndex] = .converted(convertedFile)
                                     print("Files array now has \(files.count) items after fallback")
-                                    
-                                    try FileManager.default.removeItem(at: tempURL)
                                 }
                             } else {
                                 // Remove the converting file and insert all page files
@@ -1059,13 +1098,19 @@ struct ConverterView: View {
                         }
                     } else {
                         // Single file output for non-PDF images
-                        let data = try Data(contentsOf: tempURL)
                         let baseName = inputURL.deletingPathExtension().lastPathComponent
                         let fileName = "\(baseName).\(outputService.fileExtension)"
                         
+                        // Move to final location with proper filename
+                        let finalTempURL = FileManager.default.temporaryDirectory
+                            .appendingPathComponent(UUID().uuidString)
+                            .appendingPathComponent(fileName)
+                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                        
                         let convertedFile = ConvertedFile(
                             originalURL: inputURL,
-                            data: data,
+                            tempURL: finalTempURL,
                             fileName: fileName
                         )
                         
@@ -1073,8 +1118,6 @@ struct ConverterView: View {
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                             files[fileIndex] = .converted(convertedFile)
                         }
-                        
-                        try FileManager.default.removeItem(at: tempURL)
                     }
                 }
                 
@@ -1129,6 +1172,31 @@ struct ConverterView: View {
         conversionTask = nil
     }
     
+    private func saveFile(_ convertedFile: ConvertedFile) {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = convertedFile.fileName
+        panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            do {
+                // Copy the temp file to the destination
+                try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
+                
+                // Add to conversion history
+                let inputFormat = convertedFile.originalURL.pathExtension.uppercased()
+                let outputFormat = url.pathExtension.uppercased()
+                savedHistoryManager.addConversion(
+                    inputFileName: convertedFile.originalURL.lastPathComponent,
+                    inputFormat: inputFormat,
+                    outputFormat: outputFormat,
+                    outputFileURL: url
+                )
+            } catch {
+                showError(error.localizedDescription)
+            }
+        }
+    }
+    
     private func saveFile(data: Data, fileName: String, originalURL: URL) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = fileName
@@ -1172,7 +1240,8 @@ struct ConverterView: View {
             for file in convertedFilesList {
                 let fileURL = folderURL.appendingPathComponent(file.fileName)
                 do {
-                    try file.data.write(to: fileURL)
+                    // Copy the temp file to the destination
+                    try FileManager.default.copyItem(at: file.tempURL, to: fileURL)
                     
                     // Add to conversion history
                     let inputFormat = file.originalURL.pathExtension.uppercased()
@@ -1415,7 +1484,7 @@ struct ConverterView: View {
             ConvertedFileContentRow(
                 file: convertedFile,
                 onSave: {
-                    saveFile(data: convertedFile.data, fileName: convertedFile.fileName, originalURL: convertedFile.originalURL)
+                    saveFile(convertedFile)
                 }
             )
         case .error(let url, let message):

@@ -86,7 +86,7 @@ struct VideoOptionsView: View {
             .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Aspect ratio dropdown
-            Picker("Aspect Ratio:", selection: $videoOptions.aspectRatio) {
+            Picker("Aspect ratio:", selection: $videoOptions.aspectRatio) {
                 Text(VideoAspectRatio.automatic.displayName).tag(VideoAspectRatio.automatic)
                 Divider()
                 ForEach([VideoAspectRatio.fourThree, VideoAspectRatio.sixteenNine, VideoAspectRatio.square], id: \.self) { ratio in

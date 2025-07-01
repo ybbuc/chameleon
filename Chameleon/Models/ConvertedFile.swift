@@ -10,6 +10,11 @@ import UniformTypeIdentifiers
 struct ConvertedFile: Identifiable {
     let id = UUID()
     let originalURL: URL
-    let data: Data
+    let tempURL: URL
     let fileName: String
+    
+    /// Reads the data from the temporary file
+    var data: Data? {
+        try? Data(contentsOf: tempURL)
+    }
 }
