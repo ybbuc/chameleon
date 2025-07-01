@@ -66,7 +66,7 @@ struct ConverterView: View {
     }()
     
     private let failureSound: NSSound? = {
-        guard let soundURL = Bundle.main.url(forResource: "failure", withExtension: "aac") else {
+        guard let soundURL = Bundle.main.url(forResource: "error", withExtension: "wav") else {
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
