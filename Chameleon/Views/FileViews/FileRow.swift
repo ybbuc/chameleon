@@ -10,6 +10,11 @@ import AppKit
 
 struct FileRow: View {
     let url: URL
+    let isPDFMergeMode: Bool
+    let index: Int
+    let totalFiles: Int
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
     let onRemove: () -> Void
     @State private var isHoveringRow = false
     
@@ -26,16 +31,34 @@ struct FileRow: View {
         } actions: {
             // Actions
             HStack(spacing: 4) {
-                if isHoveringRow {
-                    PreviewButton(action: {
-                        QuickLookManager.shared.previewFile(at: url)
-                    })
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                if isPDFMergeMode {
+                    // Show up/down arrows for PDF merge mode (always visible)
+                    HoverButton(
+                        systemImage: "chevron.up",
+                        helpText: "Move up",
+                        action: onMoveUp
+                    )
+                    .disabled(index == 0)
                     
-                    FinderButton(action: {
-                        NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                    })
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    HoverButton(
+                        systemImage: "chevron.down",
+                        helpText: "Move down",
+                        action: onMoveDown
+                    )
+                    .disabled(index == totalFiles - 1)
+                } else {
+                    // Show preview/finder buttons for normal mode
+                    if isHoveringRow {
+                        PreviewButton(action: {
+                            QuickLookManager.shared.previewFile(at: url)
+                        })
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                        
+                        FinderButton(action: {
+                            NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                        })
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    }
                 }
                 
                 RemoveButton(action: onRemove)

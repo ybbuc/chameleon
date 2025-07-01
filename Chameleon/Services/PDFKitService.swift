@@ -124,6 +124,44 @@ class PDFKitService {
         return outputURLs
     }
     
+    static func combinePDFs(at urls: [URL], outputURL: URL) async throws {
+        guard !urls.isEmpty else {
+            throw ConversionError.invalidInput("No PDF files provided")
+        }
+        
+        // Create a new PDF document
+        let outputDocument = PDFDocument()
+        var pageIndex = 0
+        
+        // Process each input PDF
+        for (fileIndex, url) in urls.enumerated() {
+            guard let pdfDocument = PDFDocument(url: url) else {
+                throw ConversionError.invalidInput("Could not load PDF document at index \(fileIndex): \(url.lastPathComponent)")
+            }
+            
+            // Add all pages from this PDF to the output document
+            for sourcePageIndex in 0..<pdfDocument.pageCount {
+                guard let page = pdfDocument.page(at: sourcePageIndex) else {
+                    continue
+                }
+                
+                // Insert the page at the current index
+                outputDocument.insert(page, at: pageIndex)
+                pageIndex += 1
+            }
+        }
+        
+        // Ensure we have at least one page
+        guard outputDocument.pageCount > 0 else {
+            throw ConversionError.conversionFailed("No pages found in input PDFs")
+        }
+        
+        // Write the combined PDF to the output URL
+        guard outputDocument.write(to: outputURL) else {
+            throw ConversionError.conversionFailed("Failed to write combined PDF to output")
+        }
+    }
+    
     enum ConversionError: LocalizedError {
         case invalidInput(String)
         case conversionFailed(String)

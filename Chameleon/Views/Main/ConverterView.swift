@@ -73,6 +73,29 @@ struct ConverterView: View {
         return NSSound(contentsOf: soundURL, byReference: true)
     }()
     
+    // Computed property to check if we're in PDF merge mode
+    private var isPDFMergeMode: Bool {
+        guard case .imagemagick(.pdf) = outputService else { return false }
+        let inputURLs = files.compactMap { fileState in
+            if case .input(let url) = fileState {
+                return url
+            }
+            return nil
+        }
+        let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+        return allPDFs && inputURLs.count > 1
+    }
+    
+    // Function to move files up or down in the array
+    private func moveFile(at index: Int, direction: Int) {
+        let newIndex = index + direction
+        guard newIndex >= 0 && newIndex < files.count else { return }
+        
+        withAnimation(.easeInOut(duration: 0.2)) {
+            files.swapAt(index, newIndex)
+        }
+    }
+    
     
     // MARK: - File pane
     var body: some View {
@@ -315,9 +338,19 @@ struct ConverterView: View {
                 
                 // Show image conversion options
                 if case .imagemagick(let format) = outputService, !files.isEmpty {
+                    // Check if we're combining PDFs (multiple PDF inputs to PDF output)
+                    let inputURLs = files.compactMap { fileState in
+                        if case .input(let url) = fileState {
+                            return url
+                        }
+                        return nil
+                    }
+                    let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+                    let isCombiningPDFs = allPDFs && inputURLs.count > 1 && format == .pdf
+                    
                     Form {
-                        // Show PDF-specific options when converting PDF to image
-                        if files.contains(where: { fileState in
+                        // Show PDF-specific options when converting PDF to image (but not when combining PDFs)
+                        if !isCombiningPDFs && files.contains(where: { fileState in
                             guard let url = fileState.url,
                                   let inputFormat = ImageFormat.detectFormat(from: url) else { return false }
                             return inputFormat.requiresDpiConfiguration
@@ -391,13 +424,13 @@ struct ConverterView: View {
                             }
                         }
                         
-                        // Show EXIF metadata removal toggle for image conversions
-                        if format.supportsExifMetadata {
+                        // Show EXIF metadata removal toggle for image conversions (but not when combining PDFs)
+                        if !isCombiningPDFs && format.supportsExifMetadata {
                             Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
                         }
                         
-                        // Show quality controls for lossy image conversions
-                        if format.isLossy {
+                        // Show quality controls for lossy image conversions (but not when combining PDFs)
+                        if !isCombiningPDFs && format.isLossy {
                             Group {
                                 Toggle("Lossy Compression", isOn: $useLossyCompression)
                                 
@@ -809,6 +842,104 @@ struct ConverterView: View {
             guard ocrService != nil else {
                 print("convertFile: OCR not available")
                 showError("OCR is not available")
+                return
+            }
+        }
+        
+        // Check if we're combining multiple PDFs
+        let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+        if case .imagemagick(.pdf) = outputService, allPDFs, inputURLs.count > 1 {
+            // Special handling for merging PDFs
+            print("Merging \(inputURLs.count) PDFs into one")
+            
+            isConverting = true
+            errorMessage = nil
+            conversionProgress = (current: 1, total: 1)
+            currentConversionFile = "Merging PDFs..."
+            
+            // Mark all files as converting
+            for url in inputURLs {
+                if let fileIndex = files.firstIndex(where: { $0.url == url }) {
+                    files[fileIndex] = .converting(url, fileName: url.lastPathComponent)
+                }
+            }
+            
+            do {
+                // Check for cancellation
+                if Task.isCancelled {
+                    print("PDF combination cancelled")
+                    return
+                }
+                
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension("pdf")
+                
+                // Combine all PDFs
+                try await PDFKitService.combinePDFs(at: inputURLs, outputURL: tempURL)
+                
+                // Create output filename
+                let fileName = inputURLs.count == 2 ? 
+                    "\(inputURLs[0].deletingPathExtension().lastPathComponent)_\(inputURLs[1].deletingPathExtension().lastPathComponent)_combined.pdf" :
+                    "combined_\(inputURLs.count)_pdfs.pdf"
+                
+                // Move to final temp location with proper filename
+                let finalTempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathComponent(fileName)
+                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                
+                let convertedFile = ConvertedFile(
+                    originalURL: inputURLs[0], // Use first file as original
+                    tempURL: finalTempURL,
+                    fileName: fileName
+                )
+                
+                // Remove all converting files and add the single combined result
+                files.removeAll { fileState in
+                    if case .converting = fileState {
+                        return true
+                    }
+                    return false
+                }
+                files.append(.converted(convertedFile))
+                
+                print("Successfully combined PDFs")
+                
+                // Play completion sound
+                completionSound?.play()
+                
+                isConverting = false
+                currentConversionFile = ""
+                conversionProgress = (current: 0, total: 0)
+                conversionTask = nil
+                
+                return // Exit early, we're done
+            } catch {
+                // Handle cancellation errors differently
+                if error is CancellationError {
+                    print("PDF combination cancelled")
+                    return
+                }
+                
+                print("PDF combination failed: \(error)")
+                
+                // Mark all files as error
+                for url in inputURLs {
+                    if let fileIndex = files.firstIndex(where: { $0.url == url }) {
+                        files[fileIndex] = .error(url, errorMessage: error.localizedDescription)
+                    }
+                }
+                
+                // Play failure sound
+                failureSound?.play()
+                
+                isConverting = false
+                currentConversionFile = ""
+                conversionProgress = (current: 0, total: 0)
+                conversionTask = nil
+                
                 return
             }
         }
@@ -1613,12 +1744,36 @@ struct ConverterView: View {
     private func fileRow(for fileState: FileState) -> some View {
         switch fileState {
         case .input(let url):
-            FileRow(
-                url: url,
-                onRemove: {
-                    files.removeAll { $0.id == fileState.id }
-                }
-            )
+            if isPDFMergeMode {
+                let index = files.firstIndex { $0.id == fileState.id } ?? 0
+                FileRow(
+                    url: url,
+                    isPDFMergeMode: true,
+                    index: index,
+                    totalFiles: files.count,
+                    onMoveUp: {
+                        moveFile(at: index, direction: -1)
+                    },
+                    onMoveDown: {
+                        moveFile(at: index, direction: 1)
+                    },
+                    onRemove: {
+                        files.removeAll { $0.id == fileState.id }
+                    }
+                )
+            } else {
+                FileRow(
+                    url: url,
+                    isPDFMergeMode: false,
+                    index: 0,
+                    totalFiles: 1,
+                    onMoveUp: {},
+                    onMoveDown: {},
+                    onRemove: {
+                        files.removeAll { $0.id == fileState.id }
+                    }
+                )
+            }
         case .converting(let url, let fileName):
             ConvertingFileRow(url: url, fileName: fileName)
         case .converted(let convertedFile):

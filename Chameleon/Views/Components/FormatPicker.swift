@@ -61,8 +61,19 @@ struct FormatPicker: View {
         if allPDFs {
             // For PDF files, show image format options and text extraction
             let compatibleImageFormats = ImageFormat.outputFormats
-            var services: [(ConversionService, String)] = compatibleImageFormats.map { format in 
-                (ConversionService.imagemagick(format), format.displayName)
+            var services: [(ConversionService, String)] = compatibleImageFormats.compactMap { format in
+                // For PDF output format, handle display name based on number of input files
+                if format == .pdf {
+                    if inputFileURLs.count > 1 {
+                        // Multiple PDFs: show as "PDF (Merge)"
+                        return (ConversionService.imagemagick(format), "PDF (Merge)")
+                    } else {
+                        // Single PDF: show as "PDF (Image)" 
+                        return (ConversionService.imagemagick(format), format.displayName)
+                    }
+                } else {
+                    return (ConversionService.imagemagick(format), format.displayName)
+                }
             }
             
             // Add both text extraction options for PDFs
@@ -216,6 +227,10 @@ struct FormatPicker: View {
         case .pandoc(let format):
             return format.description
         case .imagemagick(let format):
+            // Special description for PDF combining
+            if format == .pdf && inputFileURLs.count > 1 && inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) {
+                return "Merge multiple PDF files into a single document while preserving all pages and formatting."
+            }
             return format.description
         case .ffmpeg(let format):
             return FormatRegistry.shared.config(for: format)?.description
