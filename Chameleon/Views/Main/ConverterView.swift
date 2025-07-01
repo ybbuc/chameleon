@@ -45,6 +45,10 @@ struct ConverterView: View {
     @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
     @State private var ocrOptions = OCRService.Options()
+    @State private var inputAudioBitDepth: Int?
+    @State private var inputAudioSampleRate: Int?
+    @State private var inputAudioChannels: Int?
+    private let audioPropertyDetector = AudioPropertyDetector()
     
     private func cleanupTempFiles() {
         for fileState in files {
@@ -428,7 +432,23 @@ struct ConverterView: View {
                 
                 // Show audio options for FFmpeg audio conversions
                 if shouldShowAudioOptions {
-                    AudioOptionsView(audioOptions: $audioOptions, outputFormat: currentFFmpegFormat)
+                    AudioOptionsView(
+                        audioOptions: $audioOptions, 
+                        outputFormat: currentFFmpegFormat, 
+                        inputFormat: inputFFmpegFormat,
+                        inputSampleRate: inputAudioSampleRate,
+                        inputChannels: inputAudioChannels,
+                        inputBitDepth: inputAudioBitDepth
+                    )
+                        .onChange(of: outputService) { _, _ in
+                            // Update sample size when output format changes to lossless
+                            if case .ffmpeg(let outputFormat) = outputService,
+                               let config = FormatRegistry.shared.config(for: outputFormat),
+                               config.isLossless,
+                               let bitDepth = inputAudioBitDepth {
+                                updateSampleSizeForBitDepth(bitDepth)
+                            }
+                        }
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
@@ -620,6 +640,7 @@ struct ConverterView: View {
                             self.files.append(.input(url))
                             self.errorMessage = nil
                             self.updateOutputService()
+                            self.detectInputAudioBitDepth()
                             return
                         }
                         
@@ -647,11 +668,13 @@ struct ConverterView: View {
                             self.files.append(.input(url))
                             self.errorMessage = nil
                             self.updateOutputService()
+                            self.detectInputAudioBitDepth()
                         } else {
                             // Replace existing files with the new incompatible file
                             self.files = [.input(url)]
                             self.errorMessage = nil
                             self.updateOutputService()
+                            self.detectInputAudioBitDepth()
                         }
                     }
                 }
@@ -700,6 +723,7 @@ struct ConverterView: View {
                 if files.isEmpty {
                     files.append(.input(url))
                     updateOutputService()
+                    detectInputAudioBitDepth()
                     continue
                 }
                 
@@ -726,12 +750,14 @@ struct ConverterView: View {
                    (isNewMedia && hasExistingMedia && !hasExistingDocuments && !hasExistingImages) {
                     files.append(.input(url))
                     updateOutputService()
+                    detectInputAudioBitDepth()
                 } else {
                     // Replace existing files with the new incompatible file
                     cleanupTempFiles()
                     files = [.input(url)]
                     errorMessage = nil
                     updateOutputService()
+                    detectInputAudioBitDepth()
                     break
                 }
             }
@@ -1296,6 +1322,103 @@ struct ConverterView: View {
         }
     }
     
+    private func detectInputAudioBitDepth() {
+        // Reset audio properties
+        inputAudioBitDepth = nil
+        inputAudioSampleRate = nil
+        inputAudioChannels = nil
+        
+        // Detect for both audio and video files (video may have audio tracks)
+        guard let firstFile = files.first,
+              let url = firstFile.url else { return }
+        
+        // Detect audio properties asynchronously using hybrid approach
+        Task {
+            do {
+                // Create detector with FFmpeg fallback if available
+                let detector = AudioPropertyDetector(ffmpegWrapper: ffmpegWrapper)
+                let properties = try await detector.detectProperties(from: url)
+                
+                await MainActor.run {
+                    self.inputAudioBitDepth = properties.bitDepth
+                    self.inputAudioSampleRate = properties.sampleRate
+                    self.inputAudioChannels = properties.channels
+                    
+                    // Auto-update sample size if output is lossless
+                    if case .ffmpeg(let outputFormat) = outputService,
+                       let config = FormatRegistry.shared.config(for: outputFormat),
+                       config.isLossless,
+                       let bitDepth = properties.bitDepth {
+                        updateSampleSizeForBitDepth(bitDepth)
+                    }
+                    
+                    // Don't auto-update sample rate and channels when they're automatic
+                    // Automatic means FFmpeg will preserve the source values
+                }
+            } catch {
+                print("Failed to detect audio properties: \(error)")
+            }
+        }
+    }
+    
+    private func updateSampleSizeForBitDepth(_ bitDepth: Int) {
+        // Map bit depth to AudioSampleSize
+        let targetSampleSize: AudioSampleSize?
+        
+        // Check if exact match is available
+        if let outputFormat = currentFFmpegFormat,
+           let config = FormatRegistry.shared.config(for: outputFormat),
+           config.supportsSampleSize {
+            
+            let availableSizes = config.availableSampleSizes
+            
+            // Find exact match
+            if availableSizes.contains(where: { $0.rawValue == bitDepth }) {
+                targetSampleSize = AudioSampleSize(rawValue: bitDepth)
+            } else {
+                // Find highest available that's still <= source (no upsampling)
+                let lowerSizes = availableSizes.filter { $0.rawValue <= bitDepth }
+                if let bestMatch = lowerSizes.max(by: { $0.rawValue < $1.rawValue }) {
+                    targetSampleSize = bestMatch
+                } else {
+                    // Source is lower than all available, use minimum
+                    targetSampleSize = availableSizes.min(by: { $0.rawValue < $1.rawValue })
+                }
+            }
+            
+            // Update the audio options
+            if let newSize = targetSampleSize {
+                audioOptions.sampleSize = newSize
+            }
+        }
+    }
+    
+    private func updateSampleRateForInput(_ sampleRate: Int) {
+        // Only update if automatic is selected
+        guard audioOptions.sampleRate == .automatic else { return }
+        
+        // Find matching AudioSampleRate
+        if let matchingRate = AudioSampleRate.allCases.first(where: { $0.value == sampleRate }) {
+            audioOptions.sampleRate = matchingRate
+        }
+    }
+    
+    private func updateChannelsForInput(_ channels: Int) {
+        // Only update if automatic is selected
+        guard audioOptions.channels == .automatic else { return }
+        
+        // Map to AudioChannels
+        switch channels {
+        case 1:
+            audioOptions.channels = .mono
+        case 2:
+            audioOptions.channels = .stereo
+        default:
+            // Keep automatic for multi-channel
+            break
+        }
+    }
+    
     private func getCompatibleServices() -> [(ConversionService, String)] {
         let inputURLs = files.compactMap { $0.url }
         guard !inputURLs.isEmpty else {
@@ -1387,6 +1510,14 @@ struct ConverterView: View {
         }
         let isImageOutput = if case .imagemagick(_) = outputService { true } else { false }
         return hasInputRequiringDpi && isImageOutput
+    }
+    
+    private var inputFFmpegFormat: FFmpegFormat? {
+        // Get the format of the first input file
+        guard let firstFile = files.first,
+              let url = firstFile.url else { return nil }
+        
+        return FFmpegFormat.detectFormat(from: url)
     }
     
     private var shouldShowAudioOptions: Bool {

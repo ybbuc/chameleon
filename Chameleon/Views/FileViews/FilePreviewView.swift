@@ -12,11 +12,14 @@ import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
 import AVKit
+import AVFoundation
 
 struct FilePreviewView: View {
     let data: Data?
     let url: URL?
     let fileName: String
+    @State private var canPlayFile = false
+    @State private var isCheckingPlayability = true
     
     init(data: Data, fileName: String) {
         self.data = data
@@ -30,22 +33,47 @@ struct FilePreviewView: View {
         self.fileName = url.lastPathComponent
     }
     
+    // Check if AVFoundation can play this file
+    private func canAVFoundationPlay(url: URL) async -> Bool {
+        let asset = AVAsset(url: url)
+        do {
+            return try await asset.load(.isPlayable)
+        } catch {
+            return false
+        }
+    }
+    
     var body: some View {
+        contentView
+            .task {
+                if let fileURL = url {
+                    canPlayFile = await canAVFoundationPlay(url: fileURL)
+                    isCheckingPlayability = false
+                } else if let tempURL = saveDataToTempFile() {
+                    canPlayFile = await canAVFoundationPlay(url: tempURL)
+                    isCheckingPlayability = false
+                } else {
+                    isCheckingPlayability = false
+                }
+            }
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
         if let fileURL = url {
             let isImage = ImageFormat.detectFormat(from: fileURL) != nil
-            let isVideo = FFmpegFormat.detectFormat(from: fileURL)?.isVideo ?? false
+            let detectedFormat = FFmpegFormat.detectFormat(from: fileURL)
+            let isVideo = canPlayFile && (detectedFormat?.isVideo ?? false)
+            let isAudio = canPlayFile && detectedFormat != nil && !(detectedFormat?.isVideo ?? false)
             
             if isVideo {
                 // Video preview
-                VideoPlayer(player: AVPlayer(url: fileURL))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.black)
-                    .overlay(
-                        Rectangle()
-                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                    )
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                AspectRatioVideoPlayer(url: fileURL)
                     .padding(20)
+            } else if isAudio {
+                // Audio preview with controls
+                AudioPlayerView(url: fileURL)
+                    .frame(maxWidth: 400, maxHeight: 270)
             } else if isImage {
                 if let data = try? Data(contentsOf: fileURL),
                    let nsImage = NSImage(data: data) {
@@ -61,7 +89,6 @@ struct FilePreviewView: View {
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .padding(20)
                 } else {
                     fileIcon
@@ -70,7 +97,25 @@ struct FilePreviewView: View {
                 fileIcon
             }
         } else {
-            fileIcon
+            // Handle data-based preview (for converted files)
+            if data != nil {
+                let detectedFormat = FFmpegFormat.detectFormat(from: URL(fileURLWithPath: fileName))
+                let isAudio = canPlayFile && detectedFormat != nil && !(detectedFormat?.isVideo ?? false)
+                
+                if isAudio {
+                    // Save audio data to temp file and show player
+                    if let tempURL = saveDataToTempFile() {
+                        AudioPlayerView(url: tempURL)
+                            .frame(maxWidth: 400, maxHeight: 400)
+                    } else {
+                        fileIcon
+                    }
+                } else {
+                    fileIcon
+                }
+            } else {
+                fileIcon
+            }
         }
     }
     

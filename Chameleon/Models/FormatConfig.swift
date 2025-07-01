@@ -68,17 +68,12 @@ extension MediaFormatConfig {
         // Bit rate (only for lossy formats)
         if supportsBitRate {
             if supportsVariableBitRate && audioOptions.useVariableBitRate {
-                let qualityLevel: String
-                switch audioOptions.bitRate.rawValue {
-                case ...128: qualityLevel = "4"
-                case 129...192: qualityLevel = "2"
-                case 193...256: qualityLevel = "1"
-                default: qualityLevel = "0"
-                }
-                args.append(contentsOf: ["-q:a", qualityLevel])
-            } else {
-                args.append(contentsOf: ["-b:a", "\(audioOptions.bitRate.rawValue)k"])
+                // Use the vbrQuality value for VBR encoding
+                args.append(contentsOf: ["-q:a", "\(audioOptions.vbrQuality.rawValue)"])
+            } else if let bitRateValue = audioOptions.bitRate.value {
+                args.append(contentsOf: ["-b:a", "\(bitRateValue)k"])
             }
+            // If automatic is selected, we don't specify bit rate and let FFmpeg choose
         }
         
         // Channels (only specify if not automatic)
@@ -86,8 +81,11 @@ extension MediaFormatConfig {
             args.append(contentsOf: ["-ac", "\(channelCount)"])
         }
         
-        // Sample rate
-        args.append(contentsOf: ["-ar", "\(audioOptions.sampleRate.rawValue)"])
+        // Sample rate (only specify if not automatic)
+        if let sampleRateValue = audioOptions.sampleRate.value {
+            args.append(contentsOf: ["-ar", "\(sampleRateValue)"])
+        }
+        // If automatic is selected, we don't specify sample rate and let FFmpeg choose
         
         // Sample size (only for lossless formats)
         if supportsSampleSize {

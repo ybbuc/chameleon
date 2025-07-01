@@ -19,7 +19,7 @@ enum ConversionService: Hashable {
         case .imagemagick(let format):
             return format.fileExtension
         case .ffmpeg(let format):
-            return format.rawValue
+            return format.fileExtension
         case .ocr(let format):
             return format.fileExtension
         }

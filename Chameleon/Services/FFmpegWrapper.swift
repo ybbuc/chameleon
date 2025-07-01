@@ -155,6 +155,10 @@ class FFmpegWrapper {
         }
     }
     
+    func getMediaInfo(url: URL) async throws -> MediaFileInfo {
+        return try await getFileInfo(url: url)
+    }
+    
     private func performTwoPassEncoding(inputURL: URL, outputURL: URL, format: FFmpegFormat, videoOptions: VideoOptions) async throws {
         let tempDir = FileManager.default.temporaryDirectory
         let logFileBase = tempDir.appendingPathComponent("ffmpeg2pass-\(UUID().uuidString)")
@@ -419,6 +423,8 @@ struct FFProbeStream: Codable {
     let channels: Int?
     let channelLayout: String?
     let duration: String?
+    let bitsPerSample: Int?
+    let bitsPerRawSample: Int?
     
     enum CodingKeys: String, CodingKey {
         case index
@@ -430,6 +436,8 @@ struct FFProbeStream: Codable {
         case channels
         case channelLayout = "channel_layout"
         case duration
+        case bitsPerSample = "bits_per_sample"
+        case bitsPerRawSample = "bits_per_raw_sample"
     }
 }
 
@@ -440,6 +448,9 @@ struct MediaFileInfo {
     let videoCodec: String?
     let audioCodec: String?
     let duration: TimeInterval?
+    let audioBitDepth: Int?
+    let audioSampleRate: Int?
+    let audioChannels: Int?
     
     init(from probeResult: FFProbeResult) {
         self.formatName = probeResult.format.formatName
@@ -451,6 +462,27 @@ struct MediaFileInfo {
         self.hasAudio = !audioStreams.isEmpty
         self.videoCodec = videoStreams.first?.codecName
         self.audioCodec = audioStreams.first?.codecName
+        
+        // Get audio properties from first audio stream
+        if let firstAudioStream = audioStreams.first {
+            // Bit depth: prefer bits_per_raw_sample, fall back to bits_per_sample
+            self.audioBitDepth = firstAudioStream.bitsPerRawSample ?? firstAudioStream.bitsPerSample
+            
+            // Sample rate
+            if let sampleRateString = firstAudioStream.sampleRate,
+               let sampleRateValue = Int(sampleRateString) {
+                self.audioSampleRate = sampleRateValue
+            } else {
+                self.audioSampleRate = nil
+            }
+            
+            // Channels
+            self.audioChannels = firstAudioStream.channels
+        } else {
+            self.audioBitDepth = nil
+            self.audioSampleRate = nil
+            self.audioChannels = nil
+        }
         
         if let durationString = probeResult.format.duration,
            let durationValue = Double(durationString) {

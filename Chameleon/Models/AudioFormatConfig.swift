@@ -19,7 +19,7 @@ struct MP3Config: MediaFormatConfig {
     let supportsVariableBitRate = true
     
     var availableSampleRates: [AudioSampleRate] {
-        return [.hz8000, .hz11025, .hz12000, .hz16000, .hz22050, .hz24000, .hz32000, .hz44100, .hz48000]
+        return [.automatic, .hz8000, .hz11025, .hz12000, .hz16000, .hz22050, .hz24000, .hz32000, .hz44100, .hz48000]
     }
     
     func codecArguments() -> [String] {
@@ -127,6 +127,11 @@ struct WMAConfig: MediaFormatConfig {
     let fileExtension = "wma"
     let isVideo = false
     let isLossless = false
+    
+    var availableSampleRates: [AudioSampleRate] {
+        // WMA v2 has limited sample rate support
+        return [.automatic, .hz22050, .hz44100, .hz48000]
+    }
     
     func codecArguments() -> [String] {
         return ["-c:a", "wmav2"]
