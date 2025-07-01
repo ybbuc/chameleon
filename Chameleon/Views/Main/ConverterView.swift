@@ -44,6 +44,8 @@ struct ConverterView: View {
     @State private var conversionTask: Task<Void, Never>?
     @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
+    @AppStorage("saveToSourceFolder") private var saveToSourceFolder: Bool = false
+    @AppStorage("playSounds") private var playSounds: Bool = true
     @State private var ocrOptions = OCRService.Options()
     @State private var inputAudioBitDepth: Int?
     @State private var inputAudioSampleRate: Int?
@@ -908,7 +910,11 @@ struct ConverterView: View {
                 print("Successfully combined PDFs")
                 
                 // Play completion sound
+                if playSounds {
+                    if playSounds {
                 completionSound?.play()
+            }
+                }
                 
                 isConverting = false
                 currentConversionFile = ""
@@ -933,7 +939,9 @@ struct ConverterView: View {
                 }
                 
                 // Play failure sound
-                failureSound?.play()
+                if playSounds {
+                    failureSound?.play()
+                }
                 
                 isConverting = false
                 currentConversionFile = ""
@@ -1303,7 +1311,9 @@ struct ConverterView: View {
                 
                 // Play failure sound only on first error
                 if !hasPlayedFailureSound {
+                    if playSounds {
                     failureSound?.play()
+                }
                     hasPlayedFailureSound = true
                 }
                 
@@ -1328,7 +1338,9 @@ struct ConverterView: View {
         if convertingCount == 0 && convertedCount > 0 {
             print("Batch conversion completed with \(convertedCount) successful conversions")
             // Play completion sound
-            completionSound?.play()
+            if playSounds {
+                completionSound?.play()
+            }
         }
         
         isConverting = false
@@ -1338,88 +1350,177 @@ struct ConverterView: View {
     }
     
     private func saveFile(_ convertedFile: ConvertedFile) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = convertedFile.fileName
-        panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-        
-        if panel.runModal() == .OK, let url = panel.url {
+        if saveToSourceFolder {
+            // Save directly to source folder
+            let sourceFolder = convertedFile.originalURL.deletingLastPathComponent()
+            let destinationURL = sourceFolder.appendingPathComponent(convertedFile.fileName)
+            
             do {
-                // Copy the temp file to the destination
-                try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
-                
-                // Add to conversion history
-                let inputFormat = convertedFile.originalURL.pathExtension.uppercased()
-                let outputFormat = url.pathExtension.uppercased()
-                savedHistoryManager.addConversion(
-                    inputFileName: convertedFile.originalURL.lastPathComponent,
-                    inputFormat: inputFormat,
-                    outputFormat: outputFormat,
-                    outputFileURL: url
-                )
+                // Check if file already exists
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    // Show save panel if file exists
+                    let panel = NSSavePanel()
+                    panel.nameFieldStringValue = convertedFile.fileName
+                    panel.directoryURL = sourceFolder
+                    panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
+                    
+                    if panel.runModal() == .OK, let url = panel.url {
+                        try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
+                        addToHistory(convertedFile: convertedFile, savedURL: url)
+                    }
+                } else {
+                    // Copy directly if file doesn't exist
+                    try FileManager.default.copyItem(at: convertedFile.tempURL, to: destinationURL)
+                    addToHistory(convertedFile: convertedFile, savedURL: destinationURL)
+                }
             } catch {
                 showError(error.localizedDescription)
             }
+        } else {
+            // Show save panel
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = convertedFile.fileName
+            panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
+            
+            if panel.runModal() == .OK, let url = panel.url {
+                do {
+                    // Copy the temp file to the destination
+                    try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
+                    addToHistory(convertedFile: convertedFile, savedURL: url)
+                } catch {
+                    showError(error.localizedDescription)
+                }
+            }
         }
+    }
+    
+    private func addToHistory(convertedFile: ConvertedFile, savedURL: URL) {
+        let inputFormat = convertedFile.originalURL.pathExtension.uppercased()
+        let outputFormat = savedURL.pathExtension.uppercased()
+        savedHistoryManager.addConversion(
+            inputFileName: convertedFile.originalURL.lastPathComponent,
+            inputFormat: inputFormat,
+            outputFormat: outputFormat,
+            outputFileURL: savedURL
+        )
     }
     
     private func saveFile(data: Data, fileName: String, originalURL: URL) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = fileName
-        panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-        
-        if panel.runModal() == .OK, let url = panel.url {
+        if saveToSourceFolder {
+            // Save directly to source folder
+            let sourceFolder = originalURL.deletingLastPathComponent()
+            let destinationURL = sourceFolder.appendingPathComponent(fileName)
+            
             do {
-                try data.write(to: url)
-                
-                // Add to conversion history
-                let inputFormat = originalURL.pathExtension.uppercased()
-                let outputFormat = url.pathExtension.uppercased()
-                savedHistoryManager.addConversion(
-                    inputFileName: originalURL.lastPathComponent,
-                    inputFormat: inputFormat,
-                    outputFormat: outputFormat,
-                    outputFileURL: url
-                )
+                // Check if file already exists
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    // Show save panel if file exists
+                    let panel = NSSavePanel()
+                    panel.nameFieldStringValue = fileName
+                    panel.directoryURL = sourceFolder
+                    panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
+                    
+                    if panel.runModal() == .OK, let url = panel.url {
+                        try data.write(to: url)
+                        addToHistory(originalURL: originalURL, savedURL: url)
+                    }
+                } else {
+                    // Write directly if file doesn't exist
+                    try data.write(to: destinationURL)
+                    addToHistory(originalURL: originalURL, savedURL: destinationURL)
+                }
             } catch {
                 showError(error.localizedDescription)
+            }
+        } else {
+            // Show save panel
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = fileName
+            panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
+            
+            if panel.runModal() == .OK, let url = panel.url {
+                do {
+                    try data.write(to: url)
+                    addToHistory(originalURL: originalURL, savedURL: url)
+                } catch {
+                    showError(error.localizedDescription)
+                }
             }
         }
     }
     
+    private func addToHistory(originalURL: URL, savedURL: URL) {
+        let inputFormat = originalURL.pathExtension.uppercased()
+        let outputFormat = savedURL.pathExtension.uppercased()
+        savedHistoryManager.addConversion(
+            inputFileName: originalURL.lastPathComponent,
+            inputFormat: inputFormat,
+            outputFormat: outputFormat,
+            outputFileURL: savedURL
+        )
+    }
+    
     private func saveAllFiles() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Choose Folder"
-        
-        if panel.runModal() == .OK, let folderURL = panel.url {
-            let convertedFilesList = files.compactMap { file in
-                if case .converted(let convertedFile) = file {
-                    return convertedFile
-                } else {
-                    return nil
-                }
+        let convertedFilesList = files.compactMap { file in
+            if case .converted(let convertedFile) = file {
+                return convertedFile
+            } else {
+                return nil
             }
-            
+        }
+        
+        if saveToSourceFolder {
+            // Save all files to their respective source folders
             for file in convertedFilesList {
-                let fileURL = folderURL.appendingPathComponent(file.fileName)
+                let sourceFolder = file.originalURL.deletingLastPathComponent()
+                let fileURL = sourceFolder.appendingPathComponent(file.fileName)
+                
                 do {
-                    // Copy the temp file to the destination
-                    try FileManager.default.copyItem(at: file.tempURL, to: fileURL)
-                    
-                    // Add to conversion history
-                    let inputFormat = file.originalURL.pathExtension.uppercased()
-                    let outputFormat = fileURL.pathExtension.uppercased()
-                    savedHistoryManager.addConversion(
-                        inputFileName: file.originalURL.lastPathComponent,
-                        inputFormat: inputFormat,
-                        outputFormat: outputFormat,
-                        outputFileURL: fileURL
-                    )
+                    // Check if file already exists
+                    if FileManager.default.fileExists(atPath: fileURL.path) {
+                        // For batch save with existing files, append a number
+                        let baseFileName = (file.fileName as NSString).deletingPathExtension
+                        let fileExtension = (file.fileName as NSString).pathExtension
+                        var counter = 1
+                        var newFileURL = fileURL
+                        
+                        while FileManager.default.fileExists(atPath: newFileURL.path) {
+                            let newFileName = "\(baseFileName)_\(counter).\(fileExtension)"
+                            newFileURL = sourceFolder.appendingPathComponent(newFileName)
+                            counter += 1
+                        }
+                        
+                        try FileManager.default.copyItem(at: file.tempURL, to: newFileURL)
+                        addToHistory(convertedFile: file, savedURL: newFileURL)
+                    } else {
+                        // Copy directly if file doesn't exist
+                        try FileManager.default.copyItem(at: file.tempURL, to: fileURL)
+                        addToHistory(convertedFile: file, savedURL: fileURL)
+                    }
                 } catch {
                     showError("Failed to save \(file.fileName): \(error.localizedDescription)")
                     return
+                }
+            }
+        } else {
+            // Show folder selection panel
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = false
+            panel.canChooseDirectories = true
+            panel.allowsMultipleSelection = false
+            panel.prompt = "Choose Folder"
+            
+            if panel.runModal() == .OK, let folderURL = panel.url {
+                for file in convertedFilesList {
+                    let fileURL = folderURL.appendingPathComponent(file.fileName)
+                    do {
+                        // Copy the temp file to the destination
+                        try FileManager.default.copyItem(at: file.tempURL, to: fileURL)
+                        addToHistory(convertedFile: file, savedURL: fileURL)
+                    } catch {
+                        showError("Failed to save \(file.fileName): \(error.localizedDescription)")
+                        return
+                    }
                 }
             }
         }

@@ -13,6 +13,7 @@ struct SavedHistoryView: View {
     @ObservedObject var savedHistoryManager: SavedHistoryManager
     @State private var showingClearAlert = false
     @State private var showingClearMissingAlert = false
+    @AppStorage("autoClearMissingFiles") private var autoClearMissingFiles: Bool = false
     
     private var filteredConversions: [ConversionRecord] {
         if searchText.isEmpty {
@@ -127,6 +128,9 @@ struct SavedHistoryView: View {
         }
         .onAppear {
             savedHistoryManager.checkForMissingFiles()
+            if autoClearMissingFiles && savedHistoryManager.hasMissingFiles {
+                savedHistoryManager.clearMissingFiles()
+            }
         }
     }
 }

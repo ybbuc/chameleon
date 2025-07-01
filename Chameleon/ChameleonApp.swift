@@ -15,5 +15,9 @@ struct ChamelionApp: App {
             ContentView()
         }
         .modelContainer(for: [ConversionRecord.self])
+        
+        Settings {
+            SettingsView()
+        }
     }
 }
