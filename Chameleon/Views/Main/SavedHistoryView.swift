@@ -326,10 +326,12 @@ struct SavedHistoryRow: View {
         let ext = record.outputFormat.lowercased()
         switch ext {
         case "pdf", "rtf": return "doc.richtext"
-        case "png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp", "tif": return "photo"
+        case "png", "jpg", "jpeg", "bmp", "tiff", "webp", "tif": return "photo"
+        case "gif": return "photo.on.rectangle.angled"
         case "html", "htm": return "globe"
         case "md", "txt": return "doc.text"
-        case "aac", "mp3", "wav", "flac", "ogg": return "waveform"
+        case "mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v": return "video"
+        case "aac", "mp3", "wav", "flac", "alac", "ogg", "wma", "aiff": return "waveform"
         default: return "doc"
         }
     }

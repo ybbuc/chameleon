@@ -98,6 +98,26 @@ struct ConverterView: View {
         }
     }
     
+    // Function to clear converted files
+    private func clearConvertedFiles() {
+        // First, clean up temp files for converted files
+        for fileState in files {
+            if case .converted(let convertedFile) = fileState {
+                try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
+            }
+        }
+        
+        // Remove all converted files from the array
+        withAnimation(.easeInOut(duration: 0.2)) {
+            files.removeAll { fileState in
+                if case .converted = fileState {
+                    return true
+                }
+                return false
+            }
+        }
+    }
+    
     
     // MARK: - File pane
     var body: some View {
@@ -285,6 +305,14 @@ struct ConverterView: View {
                                         
                                         let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
                                         if convertedCount > 0 {
+                                            StandardButton(
+                                                icon: "clear",
+                                                action: {
+                                                    clearConvertedFiles()
+                                                }
+                                            )
+                                            .help("Clear all converted files")
+                                            
                                             SaveAllButton(
                                                 label: convertedCount == 1 ? "Save" : "Save All"
                                             ) {
