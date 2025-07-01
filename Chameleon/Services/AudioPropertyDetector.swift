@@ -14,6 +14,7 @@ struct AudioProperties {
     let bitDepth: Int?
     let duration: TimeInterval?
     let codec: String?
+    let bitRate: Int?
 }
 
 class AudioPropertyDetector {
@@ -111,7 +112,8 @@ class AudioPropertyDetector {
                 channels: channels,
                 bitDepth: bitDepth,
                 duration: duration,
-                codec: codec
+                codec: codec,
+                bitRate: nil  // AVFoundation doesn't provide bit rate info easily
             )
         } catch {
             return nil
@@ -126,7 +128,8 @@ class AudioPropertyDetector {
             channels: mediaInfo.audioChannels,
             bitDepth: mediaInfo.audioBitDepth,
             duration: mediaInfo.duration,
-            codec: mediaInfo.audioCodec
+            codec: mediaInfo.audioCodec,
+            bitRate: mediaInfo.audioBitRate
         )
     }
     

@@ -48,6 +48,7 @@ struct ConverterView: View {
     @State private var inputAudioBitDepth: Int?
     @State private var inputAudioSampleRate: Int?
     @State private var inputAudioChannels: Int?
+    @State private var inputAudioBitRate: Int?
     private let audioPropertyDetector = AudioPropertyDetector()
     
     private func cleanupTempFiles() {
@@ -438,7 +439,8 @@ struct ConverterView: View {
                         inputFormat: inputFFmpegFormat,
                         inputSampleRate: inputAudioSampleRate,
                         inputChannels: inputAudioChannels,
-                        inputBitDepth: inputAudioBitDepth
+                        inputBitDepth: inputAudioBitDepth,
+                        inputBitRate: inputAudioBitRate
                     )
                         .onChange(of: outputService) { _, _ in
                             // Update sample size when output format changes to lossless
@@ -1327,6 +1329,7 @@ struct ConverterView: View {
         inputAudioBitDepth = nil
         inputAudioSampleRate = nil
         inputAudioChannels = nil
+        inputAudioBitRate = nil
         
         // Detect for both audio and video files (video may have audio tracks)
         guard let firstFile = files.first,
@@ -1343,6 +1346,7 @@ struct ConverterView: View {
                     self.inputAudioBitDepth = properties.bitDepth
                     self.inputAudioSampleRate = properties.sampleRate
                     self.inputAudioChannels = properties.channels
+                    self.inputAudioBitRate = properties.bitRate
                     
                     // Auto-update sample size if output is lossless
                     if case .ffmpeg(let outputFormat) = outputService,

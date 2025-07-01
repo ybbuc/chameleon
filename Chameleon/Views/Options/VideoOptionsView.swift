@@ -76,7 +76,6 @@ struct VideoOptionsView: View {
                 }
             }
             .pickerStyle(.menu)
-            .fixedSize()
             .onChange(of: videoOptions.resolution) { _, newResolution in
                 // Auto-adjust bitrate when resolution changes in bitrate mode
                 if videoOptions.qualityMode == .bitrate && newResolution != .automatic {
@@ -94,7 +93,6 @@ struct VideoOptionsView: View {
                 }
             }
             .pickerStyle(.menu)
-            .fixedSize()
             .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Encoder selector - only show if format supports multiple encoders
@@ -157,7 +155,7 @@ struct VideoOptionsView: View {
                 if !codecSupportsCRF || videoOptions.qualityMode == .bitrate {
                     // Bitrate text field
                     HStack {
-                        TextField("Bitrate:", text: $videoOptions.customBitrate)
+                        TextField("Bit rate:", text: $videoOptions.customBitrate)
                             .textFieldStyle(.squareBorder)
                             .frame(width: 100)
                             .onSubmit {

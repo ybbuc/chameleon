@@ -30,7 +30,7 @@ enum AudioBitRate: CaseIterable {
         case .automatic:
             return "Automatic"
         default:
-            return "\(value!) kbps"
+            return "\(value!)"
         }
     }
     
@@ -70,16 +70,16 @@ enum MP3VBRQuality: Int, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .q9: return "~65 kbps"
-        case .q8: return "~85 kbps"
-        case .q7: return "~100 kbps"
-        case .q6: return "~115 kbps"
-        case .q5: return "~130 kbps"
-        case .q4: return "~165 kbps"
-        case .q3: return "~175 kbps"
-        case .q2: return "~190 kbps"
-        case .q1: return "~225 kbps"
-        case .q0: return "~245 kbps"
+        case .q9: return "~65"
+        case .q8: return "~85"
+        case .q7: return "~100"
+        case .q6: return "~115"
+        case .q5: return "~130"
+        case .q4: return "~165"
+        case .q3: return "~175"
+        case .q2: return "~190"
+        case .q1: return "~225"
+        case .q0: return "~245"
         }
     }
 }
@@ -129,7 +129,7 @@ enum AudioSampleRate: CaseIterable {
         case .automatic:
             return "Automatic"
         default:
-            return "\(value!) Hz"
+            return "\(value!)"
         }
     }
     
@@ -166,7 +166,7 @@ enum AudioSampleSize: Int, CaseIterable {
     case bits32 = 32
     
     var displayName: String {
-        return "\(rawValue) bits"
+        return "\(rawValue)"
     }
     
 }

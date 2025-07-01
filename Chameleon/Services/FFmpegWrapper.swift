@@ -425,6 +425,7 @@ struct FFProbeStream: Codable {
     let duration: String?
     let bitsPerSample: Int?
     let bitsPerRawSample: Int?
+    let bitRate: String?
     
     enum CodingKeys: String, CodingKey {
         case index
@@ -438,6 +439,7 @@ struct FFProbeStream: Codable {
         case duration
         case bitsPerSample = "bits_per_sample"
         case bitsPerRawSample = "bits_per_raw_sample"
+        case bitRate = "bit_rate"
     }
 }
 
@@ -451,6 +453,7 @@ struct MediaFileInfo {
     let audioBitDepth: Int?
     let audioSampleRate: Int?
     let audioChannels: Int?
+    let audioBitRate: Int?
     
     init(from probeResult: FFProbeResult) {
         self.formatName = probeResult.format.formatName
@@ -482,6 +485,23 @@ struct MediaFileInfo {
             self.audioBitDepth = nil
             self.audioSampleRate = nil
             self.audioChannels = nil
+        }
+        
+        // Get bit rate from audio stream (not format, which includes video)
+        if let firstAudioStream = audioStreams.first,
+           let bitRateString = firstAudioStream.bitRate,
+           let bitRateValue = Int(bitRateString) {
+            // Convert from bits per second to kilobits per second
+            self.audioBitRate = bitRateValue / 1000
+        } else if !hasVideo && hasAudio,
+                  let bitRateString = probeResult.format.bitRate,
+                  let bitRateValue = Int(bitRateString) {
+            // For audio-only files, use the format bit rate
+            self.audioBitRate = bitRateValue / 1000
+        } else {
+            // For video files or when stream bit rate is not available,
+            // we could estimate based on codec, but for now return nil
+            self.audioBitRate = nil
         }
         
         if let durationString = probeResult.format.duration,

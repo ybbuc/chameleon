@@ -14,6 +14,7 @@ struct AudioOptionsView: View {
     var inputSampleRate: Int? = nil
     var inputChannels: Int? = nil
     var inputBitDepth: Int? = nil
+    var inputBitRate: Int? = nil
     
     private var availableSampleRates: [AudioSampleRate] {
         guard let format = outputFormat,
@@ -48,7 +49,7 @@ struct AudioOptionsView: View {
                 if config.supportsVariableBitRate && audioOptions.useVariableBitRate {
                     // VBR Quality dropdown (replaces bit rate when VBR is enabled)
                     HStack {
-                        Picker("Bit Rate:", selection: $audioOptions.vbrQuality) {
+                        Picker("Bit rate:", selection: $audioOptions.vbrQuality) {
                             ForEach(MP3VBRQuality.allCases, id: \.self) { quality in
                                 Text(quality.displayName).tag(quality)
                             }
@@ -56,30 +57,36 @@ struct AudioOptionsView: View {
                         .pickerStyle(.menu)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .fixedSize()
-                        Text("average")
+                        Text("kbps average")
+                            .frame(width: 85, alignment: .leading)
                     }
                     
                 } else {
                     // Regular bit rate dropdown
-                    Picker("Bit Rate:", selection: $audioOptions.bitRate) {
-                        if !isInputLossless {
-                            Text(AudioBitRate.automatic.displayName).tag(AudioBitRate.automatic)
+                    HStack {
+                        Picker("Bit rate:", selection: $audioOptions.bitRate) {
+                            if !isInputLossless {
+                                Text(AudioBitRate.automatic.displayName).tag(AudioBitRate.automatic)
+                                
+                                Divider()
+                            }
                             
-                            Divider()
+                            ForEach(AudioBitRate.allCases.filter { $0 != .automatic }, id: \.self) { bitRate in
+                                Text(bitRate.displayName).tag(bitRate)
+                            }
                         }
+                        .onChange(of: inputFormat) { _, _ in
+                            // If input becomes lossless and automatic was selected, switch to a default bit rate
+                            if isInputLossless && audioOptions.bitRate == .automatic {
+                                audioOptions.bitRate = .kbps128
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                         
-                        ForEach(AudioBitRate.allCases.filter { $0 != .automatic }, id: \.self) { bitRate in
-                            Text(bitRate.displayName).tag(bitRate)
-                        }
+                        Text("kbps")
+                            .frame(width: 50, alignment: .leading)
                     }
-                    .onChange(of: inputFormat) { _, _ in
-                        // If input becomes lossless and automatic was selected, switch to a default bit rate
-                        if isInputLossless && audioOptions.bitRate == .automatic {
-                            audioOptions.bitRate = .kbps128
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
             
@@ -103,43 +110,54 @@ struct AudioOptionsView: View {
             }
             .pickerStyle(.menu)
             .transition(.opacity.combined(with: .move(edge: .top)))
+            .padding(.trailing, 58)
             
             // Sample Rate dropdown (for all audio formats)
-            Picker("Sample Rate:", selection: $audioOptions.sampleRate) {
-                if availableSampleRates.contains(.automatic) {
-                    Text(AudioSampleRate.automatic.displayName).tag(AudioSampleRate.automatic)
+            HStack {
+                Picker("Sample rate:", selection: $audioOptions.sampleRate) {
+                    if availableSampleRates.contains(.automatic) {
+                        Text(AudioSampleRate.automatic.displayName).tag(AudioSampleRate.automatic)
+                        
+                        Divider()
+                    }
                     
-                    Divider()
+                    ForEach(availableSampleRates.filter { $0 != .automatic }, id: \.self) { sampleRate in
+                        Text(sampleRate.displayName).tag(sampleRate)
+                    }
                 }
+                .pickerStyle(.menu)
+                .onChange(of: outputFormat) { _, newFormat in
+                    // Adjust sample rate if current selection is not available for new format
+                    if !availableSampleRates.contains(audioOptions.sampleRate) {
+                        audioOptions.sampleRate = availableSampleRates.first ?? .hz44100
+                    }
+                    // Adjust sample size if current selection is not available for new format
+                    if !availableSampleSizes.contains(audioOptions.sampleSize) {
+                        audioOptions.sampleSize = availableSampleSizes.first ?? .bits16
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
                 
-                ForEach(availableSampleRates.filter { $0 != .automatic }, id: \.self) { sampleRate in
-                    Text(sampleRate.displayName).tag(sampleRate)
-                }
+                Text("Hz")
+                    .frame(width: 50, alignment: .leading)
             }
-            .pickerStyle(.menu)
-            .onChange(of: outputFormat) { _, newFormat in
-                // Adjust sample rate if current selection is not available for new format
-                if !availableSampleRates.contains(audioOptions.sampleRate) {
-                    audioOptions.sampleRate = availableSampleRates.first ?? .hz44100
-                }
-                // Adjust sample size if current selection is not available for new format
-                if !availableSampleSizes.contains(audioOptions.sampleSize) {
-                    audioOptions.sampleSize = availableSampleSizes.first ?? .bits16
-                }
-            }
-            .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Sample Size dropdown (only for lossless formats)
             if let format = outputFormat,
                let config = FormatRegistry.shared.config(for: format),
                config.supportsSampleSize {
-                Picker("Sample Size:", selection: $audioOptions.sampleSize) {
-                    ForEach(availableSampleSizes, id: \.self) { sampleSize in
-                        Text(sampleSize.displayName).tag(sampleSize)
+                HStack {
+                    Picker("Sample Size:", selection: $audioOptions.sampleSize) {
+                        ForEach(availableSampleSizes, id: \.self) { sampleSize in
+                            Text(sampleSize.displayName).tag(sampleSize)
+                        }
                     }
+                    .pickerStyle(.menu)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    
+                    Text("bits")
+                        .frame(width: 50, alignment: .leading)
                 }
-                .pickerStyle(.menu)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
             
             // Resulting file preview
@@ -188,13 +206,17 @@ struct AudioOptionsView: View {
         // Bit rate (for lossy formats)
         if config.supportsBitRate && !audioOptions.useVariableBitRate {
             if audioOptions.bitRate == .automatic {
-                components.append("Auto bit rate")
+                if let inputRate = inputBitRate {
+                    components.append("\(inputRate) kbps")
+                } else {
+                    components.append("Source bit rate")
+                }
             } else if let bitRateValue = audioOptions.bitRate.value {
                 components.append("\(bitRateValue) kbps")
             }
         } else if config.supportsVariableBitRate && audioOptions.useVariableBitRate {
             // Show the VBR quality
-            components.append("VBR \(audioOptions.vbrQuality.displayName)")
+            components.append("VBR \(audioOptions.vbrQuality.displayName) kbps")
         }
         
         // Sample rate

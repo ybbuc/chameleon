@@ -29,18 +29,21 @@ struct GIFOptionsView: View {
     
     var body: some View {
         Form {
-            // FPS setting
-            Picker("Frame Rate:", selection: $gifOptions.fps) {
-                Text("5 fps").tag(5)
-                Text("10 fps").tag(10)
-                Text("15 fps").tag(15)
-                Text("20 fps").tag(20)
-                Text("25 fps").tag(25)
-                Text("30 fps").tag(30)
+            HStack {
+                // FPS setting
+                Picker("Frame rate:", selection: $gifOptions.fps) {
+                    Text("5").tag(5)
+                    Text("10").tag(10)
+                    Text("15").tag(15)
+                    Text("20").tag(20)
+                    Text("25").tag(25)
+                    Text("30").tag(30)
+                }
+                .pickerStyle(.menu)
+                
+                Text("fps")
+                    .frame(width: 50, alignment: .leading)
             }
-            .pickerStyle(.menu)
-            .fixedSize()
-            
             // Width setting as text field
             HStack {
                 TextField("Width:", text: $widthText)

@@ -92,9 +92,9 @@ struct AudioPlayerView: View {
                                     let clampedXOffset = max(tooltipWidth/2, min(xOffset, geometry.size.width - tooltipWidth/2))
                                     
                                     // Hover position indicator
-                                    Circle()
-                                        .fill(Color.primary.opacity(0.3))
-                                        .frame(width: 12, height: 12)
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        .fill(Color.secondary)
+                                        .frame(width: 4, height: 12)
                                         .position(x: xOffset, y: 12.5)
                                     
                                     // Time tooltip
