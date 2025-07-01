@@ -148,6 +148,41 @@ enum VideoBitrate: String, CaseIterable {
     }
 }
 
+enum VideoPreset: String, CaseIterable {
+    case ultrafast = "ultrafast"
+    case superfast = "superfast"
+    case veryfast = "veryfast"
+    case faster = "faster"
+    case fast = "fast"
+    case medium = "medium"
+    case slow = "slow"
+    case slower = "slower"
+    case veryslow = "veryslow"
+    
+    var displayName: String {
+        switch self {
+        case .ultrafast:
+            return "Ultrafast"
+        case .superfast:
+            return "Superfast"
+        case .veryfast:
+            return "Very Fast"
+        case .faster:
+            return "Faster"
+        case .fast:
+            return "Fast"
+        case .medium:
+            return "Medium"
+        case .slow:
+            return "Slow"
+        case .slower:
+            return "Slower"
+        case .veryslow:
+            return "Very Slow"
+        }
+    }
+}
+
 enum VideoResolution: String, CaseIterable {
     case automatic = "automatic"
     case res480p = "480p"
@@ -263,6 +298,7 @@ struct VideoOptions {
     var customBitrate: String = "5"  // Default 5 Mbps
     var useTwoPassEncoding: Bool = false
     var encoder: VideoEncoder = .x264  // Default to x264
+    var preset: VideoPreset = .medium  // Default to medium preset
     var gifOptions: AnimatedGIFOptions = AnimatedGIFOptions()  // GIF-specific settings
     
     func ffmpegArguments(for format: FFmpegFormat) -> [String] {
@@ -284,7 +320,11 @@ struct VideoOptions {
         case .constantRateFactor:
             // Use custom CRF value
             if format.supportsCRF {
-                args.append(contentsOf: ["-crf", "\(Int(crfValue))", "-preset", "medium"])
+                args.append(contentsOf: ["-crf", "\(Int(crfValue))"])
+                // Only add preset for x264 and x265
+                if encoder == .x264 || encoder == .x265 {
+                    args.append(contentsOf: ["-preset", preset.rawValue])
+                }
             } else {
                 // Fallback to quality-based bitrate for codecs that don't support CRF
                 let fallbackBitrate = crfValue < 20 ? "10M" : crfValue < 30 ? "5M" : "2.5M"
@@ -294,8 +334,10 @@ struct VideoOptions {
             // Use custom bitrate with M suffix for megabits
             let bitrateValue = customBitrate.isEmpty ? "5M" : "\(customBitrate)M"
             args.append(contentsOf: ["-b:v", bitrateValue])
-            // Add a reasonable preset for bitrate mode
-            args.append(contentsOf: ["-preset", "medium"])
+            // Only add preset for x264 and x265
+            if encoder == .x264 || encoder == .x265 {
+                args.append(contentsOf: ["-preset", preset.rawValue])
+            }
         }
         
         return args
@@ -336,7 +378,10 @@ struct VideoOptions {
         // Add bitrate settings
         let bitrateValue = customBitrate.isEmpty ? "5M" : "\(customBitrate)M"
         args.append(contentsOf: ["-b:v", bitrateValue])
-        args.append(contentsOf: ["-preset", "medium"])
+        // Only add preset for x264 and x265
+        if encoder == .x264 || encoder == .x265 {
+            args.append(contentsOf: ["-preset", preset.rawValue])
+        }
         
         // Add pass-specific arguments
         args.append(contentsOf: ["-pass", "\(pass)", "-passlogfile", logFile])

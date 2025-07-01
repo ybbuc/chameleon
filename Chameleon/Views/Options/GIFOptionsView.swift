@@ -73,7 +73,7 @@ struct GIFOptionsView: View {
                 Text("Twice").tag(1)
             }
             .pickerStyle(.menu)
-            .fixedSize()
+            .padding(.trailing, 58)
             
             // Palette optimization toggle
             Toggle("Optimize colors", isOn: $gifOptions.usePalette)

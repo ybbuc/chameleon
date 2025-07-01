@@ -40,6 +40,13 @@ struct AudioOptionsView: View {
         return config.isLossless
     }
     
+    private var isInputVideo: Bool {
+        guard let format = inputFormat else {
+            return false
+        }
+        return format.isVideo
+    }
+    
     var body: some View {
         Form {
             // Bit Rate or VBR Quality dropdown (only for lossy formats)
@@ -65,7 +72,7 @@ struct AudioOptionsView: View {
                     // Regular bit rate dropdown
                     HStack {
                         Picker("Bit rate:", selection: $audioOptions.bitRate) {
-                            if !isInputLossless {
+                            if !isInputLossless && !isInputVideo {
                                 Text(AudioBitRate.automatic.displayName).tag(AudioBitRate.automatic)
                                 
                                 Divider()
@@ -76,8 +83,8 @@ struct AudioOptionsView: View {
                             }
                         }
                         .onChange(of: inputFormat) { _, _ in
-                            // If input becomes lossless and automatic was selected, switch to a default bit rate
-                            if isInputLossless && audioOptions.bitRate == .automatic {
+                            // If input becomes lossless or video and automatic was selected, switch to a default bit rate
+                            if (isInputLossless || isInputVideo) && audioOptions.bitRate == .automatic {
                                 audioOptions.bitRate = .kbps128
                             }
                         }
@@ -179,13 +186,19 @@ struct AudioOptionsView: View {
             }
         }
         .onAppear {
-            // If input is lossless and automatic is selected, switch to default bit rate
-            if isInputLossless && audioOptions.bitRate == .automatic {
+            // If input is lossless or video and automatic is selected, switch to default bit rate
+            if (isInputLossless || isInputVideo) && audioOptions.bitRate == .automatic {
                 audioOptions.bitRate = .kbps128
             }
         }
         .onChange(of: isInputLossless) { _, newValue in
             // When input lossless status changes, update bit rate if needed
+            if newValue && audioOptions.bitRate == .automatic {
+                audioOptions.bitRate = .kbps128
+            }
+        }
+        .onChange(of: isInputVideo) { _, newValue in
+            // When input video status changes, update bit rate if needed
             if newValue && audioOptions.bitRate == .automatic {
                 audioOptions.bitRate = .kbps128
             }

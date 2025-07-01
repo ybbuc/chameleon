@@ -1063,6 +1063,12 @@ struct ConverterView: View {
                         // Based on the debug output, ImageMagick uses: filename-N.ext
                         var pageFiles: [ConvertedFile] = []
                         while true {
+                            // Check for cancellation in the multi-page processing loop
+                            if Task.isCancelled {
+                                print("Multi-page PDF processing cancelled")
+                                break
+                            }
+                            
                             let testFileName = "\(baseTempName)-\(pageIndex).\(ext)"
                             let testURL = tempDir.appendingPathComponent(testFileName)
                             

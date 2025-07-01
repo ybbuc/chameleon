@@ -76,6 +76,7 @@ struct VideoOptionsView: View {
                 }
             }
             .pickerStyle(.menu)
+            .padding(.trailing, 58)
             .onChange(of: videoOptions.resolution) { _, newResolution in
                 // Auto-adjust bitrate when resolution changes in bitrate mode
                 if videoOptions.qualityMode == .bitrate && newResolution != .automatic {
@@ -93,6 +94,7 @@ struct VideoOptionsView: View {
                 }
             }
             .pickerStyle(.menu)
+            .padding(.trailing, 58)
             .transition(.opacity.combined(with: .move(edge: .top)))
             
             // Encoder selector - only show if format supports multiple encoders
@@ -105,6 +107,20 @@ struct VideoOptionsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            
+            // Preset selector - only show for x264 and x265 encoders
+            if videoOptions.encoder == .x264 || videoOptions.encoder == .x265 {
+                VStack(alignment: .leading, spacing: 4) {
+                    Picker("Preset:", selection: $videoOptions.preset) {
+                        ForEach(VideoPreset.allCases, id: \.self) { preset in
+                            Text(preset.displayName).tag(preset)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.trailing, 58)
+                }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
             
