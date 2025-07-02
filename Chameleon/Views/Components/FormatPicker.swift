@@ -13,50 +13,6 @@ struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
     
-    private var hasMediaFormats: Bool {
-        compatibleServices.contains { service, _ in
-            if case .ffmpeg = service {
-                return true
-            }
-            if case .tts = service {
-                return true
-            }
-            return false
-        }
-    }
-    
-    private var audioServices: [(ConversionService, String)] {
-        compatibleServices.filter { service, _ in
-            if case .ffmpeg(let format) = service {
-                return !format.isVideo
-            }
-            if case .tts(_) = service {
-                return true
-            }
-            return false
-        }
-    }
-    
-    private var videoServices: [(ConversionService, String)] {
-        compatibleServices.filter { service, _ in
-            if case .ffmpeg(let format) = service {
-                return format.isVideo
-            }
-            return false
-        }
-    }
-    
-    private var nonMediaServices: [(ConversionService, String)] {
-        compatibleServices.filter { service, _ in
-            if case .ffmpeg = service {
-                return false
-            }
-            if case .tts = service {
-                return false
-            }
-            return true
-        }
-    }
     
     private var pdfImageFormats: [(ConversionService, String)] {
         guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) else {
@@ -95,9 +51,56 @@ struct FormatPicker: View {
         return formats
     }
     
-    private var isPDFInput: Bool {
-        inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
+    
+    
+    // New computed properties for consistent sectioning
+    private var documentOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            switch service {
+            case .pandoc:
+                return true
+            case .imagemagick(let format) where format == .pdf:
+                return true
+            case .ocr:
+                return true
+            default:
+                return false
+            }
+        }
     }
+    
+    private var imageOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .imagemagick(let format) = service {
+                return format != .pdf
+            }
+            return false
+        }
+    }
+    
+    private var audioOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            switch service {
+            case .ffmpeg(let format) where !format.isVideo:
+                return true
+            case .tts:
+                return true
+            default:
+                return false
+            }
+        }
+    }
+    
+    private var videoOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .ffmpeg(let format) = service {
+                return format.isVideo
+            }
+            return false
+        }
+    }
+    
+    
     
     private var compatibleServices: [(ConversionService, String)] {
         guard !inputFileURLs.isEmpty else {
@@ -109,8 +112,8 @@ struct FormatPicker: View {
         let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         
         if allPDFs {
-            // For PDF files, return empty here as we'll handle them in specialized properties
-            return []
+            // For PDF files, use the specialized properties
+            return pdfDocumentFormats + pdfImageFormats
         }
         
         // Detect if inputs are documents, images, or media files
@@ -194,65 +197,54 @@ struct FormatPicker: View {
                 if inputFileURLs.isEmpty {
                     // Show empty state
                     Text("").tag(selectedService)
-                } else if isPDFInput {
-                    // Special handling for PDF inputs
-                    Section("Documents") {
-                        ForEach(pdfDocumentFormats, id: \.0) { service, name in
-                            Text(name).tag(service)
-                        }
-                    }
-                    
-                    Section("Images") {
-                        ForEach(pdfImageFormats, id: \.0) { service, name in
-                            Text(name).tag(service)
-                        }
-                    }
-                } else if hasMediaFormats && nonMediaServices.isEmpty {
-                    // Only media formats available
-                    if !audioServices.isEmpty {
-                        Section("Audio Formats") {
-                            ForEach(audioServices, id: \.0) { service, name in
-                                Text(name).tag(service)
-                            }
-                        }
-                    }
-                    
-                    if !videoServices.isEmpty {
-                        Section("Video Formats") {
-                            ForEach(videoServices, id: \.0) { service, name in
-                                Text(name).tag(service)
-                            }
-                        }
-                    }
-                } else if hasMediaFormats && !nonMediaServices.isEmpty {
-                    // Mixed formats available (e.g., when selecting images that can be converted to video)
-                    ForEach(nonMediaServices, id: \.0) { service, name in
-                        Text(name).tag(service)
-                    }
-                    
-                    if !audioServices.isEmpty || !videoServices.isEmpty {
-                        Divider()
-                        
-                        if !audioServices.isEmpty {
-                            Section("Audio Formats") {
-                                ForEach(audioServices, id: \.0) { service, name in
-                                    Text(name).tag(service)
-                                }
-                            }
-                        }
-                        
-                        if !videoServices.isEmpty {
-                            Section("Video Formats") {
-                                ForEach(videoServices, id: \.0) { service, name in
-                                    Text(name).tag(service)
-                                }
-                            }
-                        }
-                    }
                 } else {
-                    // No media formats, just show all compatible services
-                    ForEach(compatibleServices, id: \.0) { service, name in
-                        Text(name).tag(service)
+                    // Count how many sections have content
+                    let sectionsWithContent = [
+                        !documentOutputServices.isEmpty,
+                        !imageOutputServices.isEmpty,
+                        !audioOutputServices.isEmpty,
+                        !videoOutputServices.isEmpty
+                    ].filter { $0 }.count
+                    
+                    // If only one section has content, show without section headers
+                    if sectionsWithContent == 1 {
+                        ForEach(compatibleServices, id: \.0) { service, name in
+                            Text(name).tag(service)
+                        }
+                    } else {
+                        // Show with sections
+                        if !documentOutputServices.isEmpty {
+                            Section("Document Formats") {
+                                ForEach(documentOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
+                        if !imageOutputServices.isEmpty {
+                            Section("Image Formats") {
+                                ForEach(imageOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
+                        if !audioOutputServices.isEmpty {
+                            Section("Audio Formats") {
+                                ForEach(audioOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
+                        if !videoOutputServices.isEmpty {
+                            Section("Video Formats") {
+                                ForEach(videoOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
                     }
                 }
             }
