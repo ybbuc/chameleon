@@ -100,6 +100,15 @@ struct FormatPicker: View {
         }
     }
     
+    private var archiveOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .archive = service {
+                return true
+            }
+            return false
+        }
+    }
+    
     
     
     private var compatibleServices: [(ConversionService, String)] {
@@ -188,6 +197,11 @@ struct FormatPicker: View {
             })
         }
         
+        // Add archive formats - available for any files
+        compatibleServices.append(contentsOf: ArchiveFormat.allCases.map { format in
+            (.archive(format), format.displayName)
+        })
+        
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
@@ -203,7 +217,8 @@ struct FormatPicker: View {
                         !documentOutputServices.isEmpty,
                         !imageOutputServices.isEmpty,
                         !audioOutputServices.isEmpty,
-                        !videoOutputServices.isEmpty
+                        !videoOutputServices.isEmpty,
+                        !archiveOutputServices.isEmpty
                     ].filter { $0 }.count
                     
                     // If only one section has content, show without section headers
@@ -245,6 +260,14 @@ struct FormatPicker: View {
                             }
                         }
                         
+                        if !archiveOutputServices.isEmpty {
+                            Section("Archive Formats") {
+                                ForEach(archiveOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -272,6 +295,8 @@ struct FormatPicker: View {
             return format.displayName
         case .tts(let format):
             return FormatRegistry.shared.config(for: format)?.displayName ?? format.displayName
+        case .archive(let format):
+            return format.displayName
         }
     }
     
@@ -295,6 +320,8 @@ struct FormatPicker: View {
             return format.description
         case .tts(let format):
             return FormatRegistry.shared.config(for: format)?.description ?? format.description
+        case .archive(let format):
+            return format.description
         }
     }
     
@@ -307,6 +334,8 @@ struct FormatPicker: View {
         case (.ffmpeg(let f1), .ffmpeg(let f2)):
             return f1 == f2
         case (.ocr(let f1), .ocr(let f2)):
+            return f1 == f2
+        case (.archive(let f1), .archive(let f2)):
             return f1 == f2
         default:
             return false

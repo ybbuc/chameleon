@@ -33,6 +33,7 @@ struct ConverterView: View {
     @AppStorage("pdfNativeAddBackground") private var pdfNativeAddBackground: Bool = true
     @State private var audioOptions = AudioOptions()
     @State private var videoOptions = VideoOptions()
+    @State private var archiveOptions = ArchiveOptions()
     
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
@@ -526,6 +527,21 @@ struct ConverterView: View {
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
+                // Show archive options
+                if shouldShowArchiveOptions {
+                    let inputFileCount = files.compactMap { fileState in
+                        if case .input(let url) = fileState {
+                            return url
+                        }
+                        return nil
+                    }.count
+                    
+                    ArchiveOptionsView(archiveOptions: $archiveOptions, fileCount: inputFileCount)
+                        .padding(.top, 8)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                }
+                
                 Spacer()
                 
                 VStack {
@@ -834,10 +850,12 @@ struct ConverterView: View {
     
     private func convertFile() async {
         let inputURLs = files.compactMap { fileState in
-            if case .input(let url) = fileState {
+            switch fileState {
+            case .input(let url), .error(let url, _):
                 return url
+            case .converted, .converting:
+                return nil // Only process actual input files
             }
-            return nil
         }
         guard !inputURLs.isEmpty else {
             print("convertFile: no input files")
@@ -876,6 +894,140 @@ struct ConverterView: View {
         case .tts(_):
             guard ttsWrapper != nil else {
                 showError("Text-to-Speech is not available")
+                return
+            }
+        case .archive(_):
+            // Archive service doesn't require external tools
+            break
+        }
+        
+        // Check if we're creating an archive
+        if case .archive(let format) = outputService {
+            // Special handling for creating archives
+            print("Creating \(format.displayName) with \(inputURLs.count) files")
+            
+            isConverting = true
+            errorMessage = nil
+            conversionProgress = (current: 1, total: 1)
+            currentConversionFile = "Creating archive..."
+            
+            // Mark all files as converting
+            for url in inputURLs {
+                if let fileIndex = files.firstIndex(where: { $0.url == url }) {
+                    files[fileIndex] = .converting(url, fileName: url.lastPathComponent)
+                }
+            }
+            
+            do {
+                // Check for cancellation
+                if Task.isCancelled {
+                    print("Archive creation cancelled")
+                    return
+                }
+                
+                let archiveService = ArchiveService()
+                let createdArchives: [URL]
+                
+                if archiveOptions.archiveSeparately {
+                    // Create separate archives for each file
+                    let tempDirectory = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                    try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+                    
+                    createdArchives = try await archiveService.createArchive(
+                        format: format,
+                        from: inputURLs,
+                        outputURL: tempDirectory.appendingPathComponent("placeholder"), // Will be ignored for separate archiving
+                        separately: true
+                    )
+                } else {
+                    // Create single archive containing all files
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension(format.fileExtension)
+                    
+                    createdArchives = try await archiveService.createArchive(
+                        format: format,
+                        from: inputURLs,
+                        outputURL: tempURL,
+                        separately: false
+                    )
+                }
+                
+                // Create ConvertedFile objects for each created archive
+                var convertedFiles: [ConvertedFile] = []
+                
+                for (index, archiveURL) in createdArchives.enumerated() {
+                    let fileName = archiveURL.lastPathComponent
+                    let originalURL = archiveOptions.archiveSeparately && index < inputURLs.count ? 
+                        inputURLs[index] : inputURLs[0]
+                    
+                    // Move to final temp location with proper filename
+                    let finalTempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathComponent(fileName)
+                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try FileManager.default.moveItem(at: archiveURL, to: finalTempURL)
+                    
+                    let convertedFile = ConvertedFile(
+                        originalURL: originalURL,
+                        tempURL: finalTempURL,
+                        fileName: fileName
+                    )
+                    convertedFiles.append(convertedFile)
+                }
+                
+                // Remove all converting files and add the archive results
+                files.removeAll { fileState in
+                    if case .converting = fileState {
+                        return true
+                    }
+                    return false
+                }
+                
+                for convertedFile in convertedFiles {
+                    files.append(.converted(convertedFile))
+                }
+                
+                print("Successfully created archive")
+                
+                // Play completion sound
+                if playSounds {
+                    completionSound?.play()
+                }
+                
+                isConverting = false
+                currentConversionFile = ""
+                conversionProgress = (current: 0, total: 0)
+                conversionTask = nil
+                
+                return // Exit early, we're done
+            } catch {
+                // Handle cancellation errors differently
+                if error is CancellationError {
+                    print("Archive creation cancelled")
+                    return
+                }
+                
+                print("Archive creation failed: \(error)")
+                
+                // Mark all files as error
+                for url in inputURLs {
+                    if let fileIndex = files.firstIndex(where: { $0.url == url }) {
+                        files[fileIndex] = .error(url, errorMessage: error.localizedDescription)
+                    }
+                }
+                
+                // Play failure sound
+                if playSounds {
+                    failureSound?.play()
+                }
+                
+                isConverting = false
+                currentConversionFile = ""
+                conversionProgress = (current: 0, total: 0)
+                conversionTask = nil
+                
                 return
             }
         }
@@ -1238,6 +1390,10 @@ struct ConverterView: View {
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
+                    
+                case .archive(_):
+                    // Archive creation should have been handled earlier - this is an error
+                    fatalError("Archive creation should not reach individual file conversion loop")
                 }
                 
                 // ImageMagick-specific handling
@@ -1602,6 +1758,8 @@ struct ConverterView: View {
             return ocrService != nil
         case .tts(_):
             return ttsWrapper != nil
+        case .archive(_):
+            return true // Archive service is always available
         }
     }
     
@@ -1827,6 +1985,8 @@ struct ConverterView: View {
             }
         case .tts(let format):
             return "Text to \(format.displayName)"
+        case .archive(let format):
+            return format.rawValue
         }
     }
     
@@ -1883,6 +2043,14 @@ struct ConverterView: View {
     private var shouldShowTTSOptions: Bool {
         // Show TTS options when converting text to speech
         if case .tts(_) = outputService {
+            return true
+        }
+        return false
+    }
+    
+    private var shouldShowArchiveOptions: Bool {
+        // Show archive options when creating archives
+        if case .archive(_) = outputService {
             return true
         }
         return false
