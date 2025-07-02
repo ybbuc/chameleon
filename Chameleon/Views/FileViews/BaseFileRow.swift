@@ -14,6 +14,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
     let customIcon: NSImage?
     let isHoveringRow: Binding<Bool>
     let overlay: AnyView?
+    let backgroundColor: Color?
     @ViewBuilder let content: () -> Content
     @ViewBuilder let actions: () -> Actions
     
@@ -25,6 +26,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
         customIcon: NSImage? = nil,
         isHoveringRow: Binding<Bool>,
         overlay: AnyView? = nil,
+        backgroundColor: Color? = nil,
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder actions: @escaping () -> Actions
     ) {
@@ -33,6 +35,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
         self.customIcon = customIcon
         self.isHoveringRow = isHoveringRow
         self.overlay = overlay
+        self.backgroundColor = backgroundColor
         self.content = content
         self.actions = actions
     }
@@ -66,7 +69,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.clear)
+        .background(backgroundColor ?? (isHoveringRow.wrappedValue ? Color.secondary.opacity(0.05) : Color.clear))
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(
             overlay

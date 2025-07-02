@@ -41,12 +41,15 @@ struct ConverterView: View {
     @State private var ffmpegWrapper: FFmpegWrapper?
     @State private var ffmpegInitError: String?
     @State private var ocrService: OCRService?
+    @State private var ttsWrapper: TextToSpeechWrapper?
+    @State private var ttsInitError: String?
     @State private var conversionTask: Task<Void, Never>?
     @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
     @AppStorage("saveToSourceFolder") private var saveToSourceFolder: Bool = false
     @AppStorage("playSounds") private var playSounds: Bool = true
     @State private var ocrOptions = OCRService.Options()
+    @State private var ttsOptions = TTSOptions()
     @State private var inputAudioBitDepth: Int?
     @State private var inputAudioSampleRate: Int?
     @State private var inputAudioChannels: Int?
@@ -253,93 +256,18 @@ struct ConverterView: View {
                                         .padding(.vertical, 8)
                                     }
                                 } else {
-                                    VStack(spacing: 0) {
-                                        Divider()
-                                            .padding(.horizontal)
-                                        
-                                        HStack(spacing: 12) {
-                                            switch fileState {
-                                            case .input(let url):
-                                                ResetButton(
-                                                    label: "Reset",
-                                                    isDisabled: true
-                                                ) {
-                                                    resetFilesToInput()
-                                                }
-                                                
-                                                PreviewButton(action: {
-                                                    QuickLookManager.shared.previewFile(at: url)
-                                                })
-                                                
-                                                FinderButton(action: {
-                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                                                })
-                                                
-                                                HoverButton(
-                                                    systemImage: "xmark",
-                                                    helpText: "Clear",
-                                                    action: {
-                                                        files = []
-                                                        errorMessage = nil
-                                                    }
-                                                )
-                                            case .converting(let url, _):
-                                                FinderButton(action: {
-                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                                                })
-                                            case .converted(let convertedFile):
-                                                ResetButton(
-                                                    label: "Reset",
-                                                    isDisabled: false
-                                                ) {
-                                                    resetFilesToInput()
-                                                }
-                                                
-                                                PreviewButton(action: {
-                                                    QuickLookManager.shared.previewFile(at: convertedFile.tempURL)
-                                                })
-                                                
-                                                HoverButton(
-                                                    systemImage: "arrow.down.to.line.compact",
-                                                    helpText: "Save",
-                                                    action: {
-                                                        saveFile(convertedFile)
-                                                    },
-                                                    color: Color(red: 0.0, green: 0.5, blue: 0.0)
-                                                )
-                                                
-                                                HoverButton(
-                                                    systemImage: "xmark",
-                                                    helpText: "Clear",
-                                                    action: {
-                                                        clearConvertedFiles()
-                                                    }
-                                                )
-                                            case .error(let url, _):
-                                                ResetButton(
-                                                    label: "Reset",
-                                                    isDisabled: false
-                                                ) {
-                                                    resetFilesToInput()
-                                                }
-                                                
-                                                FinderButton(action: {
-                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                                                })
-                                                
-                                                HoverButton(
-                                                    systemImage: "xmark",
-                                                    helpText: "Clear",
-                                                    action: {
-                                                        files = []
-                                                        errorMessage = nil
-                                                    }
-                                                )
-                                            }
+                                    FileToolbar(
+                                        files: $files,
+                                        onReset: resetFilesToInput,
+                                        onClearConverted: clearConvertedFiles,
+                                        onSaveAll: saveAllFiles,
+                                        onSave: saveFile,
+                                        onUpdateOutputService: updateOutputService,
+                                        onClear: {
+                                            files = []
+                                            errorMessage = nil
                                         }
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 8)
-                                    }
+                                    )
                                 }
                             }
                         } else {
@@ -359,54 +287,18 @@ struct ConverterView: View {
                                 }
                                 .padding(8)
                                 
-                                VStack(spacing: 0) {
-                                    Divider()
-                                        .padding(.horizontal)
-                                    
-                                    HStack(spacing: 12) {
-                                        let hasResettableFiles = files.contains { fileState in
-                                            switch fileState {
-                                            case .converted, .error:
-                                                return true
-                                            default:
-                                                return false
-                                            }
-                                        }
-                                        
-                                        ResetButton(
-                                            label: "Reset",
-                                            isDisabled: !hasResettableFiles,
-                                            action: {
-                                                resetFilesToInput()
-                                            },
-                                            size: 18
-                                        )
-                                        
-                                        let convertedCount = files.filter { if case .converted = $0 { true } else { false } }.count
-                                        if convertedCount > 0 {
-                                            HoverButton(
-                                                systemImage: "checkmark.circle.badge.xmark",
-                                                helpText: "Clear all converted files",
-                                                action: {
-                                                    clearConvertedFiles()
-                                                },
-                                                size: 18
-                                            )
-                                            
-                                            HoverButton(
-                                                systemImage: "arrow.down.to.line.compact",
-                                                helpText: convertedCount == 1 ? "Save" : "Save All",
-                                                action: {
-                                                    saveAllFiles()
-                                                },
-                                                size: 18,
-                                                color: Color(red: 0.0, green: 0.5, blue: 0.0)
-                                            )
-                                        }
+                                FileToolbar(
+                                    files: $files,
+                                    onReset: resetFilesToInput,
+                                    onClearConverted: clearConvertedFiles,
+                                    onSaveAll: saveAllFiles,
+                                    onSave: saveFile,
+                                    onUpdateOutputService: updateOutputService,
+                                    onClear: {
+                                        files = []
+                                        errorMessage = nil
                                     }
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 6)
-                                }
+                                )
                             }
                         }
                     } else {
@@ -623,6 +515,17 @@ struct ConverterView: View {
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
                 
+                // Show TTS options
+                if shouldShowTTSOptions {
+                    TTSOptionsView(
+                        ttsOptions: $ttsOptions,
+                        ttsWrapper: ttsWrapper
+                    )
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.easeInOut(duration: 0.2), value: outputService)
+                }
+                
                 Spacer()
                 
                 VStack {
@@ -666,6 +569,7 @@ struct ConverterView: View {
             initializeImageMagick()
             initializeFFmpeg()
             initializeOCR()
+            initializeTTS()
         }
         .onDisappear {
             cleanupTempFiles()
@@ -704,6 +608,7 @@ struct ConverterView: View {
         imageMagickWrapper?.cancel()
         ffmpegWrapper?.cancel()
         ocrService?.cancel()
+        ttsWrapper?.cancel()
         
         // Reset conversion state
         isConverting = false
@@ -764,6 +669,16 @@ struct ConverterView: View {
         ocrOptions.usesLanguageCorrection = ocrUseLanguageCorrection
         ocrOptions.recognitionLanguages = [ocrSelectedLanguage]
         print("OCR Service initialized successfully")
+    }
+    
+    private func initializeTTS() {
+        do {
+            ttsWrapper = try TextToSpeechWrapper()
+            ttsInitError = nil
+        } catch {
+            ttsWrapper = nil
+            ttsInitError = error.localizedDescription
+        }
     }
     
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -956,6 +871,11 @@ struct ConverterView: View {
             guard ocrService != nil else {
                 print("convertFile: OCR not available")
                 showError("OCR is not available")
+                return
+            }
+        case .tts(_):
+            guard ttsWrapper != nil else {
+                showError("Text-to-Speech is not available")
                 return
             }
         }
@@ -1275,6 +1195,38 @@ struct ConverterView: View {
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try recognizedText.write(to: finalTempURL, atomically: true, encoding: .utf8)
+                    
+                    let convertedFile = ConvertedFile(
+                        originalURL: inputURL,
+                        tempURL: finalTempURL,
+                        fileName: fileName
+                    )
+                    
+                    // Replace the converting file with the converted file
+                    if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                        files[fileIndex] = .converted(convertedFile)
+                    }
+                    
+                case .tts(let format):
+                    // Convert text to speech
+                    try await ttsWrapper!.convertTextToSpeech(
+                        inputURL: inputURL,
+                        outputURL: tempURL,
+                        format: format,
+                        voice: ttsOptions.selectedVoice,
+                        rate: ttsOptions.speechRate
+                    )
+                    
+                    // Single file output for TTS
+                    let baseName = inputURL.deletingPathExtension().lastPathComponent
+                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                    
+                    // Move temp file to a more permanent temp location with proper filename
+                    let finalTempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathComponent(fileName)
+                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
                     
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
@@ -1648,6 +1600,8 @@ struct ConverterView: View {
             return ffmpegWrapper != nil
         case .ocr(_):
             return ocrService != nil
+        case .tts(_):
+            return ttsWrapper != nil
         }
     }
     
@@ -1832,6 +1786,25 @@ struct ConverterView: View {
             compatibleServices.append((.ocr(.txt), "Text"))
         }
         
+        // Add TTS for text files
+        let hasTextFiles = inputURLs.contains { url in
+            let ext = url.pathExtension.lowercased()
+            let isText = ext == "txt" || ext == "text"
+            let pandocFormat = PandocFormat.detectFormat(from: url)
+            let isPandocPlain = pandocFormat == .plain
+            
+            
+            // Check if it's a text file by extension or if Pandoc detected it as plain text
+            return isText || isPandocPlain
+        }
+        
+        if hasTextFiles {
+            // Add TTS audio output formats
+            compatibleServices.append(contentsOf: TTSFormat.allCases.map { format in
+                (.tts(format), "\(format.displayName) (TTS)")
+            })
+        }
+        
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
@@ -1852,6 +1825,8 @@ struct ConverterView: View {
             case .txtOCR:
                 return "OCR to txt"
             }
+        case .tts(let format):
+            return "Text to \(format.displayName)"
         }
     }
     
@@ -1901,6 +1876,14 @@ struct ConverterView: View {
             case .txtExtract:
                 return false
             }
+        }
+        return false
+    }
+    
+    private var shouldShowTTSOptions: Bool {
+        // Show TTS options when converting text to speech
+        if case .tts(_) = outputService {
+            return true
         }
         return false
     }
@@ -1972,6 +1955,7 @@ struct ConverterView: View {
                     },
                     onRemove: {
                         files.removeAll { $0.id == fileState.id }
+                        updateOutputService()
                     }
                 )
             } else {
@@ -1984,13 +1968,14 @@ struct ConverterView: View {
                     onMoveDown: {},
                     onRemove: {
                         files.removeAll { $0.id == fileState.id }
+                        updateOutputService()
                     }
                 )
             }
         case .converting(let url, let fileName):
             ConvertingFileRow(url: url, fileName: fileName)
         case .converted(let convertedFile):
-            ConvertedFileContentRow(
+            ConvertedFileRow(
                 file: convertedFile,
                 onSave: {
                     saveFile(convertedFile)
@@ -2003,6 +1988,7 @@ struct ConverterView: View {
                 message: message,
                 onRemove: {
                     files.removeAll { $0.id == fileState.id }
+                    updateOutputService()
                 }
             )
         }

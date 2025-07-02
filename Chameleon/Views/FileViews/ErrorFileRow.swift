@@ -36,11 +36,10 @@ struct ErrorFileRow: View {
             HStack(spacing: 4) {
                 FinderButton(action: {
                     NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                })
+                }, size: 14)
                 
-                RemoveButton(action: onRemove)
+                RemoveButton(action: onRemove, size: 14)
             }
         }
-        .background(isHoveringRow ? Color.secondary.opacity(0.05) : Color.clear)
     }
 }

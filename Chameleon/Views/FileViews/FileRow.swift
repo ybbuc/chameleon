@@ -36,14 +36,16 @@ struct FileRow: View {
                     HoverButton(
                         systemImage: "chevron.up",
                         helpText: "Move up",
-                        action: onMoveUp
+                        action: onMoveUp,
+                        size: 14
                     )
                     .disabled(index == 0)
                     
                     HoverButton(
                         systemImage: "chevron.down",
                         helpText: "Move down",
-                        action: onMoveDown
+                        action: onMoveDown,
+                        size: 14
                     )
                     .disabled(index == totalFiles - 1)
                 } else {
@@ -51,19 +53,18 @@ struct FileRow: View {
                     if isHoveringRow {
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: url)
-                        })
+                        }, size: 14)
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                         
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
-                        })
+                        }, size: 14)
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                     }
                 }
                 
-                RemoveButton(action: onRemove)
+                RemoveButton(action: onRemove, size: 14)
             }
         }
-        .background(isHoveringRow ? Color.secondary.opacity(0.05) : Color.clear)
     }
 }

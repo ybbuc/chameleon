@@ -18,6 +18,9 @@ struct FormatPicker: View {
             if case .ffmpeg = service {
                 return true
             }
+            if case .tts = service {
+                return true
+            }
             return false
         }
     }
@@ -26,6 +29,9 @@ struct FormatPicker: View {
         compatibleServices.filter { service, _ in
             if case .ffmpeg(let format) = service {
                 return !format.isVideo
+            }
+            if case .tts(_) = service {
+                return true
             }
             return false
         }
@@ -45,8 +51,52 @@ struct FormatPicker: View {
             if case .ffmpeg = service {
                 return false
             }
+            if case .tts = service {
+                return false
+            }
             return true
         }
+    }
+    
+    private var pdfImageFormats: [(ConversionService, String)] {
+        guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) else {
+            return []
+        }
+        
+        let imageFormats = ImageFormat.outputFormats.filter { format in
+            // Include common image formats but exclude PDF itself
+            let commonFormats: [ImageFormat] = [.jpeg, .png, .tiff, .webp, .bmp]
+            return format != .pdf && commonFormats.contains(format)
+        }
+        
+        return imageFormats.map { format in
+            (ConversionService.imagemagick(format), format.displayName)
+        }.sorted { $0.1 < $1.1 }
+    }
+    
+    private var pdfDocumentFormats: [(ConversionService, String)] {
+        guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) else {
+            return []
+        }
+        
+        var formats: [(ConversionService, String)] = []
+        
+        // Add PDF merge/image option
+        if inputFileURLs.count > 1 {
+            formats.append((ConversionService.imagemagick(.pdf), "PDF (Merge)"))
+        } else {
+            formats.append((ConversionService.imagemagick(.pdf), "PDF (Image)"))
+        }
+        
+        // Add text extraction options
+        formats.append((ConversionService.ocr(.txtExtract), "Text (Extract)"))
+        formats.append((ConversionService.ocr(.txtOCR), "Text (OCR)"))
+        
+        return formats
+    }
+    
+    private var isPDFInput: Bool {
+        inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
     }
     
     private var compatibleServices: [(ConversionService, String)] {
@@ -59,28 +109,8 @@ struct FormatPicker: View {
         let allPDFs = inputFileURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         
         if allPDFs {
-            // For PDF files, show image format options and text extraction
-            let compatibleImageFormats = ImageFormat.outputFormats
-            var services: [(ConversionService, String)] = compatibleImageFormats.compactMap { format in
-                // For PDF output format, handle display name based on number of input files
-                if format == .pdf {
-                    if inputFileURLs.count > 1 {
-                        // Multiple PDFs: show as "PDF (Merge)"
-                        return (ConversionService.imagemagick(format), "PDF (Merge)")
-                    } else {
-                        // Single PDF: show as "PDF (Image)" 
-                        return (ConversionService.imagemagick(format), format.displayName)
-                    }
-                } else {
-                    return (ConversionService.imagemagick(format), format.displayName)
-                }
-            }
-            
-            // Add both text extraction options for PDFs
-            services.append((ConversionService.ocr(.txtExtract), "Text (Extract)"))
-            services.append((ConversionService.ocr(.txtOCR), "Text (OCR)"))
-            
-            return services.sorted { $0.1 < $1.1 }
+            // For PDF files, return empty here as we'll handle them in specialized properties
+            return []
         }
         
         // Detect if inputs are documents, images, or media files
@@ -142,13 +172,42 @@ struct FormatPicker: View {
             })
         }
         
+        // Add TTS for text files
+        let hasTextFiles = inputFileURLs.contains { url in
+            let ext = url.pathExtension.lowercased()
+            return ext == "txt" || ext == "text" || PandocFormat.detectFormat(from: url) == .plain
+        }
+        
+        if hasTextFiles {
+            // Add TTS audio output formats
+            compatibleServices.append(contentsOf: TTSFormat.allCases.map { format in
+                (.tts(format), "\(format.displayName) (TTS)")
+            })
+        }
+        
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Output Format", selection: $selectedService) {
-                if hasMediaFormats && nonMediaServices.isEmpty {
+                if inputFileURLs.isEmpty {
+                    // Show empty state
+                    Text("").tag(selectedService)
+                } else if isPDFInput {
+                    // Special handling for PDF inputs
+                    Section("Documents") {
+                        ForEach(pdfDocumentFormats, id: \.0) { service, name in
+                            Text(name).tag(service)
+                        }
+                    }
+                    
+                    Section("Images") {
+                        ForEach(pdfImageFormats, id: \.0) { service, name in
+                            Text(name).tag(service)
+                        }
+                    }
+                } else if hasMediaFormats && nonMediaServices.isEmpty {
                     // Only media formats available
                     if !audioServices.isEmpty {
                         Section("Audio Formats") {
@@ -219,6 +278,8 @@ struct FormatPicker: View {
             return FormatRegistry.shared.config(for: format)?.displayName ?? format.rawValue.uppercased()
         case .ocr(let format):
             return format.displayName
+        case .tts(let format):
+            return FormatRegistry.shared.config(for: format)?.displayName ?? format.displayName
         }
     }
     
@@ -227,15 +288,21 @@ struct FormatPicker: View {
         case .pandoc(let format):
             return format.description
         case .imagemagick(let format):
-            // Special description for PDF combining
-            if format == .pdf && inputFileURLs.count > 1 && inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) {
-                return "Merge multiple PDF files into a single document while preserving all pages and formatting."
+            // Special description for PDF operations
+            if format == .pdf && inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) {
+                if inputFileURLs.count > 1 {
+                    return "Merge multiple PDF files into a single document while preserving all pages and formatting."
+                } else {
+                    return "Convert PDF to an image-based PDF. Useful for flattening forms, removing text layers, or ensuring consistent rendering."
+                }
             }
             return format.description
         case .ffmpeg(let format):
             return FormatRegistry.shared.config(for: format)?.description
         case .ocr(let format):
             return format.description
+        case .tts(let format):
+            return FormatRegistry.shared.config(for: format)?.description ?? format.description
         }
     }
     

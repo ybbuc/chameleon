@@ -9,13 +9,16 @@ import SwiftUI
 
 struct SaveButton: View {
     let action: () -> Void
+    var helpText: String = "Save"
+    var size: CGFloat = 16
     
     var body: some View {
-        StandardButton(
-            icon: "arrow.down.to.line.compact",
-            foregroundColor: Color(red: 0.0, green: 0.5, blue: 0.0),
-            backgroundColor: Color.clear,
-            action: action
+        HoverButton(
+            systemImage: "arrow.down.to.line.compact",
+            helpText: helpText,
+            action: action,
+            size: size,
+            color: Color(red: 0.0, green: 0.5, blue: 0.0)
         )
     }
 }

@@ -28,7 +28,8 @@ struct ConvertingFileRow: View {
                             .frame(width: 40, height: 20)
                             .foregroundStyle(.white)
                     )
-            )
+            ),
+            backgroundColor: Color.gray.opacity(0.05)
         ) {
             // Content
             Text(fileName)
@@ -37,6 +38,5 @@ struct ConvertingFileRow: View {
             // No actions for converting state
             EmptyView()
         }
-        .background(Color.gray.opacity(0.05))
     }
 }

@@ -78,14 +78,19 @@ struct FilePreviewView: View {
                 if let data = try? Data(contentsOf: fileURL),
                    let nsImage = NSImage(data: data) {
                     let isPDF = fileName.lowercased().hasSuffix(".pdf")
+                    let isSVG = fileName.lowercased().hasSuffix(".svg")
                     
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .background(isPDF ? Color.white : Color.clear)
                         .overlay(
-                            Rectangle()
-                                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                            Group {
+                                if !isSVG {
+                                    Rectangle()
+                                        .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                                }
+                            }
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)

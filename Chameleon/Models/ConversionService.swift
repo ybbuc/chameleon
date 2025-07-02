@@ -11,6 +11,7 @@ enum ConversionService: Hashable {
     case imagemagick(ImageFormat)
     case ffmpeg(FFmpegFormat)
     case ocr(OCRFormat)
+    case tts(TTSFormat)
     
     var fileExtension: String {
         switch self {
@@ -21,6 +22,8 @@ enum ConversionService: Hashable {
         case .ffmpeg(let format):
             return format.fileExtension
         case .ocr(let format):
+            return format.fileExtension
+        case .tts(let format):
             return format.fileExtension
         }
     }

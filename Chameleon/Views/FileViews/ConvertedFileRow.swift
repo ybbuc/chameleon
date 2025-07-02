@@ -1,5 +1,5 @@
 //
-//  ConvertedFileContentRow.swift
+//  ConvertedFileRow.swift
 //  Chameleon
 //
 //  Created by Jakob Wells on 27.06.25.
@@ -11,7 +11,7 @@ import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
 
-struct ConvertedFileContentRow: View {
+struct ConvertedFileRow: View {
     let file: ConvertedFile
     let onSave: () -> Void
     @State private var isHoveringRow = false
@@ -33,16 +33,13 @@ struct ConvertedFileContentRow: View {
                 if isHoveringRow {
                     PreviewButton(action: {
                         QuickLookManager.shared.previewFile(at: file.tempURL)
-                    })
+                    }, size: 14)
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
                 
-                SaveButton {
-                    onSave()
-                }
+                SaveButton(action: onSave, size: 14)
             }
         }
-        .background(isHoveringRow ? Color.secondary.opacity(0.05) : Color.clear)
     }
     
     private func iconForFile(fileName: String) -> NSImage {

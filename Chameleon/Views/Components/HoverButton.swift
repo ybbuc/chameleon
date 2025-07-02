@@ -11,7 +11,7 @@ struct HoverButton: View {
     let systemImage: String
     let helpText: String
     let action: () -> Void
-    var size: CGFloat = 12
+    var size: CGFloat = 16
     var color: Color = .secondary
     @State private var isHovering = false
     

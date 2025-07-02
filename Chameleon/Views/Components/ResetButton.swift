@@ -1,4 +1,4 @@
-//
+ //
 //  ResetButton.swift
 //  Chameleon
 //
@@ -11,7 +11,7 @@ struct ResetButton: View {
     let label: String
     let isDisabled: Bool
     let action: () -> Void
-    var size: CGFloat = 12
+    var size: CGFloat = 16
     
     var body: some View {
         HoverButton(
