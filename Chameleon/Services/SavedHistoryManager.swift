@@ -74,10 +74,8 @@ class SavedHistoryManager: ObservableObject {
     func clearMissingFiles() {
         let fetchRequest = FetchDescriptor<ConversionRecord>()
         if let records = try? modelContext.fetch(fetchRequest) {
-            for record in records {
-                if !record.isFileAccessible {
-                    modelContext.delete(record)
-                }
+            for record in records where !record.isFileAccessible {
+                modelContext.delete(record)
             }
         }
         try? modelContext.save()

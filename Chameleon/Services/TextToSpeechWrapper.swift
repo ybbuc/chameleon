@@ -45,11 +45,16 @@ class TextToSpeechWrapper {
         // Hardcoded voices for each language
         static let voicesByLanguage: [String: [Voice]] = [
             "en": [
-                Voice(id: "Alex", name: "Alex", language: "en", languageCode: "en_US", sampleText: "Hello, my name is Alex."),
-                Voice(id: "Daniel", name: "Daniel", language: "en", languageCode: "en_GB", sampleText: "Hello, my name is Daniel."),
-                Voice(id: "Fred", name: "Fred", language: "en", languageCode: "en_US", sampleText: "Hello, my name is Fred."),
-                Voice(id: "Karen", name: "Karen", language: "en", languageCode: "en_AU", sampleText: "Hello, my name is Karen."),
-                Voice(id: "Moira", name: "Moira", language: "en", languageCode: "en_IE", sampleText: "Hello, my name is Moira."),
+                Voice(id: "Alex", name: "Alex", language: "en", languageCode: "en_US",
+                      sampleText: "Hello, my name is Alex."),
+                Voice(id: "Daniel", name: "Daniel", language: "en", languageCode: "en_GB",
+                      sampleText: "Hello, my name is Daniel."),
+                Voice(id: "Fred", name: "Fred", language: "en", languageCode: "en_US",
+                      sampleText: "Hello, my name is Fred."),
+                Voice(id: "Karen", name: "Karen", language: "en", languageCode: "en_AU",
+                      sampleText: "Hello, my name is Karen."),
+                Voice(id: "Moira", name: "Moira", language: "en", languageCode: "en_IE",
+                      sampleText: "Hello, my name is Moira."),
                 Voice(id: "Rishi", name: "Rishi", language: "en", languageCode: "en_IN", sampleText: "Hello, my name is Rishi."),
                 Voice(id: "Samantha", name: "Samantha", language: "en", languageCode: "en_US", sampleText: "Hello, my name is Samantha."),
                 Voice(id: "Victoria", name: "Victoria", language: "en", languageCode: "en_US", sampleText: "Hello, my name is Victoria.")

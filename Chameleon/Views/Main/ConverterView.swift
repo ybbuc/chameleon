@@ -57,7 +57,6 @@ struct ConverterView: View {
     private let audioPropertyDetector = AudioPropertyDetector()
 
     // MARK: - Computed Properties
-    
     private var isConvertButtonDisabled: Bool {
         return files.isEmpty ||
                !isConversionServiceAvailable() ||
@@ -67,7 +66,7 @@ struct ConverterView: View {
 
     private var isNativePDFImageConversion: Bool {
         guard case .imagemagick(let format) = outputService else { return false }
-        return useNativePDFConversion && 
+        return useNativePDFConversion &&
                (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif)
     }
 
@@ -2287,8 +2286,8 @@ extension PandocFormat {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = (try? ModelContainer(for: ConversionRecord.self, configurations: config)) ?? 
-                    (try! ModelContainer(for: ConversionRecord.self))
+    let container = (try? ModelContainer(for: ConversionRecord.self, configurations: config)) ??
+                    (try! ModelContainer(for: ConversionRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
 

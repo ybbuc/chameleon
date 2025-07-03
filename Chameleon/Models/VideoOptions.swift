@@ -151,15 +151,15 @@ enum VideoBitrate: String, CaseIterable {
 }
 
 enum VideoPreset: String, CaseIterable {
-    case ultrafast = "ultrafast"
-    case superfast = "superfast"
-    case veryfast = "veryfast"
-    case faster = "faster"
-    case fast = "fast"
-    case medium = "medium"
-    case slow = "slow"
-    case slower = "slower"
-    case veryslow = "veryslow"
+    case ultrafast
+    case superfast
+    case veryfast
+    case faster
+    case fast
+    case medium
+    case slow
+    case slower
+    case veryslow
 
     var displayName: String {
         switch self {

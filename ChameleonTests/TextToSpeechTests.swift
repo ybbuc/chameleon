@@ -88,10 +88,8 @@ struct TextToSpeechTests {
 
         // Check each configured voice
         for (language, voices) in TextToSpeechWrapper.Voice.voicesByLanguage {
-            for voice in voices {
-                if !systemVoiceNames.contains(voice.id) {
-                    missingVoices.append((language: language, voice: voice.id))
-                }
+            for voice in voices where !systemVoiceNames.contains(voice.id) {
+                missingVoices.append((language: language, voice: voice.id))
             }
         }
 
@@ -190,10 +188,8 @@ struct TextToSpeechTests {
 
         var unconfiguredVoices: [SystemVoice] = []
 
-        for systemVoice in systemVoices {
-            if !configuredVoiceNames.contains(systemVoice.name) {
-                unconfiguredVoices.append(systemVoice)
-            }
+        for systemVoice in systemVoices where !configuredVoiceNames.contains(systemVoice.name) {
+            unconfiguredVoices.append(systemVoice)
         }
 
         if !unconfiguredVoices.isEmpty {

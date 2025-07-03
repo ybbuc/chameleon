@@ -529,25 +529,25 @@ struct MediaFileInfo {
 
 enum FFmpegFormat: String, CaseIterable {
     // Video formats
-    case mp4 = "mp4"
-    case mov = "mov"
-    case avi = "avi"
-    case mkv = "mkv"
-    case webm = "webm"
-    case flv = "flv"
-    case wmv = "wmv"
-    case m4v = "m4v"
-    case gif = "gif"
+    case mp4
+    case mov
+    case avi
+    case mkv
+    case webm
+    case flv
+    case wmv
+    case m4v
+    case gif
 
     // Audio formats
-    case mp3 = "mp3"
-    case aac = "aac"
-    case wav = "wav"
-    case flac = "flac"
-    case alac = "alac"
-    case ogg = "ogg"
-    case wma = "wma"
-    case aiff = "aiff"
+    case mp3
+    case aac
+    case wav
+    case flac
+    case alac
+    case ogg
+    case wma
+    case aiff
 
     var displayName: String {
         return rawValue.uppercased()

@@ -13,6 +13,15 @@ class ImageMagickWrapper {
     private var currentProcess: Process?
 
     init() throws {
+        // Use bundled magick binary first
+        if let bundlePath = Bundle.main.path(forResource: "magick", ofType: nil) {
+            if FileManager.default.fileExists(atPath: bundlePath) && FileManager.default.isExecutableFile(atPath: bundlePath) {
+                print("Using bundled ImageMagick at: \(bundlePath)")
+                self.magickPath = bundlePath
+                return
+            }
+        }
+
         // Use system magick from PATH (ImageMagick v7)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")

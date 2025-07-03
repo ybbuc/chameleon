@@ -30,7 +30,7 @@ enum AudioBitRate: CaseIterable {
         case .automatic:
             return "Automatic"
         default:
-            return "\(value!)"
+            return "\(value ?? 0)"
         }
     }
 
@@ -129,7 +129,7 @@ enum AudioSampleRate: CaseIterable {
         case .automatic:
             return "Automatic"
         default:
-            return "\(value!)"
+            return "\(value ?? 0)"
         }
     }
 

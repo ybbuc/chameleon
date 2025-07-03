@@ -162,5 +162,4 @@ class FormatRegistry {
         return mediaConfigs.values.filter { !$0.isLossless }
     }
 
-    // TODO: Document and image format methods can be added in future iterations
 }

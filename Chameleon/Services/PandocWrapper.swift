@@ -567,7 +567,6 @@ extension PandocFormat {
         let ext = url.pathExtension.lowercased()
         return Self.extensionToFormatMap[ext]
     }
-    
     private static let extensionToFormatMap: [String: PandocFormat] = [
         "md": .markdown, "markdown": .markdown,
         "html": .html, "htm": .html,
