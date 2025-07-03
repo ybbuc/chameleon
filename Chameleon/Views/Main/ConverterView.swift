@@ -344,19 +344,13 @@ struct ConverterView: View {
                     handleDrop(providers: providers)
                 }
 
-                if pandocWrapper == nil {
-                    Text("✗ Pandoc not available")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
-                }
             }
             .padding()
             .frame(maxWidth: .infinity)
 
             // MARK: - Convert pane
             VStack {
-                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url }, isPandocAvailable: pandocWrapper != nil)
+                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url }, isPandocAvailable: pandocWrapper != nil, isImageMagickAvailable: imageMagickWrapper != nil, isFFmpegAvailable: ffmpegWrapper != nil)
                     .padding(.top)
                     .disabled(files.isEmpty ||
                               files.contains(where: { if case .converting = $0 { true } else { false } }))

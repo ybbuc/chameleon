@@ -11,9 +11,11 @@ struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
     let isPandocAvailable: Bool
+    let isImageMagickAvailable: Bool
+    let isFFmpegAvailable: Bool
 
     private var pdfImageFormats: [(ConversionService, String)] {
-        guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) else {
+        guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) && isImageMagickAvailable else {
             return []
         }
 
@@ -35,14 +37,14 @@ struct FormatPicker: View {
 
         var formats: [(ConversionService, String)] = []
 
-        // Add PDF merge/image option
+        // Add PDF merge/image option (can use native PDF operations)
         if inputFileURLs.count > 1 {
             formats.append((ConversionService.imagemagick(.pdf), "PDF (Merge)"))
         } else {
             formats.append((ConversionService.imagemagick(.pdf), "PDF (Image)"))
         }
 
-        // Add text extraction options
+        // Add text extraction options (always available as they're internal)
         formats.append((ConversionService.ocr(.txtExtract), "Text (Extract)"))
         formats.append((ConversionService.ocr(.txtOCR), "Text (OCR)"))
 
@@ -137,8 +139,8 @@ struct FormatPicker: View {
             })
         }
 
-        if !imageFormats.isEmpty {
-            // Image conversion with ImageMagick
+        if !imageFormats.isEmpty && isImageMagickAvailable {
+            // Image conversion with ImageMagick (only if available)
             let compatibleImageFormats = ImageFormat.outputFormats
             compatibleServices.append(contentsOf: compatibleImageFormats.map { format in
                 (.imagemagick(format), format.displayName)
@@ -159,8 +161,8 @@ struct FormatPicker: View {
             compatibleServices.append((.ocr(.txt), "Text (OCR)"))
         }
 
-        if !mediaFormats.isEmpty {
-            // Media conversion with FFmpeg
+        if !mediaFormats.isEmpty && isFFmpegAvailable {
+            // Media conversion with FFmpeg (only if available)
             let allInputsAreAudio = mediaFormats.allSatisfy { !$0.isVideo }
             let compatibleMediaFormats: [FFmpegFormat]
 
