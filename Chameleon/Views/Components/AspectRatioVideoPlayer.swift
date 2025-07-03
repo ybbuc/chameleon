@@ -25,8 +25,16 @@ struct AspectRatioVideoPlayer: View {
                     )
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // Black placeholder with proper aspect ratio
+                Rectangle()
+                    .fill(Color.black)
+                    .aspectRatio(aspectRatio, contentMode: .fit)
+                    .frame(minHeight: 100)
+                    .overlay(
+                        Rectangle()
+                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             }
         }
         .onAppear {
@@ -69,4 +77,5 @@ struct AspectRatioVideoPlayer: View {
             }
         }
     }
+
 }

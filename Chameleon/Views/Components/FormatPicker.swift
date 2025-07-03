@@ -10,6 +10,7 @@ import SwiftUI
 struct FormatPicker: View {
     @Binding var selectedService: ConversionService
     let inputFileURLs: [URL]
+    let isPandocAvailable: Bool
 
     private var pdfImageFormats: [(ConversionService, String)] {
         guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) else {
@@ -125,8 +126,8 @@ struct FormatPicker: View {
 
         var compatibleServices: [(ConversionService, String)] = []
 
-        if !documentFormats.isEmpty {
-            // Document conversion with Pandoc
+        if !documentFormats.isEmpty && isPandocAvailable {
+            // Document conversion with Pandoc (only if available)
             var compatiblePandocFormats = Set(PandocFormat.compatibleOutputFormats(for: documentFormats[0]))
             for format in documentFormats.dropFirst() {
                 compatiblePandocFormats.formIntersection(PandocFormat.compatibleOutputFormats(for: format))
@@ -180,7 +181,9 @@ struct FormatPicker: View {
         // Add TTS for text files
         let hasTextFiles = inputFileURLs.contains { url in
             let ext = url.pathExtension.lowercased()
-            return ext == "txt" || ext == "text" || PandocFormat.detectFormat(from: url) == .plain
+            let isPlainText = ext == "txt" || ext == "text"
+            let isPandocPlainText = isPandocAvailable && PandocFormat.detectFormat(from: url) == .plain
+            return isPlainText || isPandocPlainText
         }
 
         if hasTextFiles {
@@ -266,6 +269,24 @@ struct FormatPicker: View {
             }
             .pickerStyle(.menu)
             .disabled(inputFileURLs.isEmpty)
+            .onAppear {
+                // Check if the currently selected service is a Pandoc format and Pandoc is not available
+                if case .pandoc = selectedService, !isPandocAvailable {
+                    // Switch to the first available format
+                    if let firstService = compatibleServices.first?.0 {
+                        selectedService = firstService
+                    }
+                }
+            }
+            .onChange(of: isPandocAvailable) { _, newValue in
+                // If Pandoc becomes unavailable and current selection is a Pandoc format
+                if case .pandoc = selectedService, !newValue {
+                    // Switch to the first available format
+                    if let firstService = compatibleServices.first?.0 {
+                        selectedService = firstService
+                    }
+                }
+            }
 
             // Format description
             Text(getFormatDescription(for: selectedService) ?? "")

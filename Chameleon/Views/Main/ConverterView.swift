@@ -14,6 +14,7 @@ import ProgressIndicatorView
 
 struct ConverterView: View {
     @ObservedObject var savedHistoryManager: SavedHistoryManager
+    let fileSelectionController: FileSelectionController
     @State private var files: [FileState] = []
     @State private var outputService: ConversionService = .pandoc(.html)
     @State private var isConverting = false
@@ -334,16 +335,6 @@ struct ConverterView: View {
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 128, height: 128)
                                 .foregroundStyle(Color.secondary.opacity(0.4))
-
-                            Text("Drop Files Here")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-
-                            Button("Browse…") {
-                                selectFile()
-                            }
-                            .buttonStyle(.bordered)
-
                         }
                         .padding()
                     }
@@ -365,7 +356,7 @@ struct ConverterView: View {
 
             // MARK: - Convert pane
             VStack {
-                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url })
+                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url }, isPandocAvailable: pandocWrapper != nil)
                     .padding(.top)
                     .disabled(files.isEmpty ||
                               files.contains(where: { if case .converting = $0 { true } else { false } }))
@@ -614,6 +605,7 @@ struct ConverterView: View {
             initializeFFmpeg()
             initializeOCR()
             initializeTTS()
+            fileSelectionController.selectFileAction = selectFile
         }
         .onDisappear {
             cleanupTempFiles()
@@ -1818,6 +1810,12 @@ struct ConverterView: View {
     private func updateOutputService() {
         let compatibleServices = getCompatibleServices()
 
+        // If no files, reset to a default service
+        if files.isEmpty {
+            outputService = .pandoc(.html)
+            return
+        }
+
         // If current outputService is still compatible, keep it
         if compatibleServices.contains(where: { $0.0 == outputService }) {
             return
@@ -2299,7 +2297,8 @@ extension PandocFormat {
                     (try! ModelContainer(for: ConversionRecord.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
+    let fileController = FileSelectionController()
 
-    ConverterView(savedHistoryManager: manager)
+    ConverterView(savedHistoryManager: manager, fileSelectionController: fileController)
         .modelContainer(container)
 }

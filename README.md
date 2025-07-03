@@ -11,19 +11,26 @@ A native macOS desktop application for universal file conversion, supporting doc
 
 - macOS 14.0+
 - Xcode 16.4+
-- External dependencies:
-  - Pandoc: `brew install pandoc`
-  - ImageMagick: `brew install imagemagick`
-  - FFmpeg: `brew install ffmpeg`
-  - LaTeX (optional): `brew install --cask basictex`
-  - Ghostscript (optional): `brew install ghostscript`
+- External dependencies (all optional - features auto-disable if not installed):
+  - **Pandoc** (for document formats): `brew install pandoc`
+  - **ImageMagick** (for image formats): `brew install imagemagick`
+  - **FFmpeg** (for audio/video formats): `brew install ffmpeg`
+  - **LaTeX** (for enhanced PDF support): `brew install --cask basictex`
+  - **Ghostscript** (for enhanced PDF support): `brew install ghostscript`
 
 ## Setup
 
 1. Clone the repository
-2. Install dependencies:
+2. Install dependencies (install only the formats you need):
    ```bash
-   brew install pandoc imagemagick ffmpeg
+   # For document conversion (Markdown, HTML, DOCX, etc.)
+   brew install pandoc
+   
+   # For image conversion (JPEG, PNG, GIF, etc.)
+   brew install imagemagick
+   
+   # For audio/video conversion (MP4, MP3, AVI, etc.)
+   brew install ffmpeg
    
    # Optional for enhanced PDF support
    brew install --cask basictex
@@ -31,6 +38,8 @@ A native macOS desktop application for universal file conversion, supporting doc
    ```
 3. Open `Chameleon.xcodeproj` in Xcode
 4. Build and run (⌘R)
+
+> **Note**: Chameleon will automatically detect which tools are installed and only show supported formats. You can run the app with any combination of the above dependencies.
 
 ## Project Structure
 
@@ -49,6 +58,7 @@ Chameleon/
 ## Features
 
 - **Universal File Conversion**: Support for 100+ file formats across documents, images, audio, and video
+- **Smart Dependency Detection**: Automatically detects installed tools and disables unsupported formats
 - **Document Conversion**: Markdown, HTML, DOCX, LaTeX, PDF, RTF, EPUB, and more via Pandoc
 - **Image Conversion**: JPEG, PNG, GIF, WebP, TIFF, and more via ImageMagick
 - **Audio/Video Conversion**: MP4, MP3, AVI, MOV, and more via FFmpeg
@@ -61,3 +71,16 @@ Chameleon/
 - **Format-Specific Options**: Quality settings, compression levels, and advanced parameters
 - **Native SwiftUI Design**: Modern macOS interface with responsive UI
 - **Batch Processing**: Convert multiple files at once
+
+## Dependency Behavior
+
+Chameleon gracefully handles missing dependencies:
+
+| Tool Missing | Effect |
+|--------------|--------|
+| **Pandoc** | Document formats (MD, HTML, DOCX, etc.) are hidden from format picker |
+| **ImageMagick** | Image conversion options are disabled |
+| **FFmpeg** | Audio/video conversion options are disabled |
+| **LaTeX/Ghostscript** | PDF conversion quality may be reduced |
+
+The app will run with any combination of tools installed - only the supported formats will be available in the interface.

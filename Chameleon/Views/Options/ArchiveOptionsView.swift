@@ -55,13 +55,6 @@ struct ArchiveOptionsView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
 
-            if isToggleDisabled {
-                Text("Multiple files required for separate archiving")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
             Toggle("Verify compression integrity", isOn: $archiveOptions.verifyAfterCreation)
                 .transition(.opacity.combined(with: .move(edge: .top)))
         }

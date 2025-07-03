@@ -13,17 +13,26 @@ enum ViewMode: String, CaseIterable {
     case history = "Saved"
 }
 
+class FileSelectionController: ObservableObject {
+    var selectFileAction: (() -> Void)?
+    
+    func selectFile() {
+        selectFileAction?()
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selectedMode: ViewMode = .convert
     @State private var searchText = ""
     @State private var savedHistoryManager: SavedHistoryManager?
+    @StateObject private var fileSelectionController = FileSelectionController()
 
     var body: some View {
         Group {
             if let manager = savedHistoryManager {
                 ZStack {
-                    ConverterView(savedHistoryManager: manager)
+                    ConverterView(savedHistoryManager: manager, fileSelectionController: fileSelectionController)
                         .opacity(selectedMode == .convert ? 1 : 0)
                         .allowsHitTesting(selectedMode == .convert)
 
@@ -42,6 +51,16 @@ struct ContentView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                if selectedMode == .convert {
+                    Button {
+                        fileSelectionController.selectFile()
+                    } label: {
+                        Label("Add Files", systemImage: "plus")
+                    }
+                }
+            }
+            
             ToolbarItem(placement: .principal) {
                 Picker("View Mode", selection: $selectedMode) {
                     ForEach(ViewMode.allCases, id: \.self) { mode in
