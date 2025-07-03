@@ -30,11 +30,16 @@ enum TarCompressionType {
 
 class ArchiveService {
     
-    func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false) async throws -> [URL] {
+    func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true) async throws -> [URL] {
         if separately {
-            return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent())
+            return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent(), verifyAfterCreation: verifyAfterCreation)
         } else {
             try await createSingleArchive(format: format, from: files, outputURL: outputURL)
+            
+            if verifyAfterCreation {
+                _ = try await verifyArchive(at: outputURL, format: format)
+            }
+            
             return [outputURL]
         }
     }
@@ -54,7 +59,7 @@ class ArchiveService {
         }
     }
     
-    private func createArchivesSeparately(format: ArchiveFormat, from files: [URL], outputDirectory: URL) async throws -> [URL] {
+    private func createArchivesSeparately(format: ArchiveFormat, from files: [URL], outputDirectory: URL, verifyAfterCreation: Bool = true) async throws -> [URL] {
         var createdArchives: [URL] = []
         
         for file in files {
@@ -63,6 +68,11 @@ class ArchiveService {
                 .appendingPathComponent("\(fileName).\(format.fileExtension)")
             
             try await createSingleArchive(format: format, from: [file], outputURL: archiveURL)
+            
+            if verifyAfterCreation {
+                _ = try await verifyArchive(at: archiveURL, format: format)
+            }
+            
             createdArchives.append(archiveURL)
         }
         
@@ -137,6 +147,120 @@ class ArchiveService {
             throw ArchiveError.tarCreationFailed(errorString)
         }
     }
+    
+    // MARK: - Archive Verification
+    
+    func verifyArchive(at url: URL, format: ArchiveFormat) async throws -> Bool {
+        switch format {
+        case .zip:
+            return try await verifyZipArchive(at: url)
+        case .tar:
+            return try await verifyTarArchive(at: url, compressionType: .none)
+        case .tarGz:
+            return try await verifyTarArchive(at: url, compressionType: .gzip)
+        case .tarXz:
+            return try await verifyTarArchive(at: url, compressionType: .xz)
+        case .tarBz2:
+            return try await verifyTarArchive(at: url, compressionType: .bzip2)
+        }
+    }
+    
+    private func verifyZipArchive(at url: URL) async throws -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        process.arguments = ["-t", url.path]
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        process.standardOutput = Pipe()
+        
+        try process.run()
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw ArchiveError.zipVerificationFailed(errorString)
+        }
+        
+        return true
+    }
+    
+    private func verifyTarArchive(at url: URL, compressionType: TarCompressionType) async throws -> Bool {
+        switch compressionType {
+        case .gzip:
+            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/gzip")
+        case .bzip2:
+            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/bzip2")
+        case .xz:
+            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/xz")
+        case .none:
+            return try await verifyTarContents(at: url, compressionFlag: "-tf")
+        }
+    }
+    
+    private func verifyCompressionIntegrity(at url: URL, tool: String) async throws -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = ["-t", url.path]
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        process.standardOutput = Pipe()
+        
+        try process.run()
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw ArchiveError.compressionVerificationFailed(errorString)
+        }
+        
+        return true
+    }
+    
+    private func verifyTarContents(at url: URL, compressionFlag: String) async throws -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
+        process.arguments = [compressionFlag, url.path]
+        
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+        process.standardOutput = Pipe()
+        
+        try process.run()
+        
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                throw CancellationError()
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        
+        if process.terminationStatus != 0 {
+            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw ArchiveError.tarVerificationFailed(errorString)
+        }
+        
+        return true
+    }
 }
 
 enum ArchiveFormat: String, CaseIterable {
@@ -184,6 +308,9 @@ enum ArchiveFormat: String, CaseIterable {
 enum ArchiveError: LocalizedError {
     case zipCreationFailed(String)
     case tarCreationFailed(String)
+    case zipVerificationFailed(String)
+    case tarVerificationFailed(String)
+    case compressionVerificationFailed(String)
     
     var errorDescription: String? {
         switch self {
@@ -191,6 +318,12 @@ enum ArchiveError: LocalizedError {
             return "ZIP creation failed: \(message)"
         case .tarCreationFailed(let message):
             return "TAR creation failed: \(message)"
+        case .zipVerificationFailed(let message):
+            return "ZIP verification failed: \(message)"
+        case .tarVerificationFailed(let message):
+            return "TAR verification failed: \(message)"
+        case .compressionVerificationFailed(let message):
+            return "Compression verification failed: \(message)"
         }
     }
 }

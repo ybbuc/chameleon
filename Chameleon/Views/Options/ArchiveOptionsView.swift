@@ -16,13 +16,17 @@ struct ArchiveOptionsView: View {
     }
     
     var body: some View {
-        Form {
+        VStack(alignment: .leading, spacing: 12) {
             Toggle("Archive items separately", isOn: $archiveOptions.archiveSeparately)
                 .disabled(isToggleDisabled)
                 .onChange(of: archiveOptions.archiveSeparately) { _, newValue in
                     print("Archive separately changed to: \(newValue)")
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
+            
+            Toggle("Verify compression integrity", isOn: $archiveOptions.verifyAfterCreation)
+                .transition(.opacity.combined(with: .move(edge: .top)))
         }
+        .padding()
     }
 }
