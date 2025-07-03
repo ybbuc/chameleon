@@ -10,4 +10,5 @@ import Foundation
 struct ArchiveOptions {
     var archiveSeparately: Bool = false
     var verifyAfterCreation: Bool = true
+    var compressionLevel: CompressionLevel = .normal
 }

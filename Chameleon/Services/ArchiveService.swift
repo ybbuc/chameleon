@@ -8,6 +8,54 @@
 import Foundation
 import System
 
+enum CompressionLevel: String, CaseIterable {
+    case fastest = "Fastest"
+    case fast = "Fast"
+    case normal = "Normal"
+    case better = "Better"
+    case best = "Best"
+    
+    var zipLevel: String {
+        switch self {
+        case .fastest: return "-1"
+        case .fast: return "-3"
+        case .normal: return "-6"
+        case .better: return "-7"
+        case .best: return "-9"
+        }
+    }
+    
+    var gzipLevel: String {
+        switch self {
+        case .fastest: return "-1"
+        case .fast: return "-3"
+        case .normal: return "-6"
+        case .better: return "-7"
+        case .best: return "-9"
+        }
+    }
+    
+    var bzip2Level: String {
+        switch self {
+        case .fastest: return "-1"
+        case .fast: return "-3"
+        case .normal: return "-6"
+        case .better: return "-7"
+        case .best: return "-9"
+        }
+    }
+    
+    var xzLevel: String {
+        switch self {
+        case .fastest: return "-0"
+        case .fast: return "-2"
+        case .normal: return "-6"
+        case .better: return "-7"
+        case .best: return "-9"
+        }
+    }
+}
+
 enum TarCompressionType {
     case none
     case gzip
@@ -30,11 +78,11 @@ enum TarCompressionType {
 
 class ArchiveService {
     
-    func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true) async throws -> [URL] {
+    func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         if separately {
-            return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent(), verifyAfterCreation: verifyAfterCreation)
+            return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent(), verifyAfterCreation: verifyAfterCreation, compressionLevel: compressionLevel)
         } else {
-            try await createSingleArchive(format: format, from: files, outputURL: outputURL)
+            try await createSingleArchive(format: format, from: files, outputURL: outputURL, compressionLevel: compressionLevel)
             
             if verifyAfterCreation {
                 _ = try await verifyArchive(at: outputURL, format: format)
@@ -44,22 +92,22 @@ class ArchiveService {
         }
     }
     
-    private func createSingleArchive(format: ArchiveFormat, from files: [URL], outputURL: URL) async throws {
+    private func createSingleArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, compressionLevel: CompressionLevel = .normal) async throws {
         switch format {
         case .zip:
-            try await createZipArchive(from: files, outputURL: outputURL)
+            try await createZipArchive(from: files, outputURL: outputURL, compressionLevel: compressionLevel)
         case .tar:
-            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .none)
+            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .none, compressionLevel: compressionLevel)
         case .tarGz:
-            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .gzip)
+            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .gzip, compressionLevel: compressionLevel)
         case .tarXz:
-            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .xz)
+            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .xz, compressionLevel: compressionLevel)
         case .tarBz2:
-            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .bzip2)
+            try await createTarArchive(from: files, outputURL: outputURL, compressionType: .bzip2, compressionLevel: compressionLevel)
         }
     }
     
-    private func createArchivesSeparately(format: ArchiveFormat, from files: [URL], outputDirectory: URL, verifyAfterCreation: Bool = true) async throws -> [URL] {
+    private func createArchivesSeparately(format: ArchiveFormat, from files: [URL], outputDirectory: URL, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         var createdArchives: [URL] = []
         
         for file in files {
@@ -67,7 +115,7 @@ class ArchiveService {
             let archiveURL = outputDirectory
                 .appendingPathComponent("\(fileName).\(format.fileExtension)")
             
-            try await createSingleArchive(format: format, from: [file], outputURL: archiveURL)
+            try await createSingleArchive(format: format, from: [file], outputURL: archiveURL, compressionLevel: compressionLevel)
             
             if verifyAfterCreation {
                 _ = try await verifyArchive(at: archiveURL, format: format)
@@ -79,11 +127,11 @@ class ArchiveService {
         return createdArchives
     }
     
-    private func createZipArchive(from files: [URL], outputURL: URL) async throws {
+    private func createZipArchive(from files: [URL], outputURL: URL, compressionLevel: CompressionLevel = .normal) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
         
-        var arguments = ["-r", outputURL.path]
+        var arguments = [compressionLevel.zipLevel, "-r", outputURL.path]
         
         // Add all input files
         for file in files {
@@ -112,7 +160,7 @@ class ArchiveService {
         }
     }
     
-    private func createTarArchive(from files: [URL], outputURL: URL, compressionType: TarCompressionType) async throws {
+    private func createTarArchive(from files: [URL], outputURL: URL, compressionType: TarCompressionType, compressionLevel: CompressionLevel = .normal) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
         
@@ -127,6 +175,20 @@ class ArchiveService {
         }
         
         process.arguments = arguments
+        
+        // Set compression level via environment variables
+        var environment = ProcessInfo.processInfo.environment
+        switch compressionType {
+        case .gzip:
+            environment["GZIP"] = compressionLevel.gzipLevel
+        case .bzip2:
+            environment["BZIP2"] = compressionLevel.bzip2Level
+        case .xz:
+            environment["XZ_OPT"] = compressionLevel.xzLevel
+        case .none:
+            break // No compression level for uncompressed tar
+        }
+        process.environment = environment
         
         let errorPipe = Pipe()
         process.standardError = errorPipe

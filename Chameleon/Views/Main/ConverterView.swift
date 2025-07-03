@@ -939,7 +939,8 @@ struct ConverterView: View {
                         from: inputURLs,
                         outputURL: tempDirectory.appendingPathComponent("placeholder"), // Will be ignored for separate archiving
                         separately: true,
-                        verifyAfterCreation: archiveOptions.verifyAfterCreation
+                        verifyAfterCreation: archiveOptions.verifyAfterCreation,
+                        compressionLevel: archiveOptions.compressionLevel
                     )
                 } else {
                     // Create single archive containing all files
@@ -952,7 +953,8 @@ struct ConverterView: View {
                         from: inputURLs,
                         outputURL: tempURL,
                         separately: false,
-                        verifyAfterCreation: archiveOptions.verifyAfterCreation
+                        verifyAfterCreation: archiveOptions.verifyAfterCreation,
+                        compressionLevel: archiveOptions.compressionLevel
                     )
                 }
                 

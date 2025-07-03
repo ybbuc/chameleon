@@ -55,58 +55,51 @@ class TextToSpeechWrapper {
                 Voice(id: "Victoria", name: "Victoria", language: "en", languageCode: "en_US", sampleText: "Hello, my name is Victoria.")
             ],
             "es": [
-                Voice(id: "Jorge", name: "Jorge", language: "es", languageCode: "es_ES", sampleText: "Hola, me llamo Jorge."),
-                Voice(id: "Juan", name: "Juan", language: "es", languageCode: "es_MX", sampleText: "Hola, me llamo Juan."),
-                Voice(id: "Monica", name: "Monica", language: "es", languageCode: "es_ES", sampleText: "Hola, me llamo Monica."),
-                Voice(id: "Paulina", name: "Paulina", language: "es", languageCode: "es_MX", sampleText: "Hola, me llamo Paulina.")
+                Voice(id: "Mónica", name: "Mónica", language: "es", languageCode: "es_ES", sampleText: "¡Hola! Me llamo Mónica."),
+                Voice(id: "Paulina", name: "Paulina", language: "es", languageCode: "es_MX", sampleText: "¡Hola! Me llamo Paulina.")
             ],
             "fr": [
-                Voice(id: "Amélie", name: "Amélie", language: "fr", languageCode: "fr_CA", sampleText: "Bonjour, je m'appelle Amélie."),
-                Voice(id: "Audrey", name: "Audrey", language: "fr", languageCode: "fr_FR", sampleText: "Bonjour, je m'appelle Audrey."),
+                Voice(id: "Amélie", name: "Amélie", language: "fr", languageCode: "fr_CA", sampleText: "Bonjour! Je m'appelle Amélie."),
+                Voice(id: "Jacques", name: "Jacques", language: "fr", languageCode: "fr_FR", sampleText: "Bonjour, je m'appelle Jacques."),
                 Voice(id: "Thomas", name: "Thomas", language: "fr", languageCode: "fr_FR", sampleText: "Bonjour, je m'appelle Thomas.")
             ],
             "de": [
-                Voice(id: "Anna", name: "Anna", language: "de", languageCode: "de_DE", sampleText: "Hallo, ich heiße Anna."),
-                Voice(id: "Helena", name: "Helena", language: "de", languageCode: "de_DE", sampleText: "Hallo, ich heiße Helena."),
-                Voice(id: "Martin", name: "Martin", language: "de", languageCode: "de_DE", sampleText: "Hallo, ich heiße Martin.")
+                Voice(id: "Anna", name: "Anna", language: "de", languageCode: "de_DE", sampleText: "Hallo! Ich heiße Anna.")
             ],
             "it": [
-                Voice(id: "Alice", name: "Alice", language: "it", languageCode: "it_IT", sampleText: "Ciao, mi chiamo Alice."),
-                Voice(id: "Luca", name: "Luca", language: "it", languageCode: "it_IT", sampleText: "Ciao, mi chiamo Luca.")
+                Voice(id: "Alice", name: "Alice", language: "it", languageCode: "it_IT", sampleText: "Ciao! Mi chiamo Alice.")
             ],
             "pt": [
-                Voice(id: "Joana", name: "Joana", language: "pt", languageCode: "pt_PT", sampleText: "Olá, meu nome é Joana."),
+                Voice(id: "Joana", name: "Joana", language: "pt", languageCode: "pt_PT", sampleText: "Olá! Chamo‑me Joana."),
                 Voice(id: "Luciana", name: "Luciana", language: "pt", languageCode: "pt_BR", sampleText: "Olá, meu nome é Luciana.")
             ],
             "nl": [
-                Voice(id: "Ellen", name: "Ellen", language: "nl", languageCode: "nl_BE", sampleText: "Hallo, mijn naam is Ellen."),
-                Voice(id: "Xander", name: "Xander", language: "nl", languageCode: "nl_NL", sampleText: "Hallo, mijn naam is Xander.")
+                Voice(id: "Ellen", name: "Ellen", language: "nl", languageCode: "nl_BE", sampleText: "Hallo! Mijn naam is Ellen."),
+                Voice(id: "Xander", name: "Xander", language: "nl", languageCode: "nl_NL", sampleText: "Hallo! Mijn naam is Xander.")
             ],
             "sv": [
-                Voice(id: "Alva", name: "Alva", language: "sv", languageCode: "sv_SE", sampleText: "Hej, jag heter Alva.")
+                Voice(id: "Alva", name: "Alva", language: "sv", languageCode: "sv_SE", sampleText: "Hej! Jag heter Alva.")
             ],
             "no": [
-                Voice(id: "Nora", name: "Nora", language: "no", languageCode: "nb_NO", sampleText: "Hei, jeg heter Nora.")
+                Voice(id: "Nora", name: "Nora", language: "no", languageCode: "nb_NO", sampleText: "Hei! Jeg heter Nora.")
             ],
             "da": [
-                Voice(id: "Sara", name: "Sara", language: "da", languageCode: "da_DK", sampleText: "Hej, jeg hedder Sara.")
+                Voice(id: "Sara", name: "Sara", language: "da", languageCode: "da_DK", sampleText: "Hej! Jeg hedder Sara.")
             ],
             "fi": [
-                Voice(id: "Satu", name: "Satu", language: "fi", languageCode: "fi_FI", sampleText: "Hei, nimeni on Satu.")
+                Voice(id: "Satu", name: "Satu", language: "fi", languageCode: "fi_FI", sampleText: "Hei! Nimeni on Satu.")
             ],
             "ru": [
-                Voice(id: "Milena", name: "Milena", language: "ru", languageCode: "ru_RU", sampleText: "Привет, меня зовут Милена."),
-                Voice(id: "Yuri", name: "Yuri", language: "ru", languageCode: "ru_RU", sampleText: "Привет, меня зовут Юрий.")
+                Voice(id: "Milena", name: "Milena", language: "ru", languageCode: "ru_RU", sampleText: "Здравствуйте! Меня зовут Милена.")
             ],
             "pl": [
-                Voice(id: "Ewa", name: "Ewa", language: "pl", languageCode: "pl_PL", sampleText: "Cześć, mam na imię Ewa."),
-                Voice(id: "Krzysztof", name: "Krzysztof", language: "pl", languageCode: "pl_PL", sampleText: "Cześć, mam na imię Krzysztof.")
+                Voice(id: "Zosia", name: "Zosia", language: "pl", languageCode: "pl_PL", sampleText: "Hi my name is Zosia")
             ],
             "tr": [
                 Voice(id: "Yelda", name: "Yelda", language: "tr", languageCode: "tr_TR", sampleText: "Merhaba, benim adım Yelda.")
             ],
             "ar": [
-                Voice(id: "Maged", name: "Maged", language: "ar", languageCode: "ar_SA", sampleText: "مرحبا، اسمي ماجد.")
+                Voice(id: "Majed", name: "Majed", language: "ar", languageCode: "ar_001", sampleText: "مرحبًا! اسمي ماجد.")
             ],
             "he": [
                 Voice(id: "Carmit", name: "Carmit", language: "he", languageCode: "he_IL", sampleText: "שלום, שמי כרמית.")
@@ -115,13 +108,12 @@ class TextToSpeechWrapper {
                 Voice(id: "Lekha", name: "Lekha", language: "hi", languageCode: "hi_IN", sampleText: "नमस्ते, मेरा नाम लेखा है।")
             ],
             "zh": [
-                Voice(id: "Mei-Jia", name: "Mei-Jia", language: "zh", languageCode: "zh_TW", sampleText: "你好，我叫美佳。"),
-                Voice(id: "Sin-ji", name: "Sin-ji", language: "zh", languageCode: "zh_HK", sampleText: "你好，我叫善怡。"),
-                Voice(id: "Ting-Ting", name: "Ting-Ting", language: "zh", languageCode: "zh_CN", sampleText: "你好，我叫婷婷。")
+                Voice(id: "Meijia", name: "Meijia", language: "zh", languageCode: "zh_TW", sampleText: "你好，我叫美佳。"),
+                Voice(id: "Sinji", name: "Sinji", language: "zh", languageCode: "zh_HK", sampleText: "你好！我叫善怡。"),
+                Voice(id: "Tingting", name: "Tingting", language: "zh", languageCode: "zh_CN", sampleText: "你好！我叫婷婷。")
             ],
             "ja": [
-                Voice(id: "Kyoko", name: "Kyoko", language: "ja", languageCode: "ja_JP", sampleText: "こんにちは、私の名前はきょうこです。"),
-                Voice(id: "Otoya", name: "Otoya", language: "ja", languageCode: "ja_JP", sampleText: "こんにちは、私の名前はおとやです。")
+                Voice(id: "Kyoko", name: "Kyoko", language: "ja", languageCode: "ja_JP", sampleText: "こんにちは! 私の名前はKyokoです。")
             ],
             "ko": [
                 Voice(id: "Yuna", name: "Yuna", language: "ko", languageCode: "ko_KR", sampleText: "안녕하세요, 제 이름은 유나입니다.")
