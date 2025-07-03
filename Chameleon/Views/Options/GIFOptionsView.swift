@@ -10,23 +10,23 @@ import SwiftUI
 struct GIFOptionsView: View {
     @Binding var gifOptions: AnimatedGIFOptions
     @State private var widthText: String = ""
-    
+
     private func sanitizeWidth(_ input: String) -> String {
         // Remove any non-numeric characters
         let cleaned = input.filter { $0.isNumber }
-        
+
         // Limit to reasonable range (50 to 2000 pixels)
         if let value = Int(cleaned) {
             if value < 50 {
                 return "50"
-            } else if value > 2000 {
+            } else if value > 2_000 {
                 return "2000"
             }
         }
-        
+
         return cleaned
     }
-    
+
     var body: some View {
         Form {
             HStack {
@@ -40,7 +40,7 @@ struct GIFOptionsView: View {
                     Text("30").tag(30)
                 }
                 .pickerStyle(.menu)
-                
+
                 Text("fps")
                     .frame(width: 50, alignment: .leading)
             }
@@ -65,7 +65,7 @@ struct GIFOptionsView: View {
                 Text("pixels")
                     .foregroundColor(.secondary)
             }
-            
+
             // Loop setting - simplified
             Picker("Loop:", selection: $gifOptions.loop) {
                 Text("Infinite").tag(0)
@@ -74,7 +74,7 @@ struct GIFOptionsView: View {
             }
             .pickerStyle(.menu)
             .padding(.trailing, 58)
-            
+
             // Palette optimization toggle
             Toggle("Optimize colors", isOn: $gifOptions.usePalette)
                 .help("Generate optimized color palette for better quality")

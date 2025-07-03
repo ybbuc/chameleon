@@ -73,7 +73,7 @@ extension FormatRegistry {
         .wav: WAVTTSConfig(),
         .caf: CAFTTSConfig()
     ]
-    
+
     func config(for format: TTSFormat) -> TTSFormatConfig? {
         return Self.ttsConfigs[format]
     }

@@ -37,10 +37,10 @@ final class ChameleonUITests: XCTestCase {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             let app = XCUIApplication()
             app.launch()
-            
+
             // Wait for the app to be in a stable state
             XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
-            
+
             // Terminate the app to ensure clean state for next iteration
             app.terminate()
         }

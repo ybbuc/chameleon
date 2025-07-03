@@ -5,7 +5,6 @@
 //  Created by Jakob Wells on 27.06.25.
 //
 
-
 import SwiftUI
 import UniformTypeIdentifiers
 import AppKit
@@ -20,19 +19,19 @@ struct FilePreviewView: View {
     let fileName: String
     @State private var canPlayFile = false
     @State private var isCheckingPlayability = true
-    
+
     init(data: Data, fileName: String) {
         self.data = data
         self.url = nil
         self.fileName = fileName
     }
-    
+
     init(url: URL) {
         self.data = nil
         self.url = url
         self.fileName = url.lastPathComponent
     }
-    
+
     // Check if AVFoundation can play this file
     private func canAVFoundationPlay(url: URL) async -> Bool {
         let asset = AVAsset(url: url)
@@ -42,7 +41,7 @@ struct FilePreviewView: View {
             return false
         }
     }
-    
+
     var body: some View {
         contentView
             .task {
@@ -57,7 +56,7 @@ struct FilePreviewView: View {
                 }
             }
     }
-    
+
     @ViewBuilder
     private var contentView: some View {
         if let fileURL = url {
@@ -65,7 +64,7 @@ struct FilePreviewView: View {
             let detectedFormat = FFmpegFormat.detectFormat(from: fileURL)
             let isVideo = canPlayFile && (detectedFormat?.isVideo ?? false)
             let isAudio = canPlayFile && detectedFormat != nil && !(detectedFormat?.isVideo ?? false)
-            
+
             if isVideo {
                 // Video preview
                 AspectRatioVideoPlayer(url: fileURL)
@@ -79,7 +78,7 @@ struct FilePreviewView: View {
                    let nsImage = NSImage(data: data) {
                     let isPDF = fileName.lowercased().hasSuffix(".pdf")
                     let isSVG = fileName.lowercased().hasSuffix(".svg")
-                    
+
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -106,7 +105,7 @@ struct FilePreviewView: View {
             if data != nil {
                 let detectedFormat = FFmpegFormat.detectFormat(from: URL(fileURLWithPath: fileName))
                 let isAudio = canPlayFile && detectedFormat != nil && !(detectedFormat?.isVideo ?? false)
-                
+
                 if isAudio {
                     // Save audio data to temp file and show player
                     if let tempURL = saveDataToTempFile() {
@@ -123,13 +122,13 @@ struct FilePreviewView: View {
             }
         }
     }
-    
+
     private var fileIcon: some View {
         Image(nsImage: iconForFile(fileName: fileName))
             .resizable()
             .frame(width: 128, height: 128)
     }
-    
+
     private func getFileData() -> Data? {
         if let data = data {
             return data
@@ -138,7 +137,7 @@ struct FilePreviewView: View {
         }
         return nil
     }
-    
+
     private func iconForFile(fileName: String) -> NSImage {
         if let url = url {
             return NSWorkspace.shared.icon(forFile: url.path)
@@ -152,13 +151,13 @@ struct FilePreviewView: View {
             return icon
         }
     }
-    
+
     private func saveDataToTempFile() -> URL? {
         guard let data = data else { return nil }
-        
+
         let tempDir = FileManager.default.temporaryDirectory
         let tempURL = tempDir.appendingPathComponent(UUID().uuidString + "_" + fileName)
-        
+
         do {
             try data.write(to: tempURL)
             return tempURL

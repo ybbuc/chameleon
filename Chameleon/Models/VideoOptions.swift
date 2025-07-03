@@ -10,7 +10,7 @@ import Foundation
 enum VideoEncoder: String, CaseIterable {
     case x264 = "libx264"
     case x265 = "libx265"
-    
+
     var displayName: String {
         switch self {
         case .x264:
@@ -19,7 +19,7 @@ enum VideoEncoder: String, CaseIterable {
             return "x265"
         }
     }
-    
+
     var encoderName: String {
         return rawValue
     }
@@ -30,7 +30,7 @@ enum VideoAspectRatio: String, CaseIterable {
     case fourThree = "4:3"
     case sixteenNine = "16:9"
     case square = "1:1"
-    
+
     var displayName: String {
         switch self {
         case .automatic:
@@ -43,7 +43,7 @@ enum VideoAspectRatio: String, CaseIterable {
             return "1:1"
         }
     }
-    
+
     var width: Int {
         switch self {
         case .automatic:
@@ -56,7 +56,7 @@ enum VideoAspectRatio: String, CaseIterable {
             return 1
         }
     }
-    
+
     var height: Int {
         switch self {
         case .automatic:
@@ -74,7 +74,7 @@ enum VideoAspectRatio: String, CaseIterable {
 enum VideoQualityMode: String, CaseIterable {
     case constantRateFactor = "CRF"
     case bitrate = "Bitrate"
-    
+
     var displayName: String {
         switch self {
         case .constantRateFactor:
@@ -91,7 +91,7 @@ enum VideoBitrate: String, CaseIterable {
     case high = "5M"
     case veryHigh = "10M"
     case ultra = "20M"
-    
+
     var displayName: String {
         switch self {
         case .low:
@@ -106,11 +106,11 @@ enum VideoBitrate: String, CaseIterable {
             return "20 Mbps"
         }
     }
-    
+
     var ffmpegValue: String {
         return rawValue
     }
-    
+
     // Recommended bitrate based on resolution
     static func recommended(for resolution: VideoResolution) -> VideoBitrate {
         switch resolution {
@@ -128,7 +128,7 @@ enum VideoBitrate: String, CaseIterable {
             return .ultra
         }
     }
-    
+
     // Recommended bitrate value as string
     static func recommendedValue(for resolution: VideoResolution) -> String {
         switch resolution {
@@ -158,7 +158,7 @@ enum VideoPreset: String, CaseIterable {
     case slow = "slow"
     case slower = "slower"
     case veryslow = "veryslow"
-    
+
     var displayName: String {
         switch self {
         case .ultrafast:
@@ -192,7 +192,7 @@ enum VideoResolution: String, CaseIterable {
     case res1440p = "1440p"
     case res2160p = "2160p"
     case res4320p = "4320p"
-    
+
     var displayName: String {
         switch self {
         case .automatic:
@@ -201,46 +201,46 @@ enum VideoResolution: String, CaseIterable {
             return rawValue
         }
     }
-    
+
     var height: Int {
         switch self {
         case .automatic: return 0    // Not used
         case .res480p: return 480
         case .res576p: return 576
         case .res720p: return 720
-        case .res1080p: return 1080
-        case .res1440p: return 1440
-        case .res2160p: return 2160
-        case .res4320p: return 4320
+        case .res1080p: return 1_080
+        case .res1440p: return 1_440
+        case .res2160p: return 2_160
+        case .res4320p: return 4_320
         }
     }
-    
+
     var width: Int {
         switch self {
         case .automatic: return 0    // Not used
         case .res480p: return 854    // 16:9
-        case .res576p: return 1024   // 16:9
-        case .res720p: return 1280   // 16:9
-        case .res1080p: return 1920  // 16:9
-        case .res1440p: return 2560  // 16:9
-        case .res2160p: return 3840  // 16:9 (4K)
-        case .res4320p: return 7680  // 16:9 (8K)
+        case .res576p: return 1_024   // 16:9
+        case .res720p: return 1_280   // 16:9
+        case .res1080p: return 1_920  // 16:9
+        case .res1440p: return 2_560  // 16:9
+        case .res2160p: return 3_840  // 16:9 (4K)
+        case .res4320p: return 7_680  // 16:9 (8K)
         }
     }
-    
+
     var ffmpegScaleFilter: String {
         if self == .automatic {
             return ""  // No scaling for automatic
         }
         return "scale=\(width):\(height):force_original_aspect_ratio=decrease,pad=\(width):\(height):(ow-iw)/2:(oh-ih)/2"
     }
-    
+
     func ffmpegScaleFilter(aspectRatio: VideoAspectRatio) -> String {
         if self == .automatic && aspectRatio == .automatic {
             // No scaling at all - preserve original resolution and aspect ratio
             return ""
         }
-        
+
         if self == .automatic && aspectRatio != .automatic {
             // Only change aspect ratio, preserve resolution
             switch aspectRatio {
@@ -254,16 +254,16 @@ enum VideoResolution: String, CaseIterable {
                 return ""
             }
         }
-        
+
         if aspectRatio == .automatic {
             // Keep original aspect ratio with resolution scaling
             return ffmpegScaleFilter
         }
-        
+
         // Calculate dimensions based on height and aspect ratio
         let targetHeight = self.height
         let targetWidth: Int
-        
+
         switch aspectRatio {
         case .fourThree:
             targetWidth = (targetHeight * 4) / 3
@@ -274,7 +274,7 @@ enum VideoResolution: String, CaseIterable {
         case .automatic:
             targetWidth = self.width
         }
-        
+
         // Scale and pad to exact aspect ratio
         return "scale=\(targetWidth):\(targetHeight):force_original_aspect_ratio=decrease,pad=\(targetWidth):\(targetHeight):(ow-iw)/2:(oh-ih)/2,setsar=1"
     }
@@ -300,21 +300,21 @@ struct VideoOptions {
     var encoder: VideoEncoder = .x264  // Default to x264
     var preset: VideoPreset = .medium  // Default to medium preset
     var gifOptions: AnimatedGIFOptions = AnimatedGIFOptions()  // GIF-specific settings
-    
+
     func ffmpegArguments(for format: FFmpegFormat) -> [String] {
         var args: [String] = []
-        
+
         // Special handling for GIF format
         if format == .gif {
             return ffmpegGIFArguments()
         }
-        
+
         // Add scale filter for resolution and aspect ratio
         let scaleFilter = resolution.ffmpegScaleFilter(aspectRatio: aspectRatio)
         if !scaleFilter.isEmpty {
             args.append(contentsOf: ["-vf", scaleFilter])
         }
-        
+
         // Add quality settings based on mode
         switch qualityMode {
         case .constantRateFactor:
@@ -339,42 +339,42 @@ struct VideoOptions {
                 args.append(contentsOf: ["-preset", preset.rawValue])
             }
         }
-        
+
         return args
     }
-    
+
     // Generate FFmpeg arguments specifically for GIF conversion
     func ffmpegGIFArguments() -> [String] {
         var args: [String] = []
-        
+
         // Build filter chain for GIF
         var filters: [String] = []
-        
+
         // FPS filter
         filters.append("fps=\(gifOptions.fps)")
-        
+
         // Scale filter
         filters.append("scale=\(gifOptions.width):-1:flags=lanczos")
-        
+
         // Apply filter chain
         args.append(contentsOf: ["-vf", filters.joined(separator: ",")])
-        
+
         // Loop setting
         args.append(contentsOf: ["-loop", "\(gifOptions.loop)"])
-        
+
         return args
     }
-    
+
     // Generate arguments for two-pass encoding
     func ffmpegArgumentsForPass(_ pass: Int, for format: FFmpegFormat, logFile: String) -> [String] {
         var args: [String] = []
-        
+
         // Add scale filter for resolution and aspect ratio
         let scaleFilter = resolution.ffmpegScaleFilter(aspectRatio: aspectRatio)
         if !scaleFilter.isEmpty {
             args.append(contentsOf: ["-vf", scaleFilter])
         }
-        
+
         // Add bitrate settings
         let bitrateValue = customBitrate.isEmpty ? "5M" : "\(customBitrate)M"
         args.append(contentsOf: ["-b:v", bitrateValue])
@@ -382,15 +382,15 @@ struct VideoOptions {
         if encoder == .x264 || encoder == .x265 {
             args.append(contentsOf: ["-preset", preset.rawValue])
         }
-        
+
         // Add pass-specific arguments
         args.append(contentsOf: ["-pass", "\(pass)", "-passlogfile", logFile])
-        
+
         if pass == 1 {
             // First pass: analysis only, no output needed
             args.append(contentsOf: ["-f", "null"])
         }
-        
+
         return args
     }
 }

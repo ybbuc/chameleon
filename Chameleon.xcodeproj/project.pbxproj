@@ -106,10 +106,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 85000BE32E0836EC000D312F /* Build configuration list for PBXNativeTarget "Chameleon" */;
 			buildPhases = (
-				85BBC3852E12F474002F2E52 /* ShellScript */,
+				85BBC3852E12F474002F2E52 /* Run Script */,
 				85000BBD2E0836EB000D312F /* Sources */,
 				85000BBE2E0836EB000D312F /* Frameworks */,
 				85000BBF2E0836EB000D312F /* Resources */,
+				C5383E4F2E1676E2006087F0 /* SwiftLint */,
 			);
 			buildRules = (
 			);
@@ -208,6 +209,7 @@
 			packageReferences = (
 				C5383E482E166F4D006087F0 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */,
 				C5383E4B2E166F5D006087F0 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */,
+				C5383E4E2E167515006087F0 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85000BC22E0836EB000D312F /* Products */;
@@ -246,7 +248,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		85BBC3852E12F474002F2E52 /* ShellScript */ = {
+		85BBC3852E12F474002F2E52 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -256,6 +258,7 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -263,6 +266,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "INFO_PLIST=\"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\"\n\n# Get the total number of commits from the current git branch.\nCOMMIT_COUNT=$(git rev-list --count HEAD)\n\n# Update the build number (CFBundleVersion) in the Info.plist file.\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion ${COMMIT_COUNT}\" \"${INFO_PLIST}\"\n\necho \"Updated build number to ${COMMIT_COUNT}\"\n";
+		};
+		C5383E4F2E1676E2006087F0 /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.swiftlint.yml",
+				"$(SRCROOT)/Chameleon",
+				"$(SRCROOT)/ChameleonTests",
+				"$(SRCROOT)/ChameleonUITests",
+			);
+			name = SwiftLint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "export PATH=\"$PATH:/opt/homebrew/bin\"\nif which swiftlint >/dev/null; then\nswiftlint\nelse\necho \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -434,6 +460,7 @@
 				DEVELOPMENT_TEAM = J742TPJFF2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -464,6 +491,7 @@
 				DEVELOPMENT_TEAM = J742TPJFF2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -602,6 +630,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.2.1;
+			};
+		};
+		C5383E4E2E167515006087F0 /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.59.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

@@ -18,7 +18,7 @@ struct ContentView: View {
     @State private var selectedMode: ViewMode = .convert
     @State private var searchText = ""
     @State private var savedHistoryManager: SavedHistoryManager?
-    
+
     var body: some View {
         Group {
             if let manager = savedHistoryManager {
@@ -26,7 +26,7 @@ struct ContentView: View {
                     ConverterView(savedHistoryManager: manager)
                         .opacity(selectedMode == .convert ? 1 : 0)
                         .allowsHitTesting(selectedMode == .convert)
-                    
+
                     if selectedMode == .history {
                         SavedHistoryView(searchText: $searchText, savedHistoryManager: manager)
                             .searchable(text: $searchText, prompt: "Search history")

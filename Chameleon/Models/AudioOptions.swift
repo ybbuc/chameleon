@@ -24,7 +24,7 @@ enum AudioBitRate: CaseIterable {
     case kbps224
     case kbps256
     case kbps320
-    
+
     var displayName: String {
         switch self {
         case .automatic:
@@ -33,7 +33,7 @@ enum AudioBitRate: CaseIterable {
             return "\(value!)"
         }
     }
-    
+
     var value: Int? {
         switch self {
         case .automatic: return nil
@@ -67,7 +67,7 @@ enum MP3VBRQuality: Int, CaseIterable {
     case q2 = 2  // ~190 kbps
     case q1 = 1  // ~225 kbps
     case q0 = 0  // ~245 kbps
-    
+
     var displayName: String {
         switch self {
         case .q9: return "~65"
@@ -88,7 +88,7 @@ enum AudioChannels: String, CaseIterable {
     case automatic = "auto"
     case mono = "mono"
     case stereo = "stereo"
-    
+
     var displayName: String {
         switch self {
         case .automatic: return "Automatic"
@@ -96,7 +96,7 @@ enum AudioChannels: String, CaseIterable {
         case .stereo: return "Stereo"
         }
     }
-    
+
     var channelCount: Int? {
         switch self {
         case .automatic: return nil
@@ -123,7 +123,7 @@ enum AudioSampleRate: CaseIterable {
     case hz192000
     case hz352800
     case hz384000
-    
+
     var displayName: String {
         switch self {
         case .automatic:
@@ -132,28 +132,28 @@ enum AudioSampleRate: CaseIterable {
             return "\(value!)"
         }
     }
-    
+
     var value: Int? {
         switch self {
         case .automatic: return nil
-        case .hz8000: return 8000
-        case .hz11025: return 11025
-        case .hz12000: return 12000
-        case .hz16000: return 16000
-        case .hz22050: return 22050
-        case .hz24000: return 24000
-        case .hz32000: return 32000
-        case .hz44100: return 44100
-        case .hz48000: return 48000
-        case .hz88200: return 88200
-        case .hz96000: return 96000
-        case .hz176400: return 176400
-        case .hz192000: return 192000
-        case .hz352800: return 352800
-        case .hz384000: return 384000
+        case .hz8000: return 8_000
+        case .hz11025: return 11_025
+        case .hz12000: return 12_000
+        case .hz16000: return 16_000
+        case .hz22050: return 22_050
+        case .hz24000: return 24_000
+        case .hz32000: return 32_000
+        case .hz44100: return 44_100
+        case .hz48000: return 48_000
+        case .hz88200: return 88_200
+        case .hz96000: return 96_000
+        case .hz176400: return 176_400
+        case .hz192000: return 192_000
+        case .hz352800: return 352_800
+        case .hz384000: return 384_000
         }
     }
-    
+
     static var defaultSampleRates: [AudioSampleRate] {
         return [.automatic, .hz22050, .hz44100, .hz48000, .hz96000]
     }
@@ -164,11 +164,11 @@ enum AudioSampleSize: Int, CaseIterable {
     case bits20 = 20
     case bits24 = 24
     case bits32 = 32
-    
+
     var displayName: String {
         return "\(rawValue)"
     }
-    
+
 }
 
 struct AudioOptions {
@@ -178,13 +178,13 @@ struct AudioOptions {
     var sampleSize: AudioSampleSize = .bits16
     var useVariableBitRate: Bool = false
     var vbrQuality: MP3VBRQuality = .q2  // Default to 190 kbps avg
-    
+
     func ffmpegArguments(for format: FFmpegFormat? = nil) -> [String] {
         guard let format = format,
               let config = FormatRegistry.shared.config(for: format) else {
             return []
         }
-        
+
         return config.audioArguments(audioOptions: self)
     }
 }

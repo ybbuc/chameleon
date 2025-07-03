@@ -1,4 +1,4 @@
- //
+//
 //  FormatConfig.swift
 //  Chameleon
 //
@@ -21,14 +21,14 @@ protocol MediaFormatConfig: FormatConfig {
     var ffmpegFormat: FFmpegFormat { get }
     var isVideo: Bool { get }
     var isLossless: Bool { get }
-    
+
     // Audio-specific properties
     var supportsBitRate: Bool { get }
     var supportsSampleSize: Bool { get }
     var supportsVariableBitRate: Bool { get }
     var availableSampleRates: [AudioSampleRate] { get }
     var availableSampleSizes: [AudioSampleSize] { get }
-    
+
     // FFmpeg arguments
     func codecArguments() -> [String]
     func codecArguments(for encoder: VideoEncoder?) -> [String]
@@ -46,25 +46,25 @@ extension MediaFormatConfig {
     var supportsVariableBitRate: Bool { false }
     var availableSampleRates: [AudioSampleRate] { AudioSampleRate.defaultSampleRates }
     var availableSampleSizes: [AudioSampleSize] { AudioSampleSize.allCases }
-    
+
     // Default implementation for codec arguments with specific encoder
     func codecArguments(for encoder: VideoEncoder?) -> [String] {
         // If no encoder specified or format doesn't support multiple encoders, use default
         return codecArguments()
     }
-    
+
     // Default implementation for supported encoders (empty for formats that don't support encoder selection)
     func supportedVideoEncoders() -> [VideoEncoder] {
         return []
     }
-    
+
     func qualityArguments(quality: FFmpegQuality) -> [String] {
         isVideo ? quality.videoArguments : quality.audioArguments
     }
-    
+
     func audioArguments(audioOptions: AudioOptions) -> [String] {
         var args: [String] = []
-        
+
         // Bit rate (only for lossy formats)
         if supportsBitRate {
             if supportsVariableBitRate && audioOptions.useVariableBitRate {
@@ -75,26 +75,26 @@ extension MediaFormatConfig {
             }
             // If automatic is selected, we don't specify bit rate and let FFmpeg choose
         }
-        
+
         // Channels (only specify if not automatic)
         if let channelCount = audioOptions.channels.channelCount {
             args.append(contentsOf: ["-ac", "\(channelCount)"])
         }
-        
+
         // Sample rate (only specify if not automatic)
         if let sampleRateValue = audioOptions.sampleRate.value {
             args.append(contentsOf: ["-ar", "\(sampleRateValue)"])
         }
         // If automatic is selected, we don't specify sample rate and let FFmpeg choose
-        
+
         // Sample size (only for lossless formats)
         if supportsSampleSize {
             args.append(contentsOf: sampleFormatArguments(sampleSize: audioOptions.sampleSize))
         }
-        
+
         return args
     }
-    
+
     func sampleFormatArguments(sampleSize: AudioSampleSize) -> [String] {
         return ["-sample_fmt", "s\(sampleSize.rawValue)"]
     }
@@ -109,9 +109,9 @@ extension MediaFormatConfig {
 
 class FormatRegistry {
     static let shared = FormatRegistry()
-    
+
     private let mediaConfigs: [FFmpegFormat: MediaFormatConfig]
-    
+
     private init() {
         mediaConfigs = [
             // Video formats
@@ -124,7 +124,7 @@ class FormatRegistry {
             .wmv: WMVConfig(),
             .m4v: M4VConfig(),
             .gif: AnimatedGIFConfig(),
-            
+
             // Audio formats
             .mp3: MP3Config(),
             .aac: AACConfig(),
@@ -136,31 +136,31 @@ class FormatRegistry {
             .aiff: AIFFConfig()
         ]
     }
-    
+
     // Media format methods (for backward compatibility)
     func config(for format: FFmpegFormat) -> MediaFormatConfig? {
         return mediaConfigs[format]
     }
-    
+
     func allConfigs() -> [MediaFormatConfig] {
         return Array(mediaConfigs.values)
     }
-    
+
     func videoConfigs() -> [MediaFormatConfig] {
         return mediaConfigs.values.filter { $0.isVideo }
     }
-    
+
     func audioConfigs() -> [MediaFormatConfig] {
         return mediaConfigs.values.filter { !$0.isVideo }
     }
-    
+
     func losslessConfigs() -> [MediaFormatConfig] {
         return mediaConfigs.values.filter { $0.isLossless }
     }
-    
+
     func lossyConfigs() -> [MediaFormatConfig] {
         return mediaConfigs.values.filter { !$0.isLossless }
     }
-    
+
     // TODO: Document and image format methods can be added in future iterations
 }

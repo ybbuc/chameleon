@@ -13,7 +13,7 @@ struct ConvertingFileRow: View {
     let url: URL
     let fileName: String
     @State private var isHoveringRow = false
-    
+
     var body: some View {
         BaseFileRow(
             url: url,

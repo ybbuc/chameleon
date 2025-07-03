@@ -17,9 +17,9 @@ struct BaseFileRow<Content: View, Actions: View>: View {
     let backgroundColor: Color?
     @ViewBuilder let content: () -> Content
     @ViewBuilder let actions: () -> Actions
-    
+
     @State private var cachedIcon: NSImage?
-    
+
     init(
         url: URL?,
         fileName: String,
@@ -39,7 +39,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
         self.content = content
         self.actions = actions
     }
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // File icon
@@ -58,12 +58,12 @@ struct BaseFileRow<Content: View, Actions: View>: View {
                         .frame(width: 32, height: 32)
                 }
             }
-            
+
             // Content area
             content()
-            
+
             Spacer()
-            
+
             // Actions area
             actions()
         }
@@ -83,7 +83,7 @@ struct BaseFileRow<Content: View, Actions: View>: View {
             loadIcon()
         }
     }
-    
+
     private func loadIcon() {
         guard let url = url, customIcon == nil else { return }
         cachedIcon = NSWorkspace.shared.icon(forFile: url.path)

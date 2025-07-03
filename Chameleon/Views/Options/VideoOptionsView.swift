@@ -10,7 +10,7 @@ import SwiftUI
 struct VideoOptionsView: View {
     @Binding var videoOptions: VideoOptions
     let outputFormat: FFmpegFormat?
-    
+
     private var crfRange: ClosedRange<Double> {
         guard let format = outputFormat,
               let codec = format.primaryVideoCodec(for: videoOptions.encoder),
@@ -19,7 +19,7 @@ struct VideoOptionsView: View {
         }
         return Double(min)...Double(max)
     }
-    
+
     private var codecSupportsCRF: Bool {
         guard let format = outputFormat,
               let codec = format.primaryVideoCodec(for: videoOptions.encoder) else {
@@ -30,7 +30,7 @@ struct VideoOptionsView: View {
         }
         return false
     }
-    
+
     private var formatSupportsEncoderSelection: Bool {
         guard let format = outputFormat,
               let config = FormatRegistry.shared.config(for: format) else {
@@ -38,17 +38,17 @@ struct VideoOptionsView: View {
         }
         return !config.supportedVideoEncoders().isEmpty
     }
-    
+
     private func sanitizeBitrate(_ input: String) -> String {
         // Remove any non-numeric characters except decimal point
         let cleaned = input.filter { $0.isNumber || $0 == "." }
-        
+
         // Ensure only one decimal point
         let parts = cleaned.split(separator: ".")
         if parts.count > 2 {
             return String(parts[0]) + "." + parts[1...].joined()
         }
-        
+
         // Limit to reasonable range (0.1 to 100 Mbps)
         if let value = Double(cleaned) {
             if value < 0.1 {
@@ -57,10 +57,10 @@ struct VideoOptionsView: View {
                 return "100"
             }
         }
-        
+
         return cleaned.isEmpty ? "5" : cleaned
     }
-    
+
     var body: some View {
         Form {
             // Show GIF-specific options if output format is GIF
@@ -84,7 +84,7 @@ struct VideoOptionsView: View {
                 }
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
-            
+
             // Aspect ratio dropdown
             Picker("Aspect ratio:", selection: $videoOptions.aspectRatio) {
                 Text(VideoAspectRatio.automatic.displayName).tag(VideoAspectRatio.automatic)
@@ -96,7 +96,7 @@ struct VideoOptionsView: View {
             .pickerStyle(.menu)
             .padding(.trailing, 58)
             .transition(.opacity.combined(with: .move(edge: .top)))
-            
+
             // Encoder selector - only show if format supports multiple encoders
             if formatSupportsEncoderSelection,
                let format = outputFormat,
@@ -109,7 +109,7 @@ struct VideoOptionsView: View {
                 .pickerStyle(.segmented)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
             // Preset selector - only show for x264 and x265 encoders
             if videoOptions.encoder == .x264 || videoOptions.encoder == .x265 {
                 VStack(alignment: .leading, spacing: 4) {
@@ -123,7 +123,7 @@ struct VideoOptionsView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
             // Quality mode selector - only show if codec supports CRF
             if codecSupportsCRF {
                 Picker("Quality:", selection: $videoOptions.qualityMode) {
@@ -134,7 +134,7 @@ struct VideoOptionsView: View {
                 .pickerStyle(.segmented)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
             // Quality settings based on mode
             if codecSupportsCRF && videoOptions.qualityMode == .constantRateFactor {
                 // CRF Quality slider
@@ -149,7 +149,7 @@ struct VideoOptionsView: View {
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                     }
-                    
+
                     HStack {
                         Text("Best")
                             .font(.caption2)
@@ -166,7 +166,7 @@ struct VideoOptionsView: View {
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
                 // Show bitrate field when in bitrate mode OR when codec doesn't support CRF
                 if !codecSupportsCRF || videoOptions.qualityMode == .bitrate {
                     // Bitrate text field
@@ -189,7 +189,7 @@ struct VideoOptionsView: View {
                             .foregroundColor(.secondary)
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    
+
                     // Two-pass encoding toggle - only show if codec supports CRF
                     if codecSupportsCRF {
                         Toggle("Two-pass encoding", isOn: $videoOptions.useTwoPassEncoding)
@@ -203,7 +203,7 @@ struct VideoOptionsView: View {
             if videoOptions.customBitrate == "5" {
                 videoOptions.customBitrate = VideoBitrate.recommendedValue(for: videoOptions.resolution)
             }
-            
+
             // Force bitrate mode if codec doesn't support CRF
             if !codecSupportsCRF {
                 videoOptions.qualityMode = .bitrate
@@ -221,7 +221,7 @@ struct VideoOptionsView: View {
                case let .supported(_, _, defaultCRF) = VideoCodecCRFSupport.forCodec(codec) {
                 videoOptions.crfValue = Double(defaultCRF)
             }
-            
+
             // Force bitrate mode if new format doesn't support CRF
             if !codecSupportsCRF {
                 videoOptions.qualityMode = .bitrate
@@ -234,7 +234,7 @@ struct VideoOptionsView: View {
                case let .supported(_, _, defaultCRF) = VideoCodecCRFSupport.forCodec(codec) {
                 videoOptions.crfValue = Double(defaultCRF)
             }
-            
+
             // Force bitrate mode if new encoder doesn't support CRF
             if !codecSupportsCRF {
                 videoOptions.qualityMode = .bitrate

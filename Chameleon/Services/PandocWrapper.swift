@@ -10,19 +10,19 @@ import Foundation
 class PandocWrapper {
     private let pandocPath: String
     private var currentProcess: Process?
-    
+
     init() throws {
         // Use system pandoc from PATH
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = ["pandoc"]
-        
+
         let pipe = Pipe()
         process.standardOutput = pipe
-        
+
         try process.run()
         process.waitUntilExit()
-        
+
         if process.terminationStatus == 0 {
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
@@ -31,14 +31,14 @@ class PandocWrapper {
                 return
             }
         }
-        
+
         // Fallback to common locations
         let commonPaths = [
             "/usr/local/bin/pandoc",
             "/opt/homebrew/bin/pandoc",
             "/opt/local/bin/pandoc"
         ]
-        
+
         for path in commonPaths {
             if FileManager.default.fileExists(atPath: path) && FileManager.default.isExecutableFile(atPath: path) {
                 print("Found pandoc at fallback location: \(path)")
@@ -48,39 +48,39 @@ class PandocWrapper {
                 print("File exists but not executable: \(path)")
             }
         }
-        
+
         throw PandocError.pandocNotInstalled
     }
-    
+
     func convert(input: String, from inputFormat: PandocFormat, to outputFormat: PandocFormat) async throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pandocPath)
-        
+
         let pipe = Pipe()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
-        
+
         process.standardInput = pipe
         process.standardOutput = outputPipe
         process.standardError = errorPipe
-        
+
         process.arguments = [
             "-f", inputFormat.rawValue,
             "-t", outputFormat.rawValue
         ]
-        
+
         try process.run()
-        
+
         // Write input to stdin
         if let inputData = input.data(using: .utf8) {
             pipe.fileHandleForWriting.write(inputData)
             pipe.fileHandleForWriting.closeFile()
         }
-        
+
         // Wait for completion with cancellation support
         currentProcess = process
         defer { currentProcess = nil }
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -88,39 +88,39 @@ class PandocWrapper {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         // Read output
         let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        
+
         if process.terminationStatus != 0 {
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw PandocError.conversionFailed(errorString)
         }
-        
+
         guard let result = String(data: outputData, encoding: .utf8) else {
             throw PandocError.outputDecodingFailed
         }
-        
+
         return result
     }
-    
+
     func convertFile(inputURL: URL, outputURL: URL, from inputFormat: PandocFormat? = nil, to outputFormat: PandocFormat) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pandocPath)
-        
+
         var arguments = [
             "-o", outputURL.path
         ]
-        
+
         if let inputFormat = inputFormat {
             arguments.append(contentsOf: ["-f", inputFormat.rawValue])
         }
-        
+
         arguments.append(contentsOf: ["-t", outputFormat.rawValue, inputURL.path])
-        
+
         process.arguments = arguments
-        
+
         // Ensure TeX is in PATH for PDF generation
         if outputFormat == .pdf {
             var environment = ProcessInfo.processInfo.environment
@@ -132,16 +132,16 @@ class PandocWrapper {
             }
             process.environment = environment
         }
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
-        
+
         try process.run()
-        
+
         // Wait for completion with cancellation support
         currentProcess = process
         defer { currentProcess = nil }
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -149,24 +149,24 @@ class PandocWrapper {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            
+
             // Check for common LaTeX missing error
-            if outputFormat == .pdf && (errorString.contains("pdflatex not found") || 
+            if outputFormat == .pdf && (errorString.contains("pdflatex not found") ||
                                        errorString.contains("pdflatex: not found") ||
                                        errorString.contains("pdflatex: command not found") ||
                                        errorString.contains("Cannot find") ||
                                        errorString.contains("LaTeX Error")) {
                 throw PandocError.latexNotInstalled
             }
-            
+
             throw PandocError.conversionFailed(errorString)
         }
     }
-    
+
     func cancel() {
         currentProcess?.terminate()
         currentProcess = nil
@@ -183,14 +183,14 @@ enum PandocFormat: String {
     case rtf = "rtf"
     case epub = "epub"
     case plain = "plain"
-    
+
     // Markdown variants
     case commonmark = "commonmark"
     case gfm = "gfm"
     case markdownStrict = "markdown_strict"
     case markdownPhpextra = "markdown_phpextra"
     case markdownMmd = "markdown_mmd"
-    
+
     // Lightweight markup
     case rst = "rst"
     case asciidoc = "asciidoc"
@@ -201,7 +201,7 @@ enum PandocFormat: String {
     case djot = "djot"
     case markua = "markua"
     case txt2tags = "t2t"
-    
+
     // Wiki formats
     case mediawiki = "mediawiki"
     case dokuwiki = "dokuwiki"
@@ -211,24 +211,24 @@ enum PandocFormat: String {
     case xwiki = "xwiki"
     case zimwiki = "zimwiki"
     case jira = "jira"
-    
+
     // HTML variants
     case html4 = "html4"
     case html5 = "html5"
     case chunkedhtml = "chunkedhtml"
-    
+
     // Ebook formats
     case epub2 = "epub2"
     case epub3 = "epub3"
     case fb2 = "fb2"
-    
+
     // Documentation formats
     case man = "man"
     case ms = "ms"
     case mdoc = "mdoc"
     case texinfo = "texinfo"
     case haddock = "haddock"
-    
+
     // XML formats
     case docbook = "docbook"
     case docbook4 = "docbook4"
@@ -241,12 +241,12 @@ enum PandocFormat: String {
     case tei = "tei"
     case opml = "opml"
     case opendocument = "opendocument"
-    
+
     // Office formats
     case odt = "odt"
     case powerpoint = "pptx"
     case openoffice = "openoffice"
-    
+
     // Academic formats
     case context = "context"
     case biblatex = "biblatex"
@@ -254,7 +254,7 @@ enum PandocFormat: String {
     case csljson = "csljson"
     case ris = "ris"
     case endnotexml = "endnotexml"
-    
+
     // Presentation formats
     case beamer = "beamer"
     case slidy = "slidy"
@@ -262,7 +262,7 @@ enum PandocFormat: String {
     case dzslides = "dzslides"
     case revealjs = "revealjs"
     case s5 = "s5"
-    
+
     // Other formats
     case json = "json"
     case native = "native"
@@ -272,7 +272,7 @@ enum PandocFormat: String {
     case csv = "csv"
     case tsv = "tsv"
     case ansi = "ansi"
-    
+
     var description: String? {
         switch self {
         // Common formats
@@ -284,14 +284,14 @@ enum PandocFormat: String {
         case .rtf: return nil
         case .epub: return nil
         case .plain: return nil
-        
+
         // Markdown variants
         case .commonmark: return nil
         case .gfm: return nil
         case .markdownStrict: return nil
         case .markdownPhpextra: return nil
         case .markdownMmd: return nil
-        
+
         // Lightweight markup
         case .rst: return nil
         case .asciidoc: return nil
@@ -302,7 +302,7 @@ enum PandocFormat: String {
         case .djot: return nil
         case .markua: return nil
         case .txt2tags: return nil
-        
+
         // Wiki formats
         case .mediawiki: return nil
         case .dokuwiki: return nil
@@ -312,24 +312,24 @@ enum PandocFormat: String {
         case .xwiki: return nil
         case .zimwiki: return nil
         case .jira: return nil
-        
+
         // HTML variants
         case .html4: return nil
         case .html5: return nil
         case .chunkedhtml: return nil
-        
+
         // Ebook formats
         case .epub2: return nil
         case .epub3: return nil
         case .fb2: return nil
-        
+
         // Documentation formats
         case .man: return nil
         case .ms: return nil
         case .mdoc: return nil
         case .texinfo: return nil
         case .haddock: return nil
-        
+
         // XML formats
         case .docbook: return nil
         case .docbook4: return nil
@@ -342,12 +342,12 @@ enum PandocFormat: String {
         case .tei: return nil
         case .opml: return nil
         case .opendocument: return nil
-        
+
         // Office formats
         case .odt: return nil
         case .powerpoint: return nil
         case .openoffice: return nil
-        
+
         // Academic formats
         case .context: return nil
         case .biblatex: return nil
@@ -355,7 +355,7 @@ enum PandocFormat: String {
         case .csljson: return nil
         case .ris: return nil
         case .endnotexml: return nil
-        
+
         // Presentation formats
         case .beamer: return nil
         case .slidy: return nil
@@ -363,7 +363,7 @@ enum PandocFormat: String {
         case .dzslides: return nil
         case .revealjs: return nil
         case .s5: return nil
-        
+
         // Other formats
         case .json: return nil
         case .native: return nil
@@ -375,7 +375,7 @@ enum PandocFormat: String {
         case .ansi: return nil
         }
     }
-    
+
     var displayName: String {
         switch self {
         // Common formats
@@ -387,14 +387,14 @@ enum PandocFormat: String {
         case .plain: return "Plain Text"
         case .rtf: return "Rich Text Format (RTF)"
         case .epub: return "EPUB"
-        
+
         // Markdown variants
         case .commonmark: return "CommonMark"
         case .gfm: return "GitHub Flavored Markdown"
         case .markdownStrict: return "Strict Markdown"
         case .markdownPhpextra: return "PHP Markdown Extra"
         case .markdownMmd: return "MultiMarkdown"
-        
+
         // Lightweight markup
         case .rst: return "reStructuredText"
         case .asciidoc: return "AsciiDoc"
@@ -405,7 +405,7 @@ enum PandocFormat: String {
         case .djot: return "Djot"
         case .markua: return "Markua"
         case .txt2tags: return "txt2tags"
-        
+
         // Wiki formats
         case .mediawiki: return "MediaWiki"
         case .dokuwiki: return "DokuWiki"
@@ -415,24 +415,24 @@ enum PandocFormat: String {
         case .xwiki: return "XWiki"
         case .zimwiki: return "ZimWiki"
         case .jira: return "Jira Wiki"
-        
+
         // HTML variants
         case .html4: return "HTML 4"
         case .html5: return "HTML 5"
         case .chunkedhtml: return "Chunked HTML"
-        
+
         // Ebook formats
         case .epub2: return "EPUB 2"
         case .epub3: return "EPUB 3"
         case .fb2: return "FictionBook2"
-        
+
         // Documentation formats
         case .man: return "Man Page"
         case .ms: return "Roff ms"
         case .mdoc: return "mdoc"
         case .texinfo: return "GNU TexInfo"
         case .haddock: return "Haddock"
-        
+
         // XML formats
         case .docbook: return "DocBook"
         case .docbook4: return "DocBook 4"
@@ -445,12 +445,12 @@ enum PandocFormat: String {
         case .tei: return "TEI Simple"
         case .opml: return "OPML"
         case .opendocument: return "OpenDocument XML"
-        
+
         // Office formats
         case .odt: return "OpenDocument Text (ODT)"
         case .powerpoint: return "PowerPoint (PPTX)"
         case .openoffice: return "OpenOffice"
-        
+
         // Academic formats
         case .context: return "ConTeXt"
         case .biblatex: return "BibLaTeX"
@@ -458,7 +458,7 @@ enum PandocFormat: String {
         case .csljson: return "CSL JSON"
         case .ris: return "RIS"
         case .endnotexml: return "EndNote XML"
-        
+
         // Presentation formats
         case .beamer: return "LaTeX Beamer"
         case .slidy: return "Slidy"
@@ -466,7 +466,7 @@ enum PandocFormat: String {
         case .dzslides: return "DZSlides"
         case .revealjs: return "reveal.js"
         case .s5: return "S5"
-        
+
         // Other formats
         case .json: return "JSON"
         case .native: return "Native"
@@ -485,7 +485,7 @@ enum PandocError: LocalizedError {
     case conversionFailed(String)
     case outputDecodingFailed
     case latexNotInstalled
-    
+
     var errorDescription: String? {
         switch self {
         case .pandocNotInstalled:
@@ -509,7 +509,7 @@ extension PandocFormat {
         .html, .html4, .html5,
         .epub, .epub2, .epub3, .fb2,
         .man, .ms, .mdoc, .texinfo, .haddock,
-        .docbook, .docbook4, .docbook5, .jats, .jatsArchiving, .jatsPublishing, 
+        .docbook, .docbook4, .docbook5, .jats, .jatsArchiving, .jatsPublishing,
         .jatsArticleauthoring, .bits, .tei, .opml, .opendocument,
         .latex, .context,
         .biblatex, .bibtex, .csljson, .ris, .endnotexml,
@@ -518,7 +518,7 @@ extension PandocFormat {
         .csv, .tsv,
         .json, .native
     ]
-    
+
     // Formats that can be written (output formats)
     static let outputFormats: Set<PandocFormat> = [
         .markdown, .commonmark, .gfm, .markdownStrict, .markdownPhpextra, .markdownMmd,
@@ -538,18 +538,18 @@ extension PandocFormat {
         .slidy, .slideous, .dzslides, .revealjs, .s5,
         .ansi
     ]
-    
+
     // Get compatible output formats for a given input format
     static func compatibleOutputFormats(for inputFormat: PandocFormat) -> [PandocFormat] {
         // All input formats can generally be converted to all output formats
         // with some exceptions
         var compatible = Array(outputFormats)
-        
+
         // Special cases where certain conversions don't make sense
         switch inputFormat {
         case .csv, .tsv:
             // Tabular data has limited conversion options
-            compatible = [.html, .html4, .html5, .latex, .markdown, .commonmark, .gfm, 
+            compatible = [.html, .html4, .html5, .latex, .markdown, .commonmark, .gfm,
                          .rst, .asciidoc, .mediawiki, .dokuwiki, .plain, .json]
         case .biblatex, .bibtex, .csljson, .ris, .endnotexml:
             // Bibliography formats have limited conversion options
@@ -558,14 +558,14 @@ extension PandocFormat {
         default:
             break
         }
-        
+
         return compatible.sorted { $0.rawValue < $1.rawValue }
     }
-    
+
     // Detect format from file extension
     static func detectFormat(from url: URL) -> PandocFormat? {
         let ext = url.pathExtension.lowercased()
-        
+
         switch ext {
         case "md", "markdown":
             return .markdown

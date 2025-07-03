@@ -12,7 +12,6 @@ import AppKit
 import ActivityIndicatorView
 import ProgressIndicatorView
 
-
 struct ConverterView: View {
     @ObservedObject var savedHistoryManager: SavedHistoryManager
     @State private var files: [FileState] = []
@@ -34,7 +33,7 @@ struct ConverterView: View {
     @State private var audioOptions = AudioOptions()
     @State private var videoOptions = VideoOptions()
     @State private var archiveOptions = ArchiveOptions()
-    
+
     @State private var pandocWrapper: PandocWrapper?
     @State private var pandocInitError: String?
     @State private var imageMagickWrapper: ImageMagickWrapper?
@@ -56,7 +55,7 @@ struct ConverterView: View {
     @State private var inputAudioChannels: Int?
     @State private var inputAudioBitRate: Int?
     private let audioPropertyDetector = AudioPropertyDetector()
-    
+
     private func cleanupTempFiles() {
         for fileState in files {
             if case .converted(let convertedFile) = fileState {
@@ -64,21 +63,21 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private let completionSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "completed", withExtension: "wav") else {
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
     }()
-    
+
     private let failureSound: NSSound? = {
         guard let soundURL = Bundle.main.url(forResource: "error", withExtension: "wav") else {
             return nil
         }
         return NSSound(contentsOf: soundURL, byReference: true)
     }()
-    
+
     // Computed property to check if we're in PDF merge mode
     private var isPDFMergeMode: Bool {
         guard case .imagemagick(.pdf) = outputService else { return false }
@@ -91,17 +90,17 @@ struct ConverterView: View {
         let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         return allPDFs && inputURLs.count > 1
     }
-    
+
     // Function to move files up or down in the array
     private func moveFile(at index: Int, direction: Int) {
         let newIndex = index + direction
         guard newIndex >= 0 && newIndex < files.count else { return }
-        
+
         withAnimation(.easeInOut(duration: 0.2)) {
             files.swapAt(index, newIndex)
         }
     }
-    
+
     // Function to clear converted files
     private func clearConvertedFiles() {
         // First, clean up temp files for converted files
@@ -110,7 +109,7 @@ struct ConverterView: View {
                 try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
             }
         }
-        
+
         // Remove all converted files from the array
         withAnimation(.easeInOut(duration: 0.2)) {
             files.removeAll { fileState in
@@ -121,7 +120,7 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     // Function to reset all files back to input state
     private func resetFilesToInput() {
         // Clean up temp files for converted files
@@ -130,11 +129,11 @@ struct ConverterView: View {
                 try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
             }
         }
-        
+
         // Process files, keeping converting files as-is
         var newFiles: [FileState] = []
         var seenURLs = Set<URL>()
-        
+
         for fileState in files {
             switch fileState {
             case .converting:
@@ -161,15 +160,14 @@ struct ConverterView: View {
                 }
             }
         }
-        
+
         // Update files array
         withAnimation(.easeInOut(duration: 0.2)) {
             files = newFiles
             errorMessage = nil
         }
     }
-    
-    
+
     // MARK: - File pane
     var body: some View {
         HStack(spacing: 0) {
@@ -184,13 +182,13 @@ struct ConverterView: View {
                         )
                         .shadow(color: isTargeted ? Color.accentColor.opacity(0.4) : Color.clear, radius: isTargeted ? 12 : 0)
                         .animation(.easeInOut(duration: 0.2), value: isTargeted)
-                    
+
                     if !files.isEmpty {
                         if files.count == 1 {
                             let fileState = files[0]
                             VStack(spacing: 0) {
                                 VStack(spacing: 12) {
-                                    
+
                                     ZStack {
                                         switch fileState {
                                         case .input(let url):
@@ -202,7 +200,7 @@ struct ConverterView: View {
                                         case .error(let url, _):
                                             FilePreviewView(url: url)
                                         }
-                                        
+
                                         if case .converting = fileState {
                                             Rectangle()
                                                 .fill(Color.black.opacity(0.6))
@@ -213,13 +211,13 @@ struct ConverterView: View {
                                                 )
                                         }
                                     }
-                                    
+
                                     Text(fileState.fileName)
                                         .font(.headline)
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                         .multilineTextAlignment(.center)
-                                    
+
                                     if case .error(_, let message) = fileState {
                                         Text(message)
                                             .font(.caption)
@@ -230,12 +228,12 @@ struct ConverterView: View {
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                
+
                                 if case .converting = fileState {
                                     VStack(spacing: 0) {
                                         Divider()
                                             .padding(.horizontal)
-                                        
+
                                         HStack(spacing: 12) {
                                             ResetButton(
                                                 label: "Reset",
@@ -243,7 +241,7 @@ struct ConverterView: View {
                                             ) {
                                                 resetFilesToInput()
                                             }
-                                            
+
                                             if let url = fileState.url {
                                                 PreviewButton(action: {
                                                     QuickLookManager.shared.previewFile(at: url)
@@ -277,7 +275,7 @@ struct ConverterView: View {
                                     VStack(spacing: 0) {
                                         ForEach(files) { fileState in
                                             fileRow(for: fileState)
-                                            
+
                                             if fileState.id != files.last?.id {
                                                 Divider()
                                                     .padding(.horizontal, 12)
@@ -287,7 +285,7 @@ struct ConverterView: View {
                                     .padding(8)
                                 }
                                 .padding(8)
-                                
+
                                 FileToolbar(
                                     files: $files,
                                     onReset: resetFilesToInput,
@@ -307,16 +305,16 @@ struct ConverterView: View {
                             Image(systemName: "doc")
                                 .font(.system(size: 48))
                                 .foregroundStyle(Color.secondary.opacity(0.3))
-                            
+
                             Text("Drop Files Here")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
-                            
+
                             Button("Browse…") {
                                 selectFile()
                             }
                             .buttonStyle(.bordered)
-                            
+
                         }
                         .padding()
                     }
@@ -325,8 +323,7 @@ struct ConverterView: View {
                 .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
                     handleDrop(providers: providers)
                 }
-                
-                
+
                 if pandocWrapper == nil {
                     Text("✗ Pandoc not available")
                         .font(.caption)
@@ -336,13 +333,13 @@ struct ConverterView: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
-            
+
             // MARK: - Convert pane
             VStack {
                 FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url })
                     .padding(.top)
                     .disabled(files.isEmpty || files.contains(where: { if case .converting = $0 { true } else { false } }))
-                
+
                 // Show image conversion options
                 if case .imagemagick(let format) = outputService, !files.isEmpty {
                     // Check if we're combining PDFs (multiple PDF inputs to PDF output)
@@ -354,7 +351,7 @@ struct ConverterView: View {
                     }
                     let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
                     let isCombiningPDFs = allPDFs && inputURLs.count > 1 && format == .pdf
-                    
+
                     Form {
                         // Show PDF-specific options when converting PDF to image (but not when combining PDFs)
                         if !isCombiningPDFs && files.contains(where: { fileState in
@@ -374,7 +371,7 @@ struct ConverterView: View {
                                 }
                                 .padding(.bottom, 8)
                             }
-                            
+
                             if useNativePDFConversion && (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif) {
                                 HStack {
                                     Text("PDF Scale")
@@ -386,7 +383,7 @@ struct ConverterView: View {
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
                                 }
-                                
+
                                 Slider(
                                     value: $pdfNativeScale,
                                     in: 0.5...4.0,
@@ -394,7 +391,7 @@ struct ConverterView: View {
                                 )
                                 .labelsHidden()
                                 .help("Scale factor for PDF rendering")
-                                
+
                                 // Only show background toggle for formats that support transparency
                                 if format == .png || format == .tiff || format == .tif {
                                     Toggle("Add white background", isOn: $pdfNativeAddBackground)
@@ -411,15 +408,15 @@ struct ConverterView: View {
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
                                 }
-                                
+
                                 Slider(
                                     value: Binding(
-                                        get: { 
-                                            let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                        get: {
+                                            let dpiValues = [72, 150, 300, 600, 1_200, 2_400]
                                             return Double(dpiValues.firstIndex(of: pdfToDpi) ?? 1)
                                         },
                                         set: { newValue in
-                                            let dpiValues = [72, 150, 300, 600, 1200, 2400]
+                                            let dpiValues = [72, 150, 300, 600, 1_200, 2_400]
                                             let index = Int(newValue)
                                             pdfToDpi = dpiValues[min(max(0, index), dpiValues.count - 1)]
                                         }
@@ -430,17 +427,17 @@ struct ConverterView: View {
                                 .labelsHidden()
                             }
                         }
-                        
+
                         // Show EXIF metadata removal toggle for image conversions (but not when combining PDFs)
                         if !isCombiningPDFs && format.supportsExifMetadata {
                             Toggle("Strip EXIF Metadata", isOn: $removeExifMetadata)
                         }
-                        
+
                         // Show quality controls for lossy image conversions (but not when combining PDFs)
                         if !isCombiningPDFs && format.isLossy {
                             Group {
                                 Toggle("Lossy Compression", isOn: $useLossyCompression)
-                                
+
                                 HStack {
                                     Text("Image Quality")
                                         .font(.caption)
@@ -451,7 +448,7 @@ struct ConverterView: View {
                                         .foregroundColor(.secondary)
                                         .monospacedDigit()
                                 }
-                                
+
                                 Slider(
                                     value: $imageQuality,
                                     in: 1...100,
@@ -470,12 +467,12 @@ struct ConverterView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 // Show audio options for FFmpeg audio conversions
                 if shouldShowAudioOptions {
                     AudioOptionsView(
-                        audioOptions: $audioOptions, 
-                        outputFormat: currentFFmpegFormat, 
+                        audioOptions: $audioOptions,
+                        outputFormat: currentFFmpegFormat,
                         inputFormat: inputFFmpegFormat,
                         inputSampleRate: inputAudioSampleRate,
                         inputChannels: inputAudioChannels,
@@ -495,7 +492,7 @@ struct ConverterView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 // Show video options for FFmpeg video conversions
                 if shouldShowVideoOptions {
                     VideoOptionsView(videoOptions: $videoOptions, outputFormat: currentFFmpegFormat)
@@ -503,7 +500,7 @@ struct ConverterView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 // Show OCR options
                 if shouldShowOCROptions {
                     OCROptionsView(
@@ -515,7 +512,7 @@ struct ConverterView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 // Show TTS options
                 if shouldShowTTSOptions {
                     TTSOptionsView(
@@ -526,7 +523,7 @@ struct ConverterView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 // Show archive options
                 if shouldShowArchiveOptions {
                     let inputFileCount = files.compactMap { fileState in
@@ -535,25 +532,25 @@ struct ConverterView: View {
                         }
                         return nil
                     }.count
-                    
+
                     ArchiveOptionsView(archiveOptions: $archiveOptions, fileCount: inputFileCount)
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .animation(.easeInOut(duration: 0.2), value: outputService)
                 }
-                
+
                 Spacer()
-                
+
                 VStack {
                     if isConverting {
                         Button(action: {
                             cancelConversion()
-                        }) {
+                        }, label: {
                             Text("Cancel")
                                 .font(.title3)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
-                        }
+                        })
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         .padding(.bottom)
@@ -563,12 +560,12 @@ struct ConverterView: View {
                             conversionTask = Task {
                                 await convertFile()
                             }
-                        }) {
+                        }, label: {
                             Label("Convert", systemImage: "arrowshape.zigzag.right")
                                 .font(.title3)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
-                        }
+                        })
                         .buttonStyle(.bordered)
                         .disabled(files.isEmpty || !isConversionServiceAvailable() || files.contains(where: { if case .converting = $0 { true } else { false } }) || !files.contains(where: { if case .input = $0 { true } else { false } }))
                         .controlSize(.large)
@@ -578,7 +575,7 @@ struct ConverterView: View {
             }
             .padding()
             .frame(width: 320)
-            
+
         }
         .onAppear {
             initializePandoc()
@@ -601,36 +598,36 @@ struct ConverterView: View {
             get: { pandocInitError != nil },
             set: { _ in pandocInitError = nil }
         )) {
-            Button("OK") { 
+            Button("OK") {
                 pandocInitError = nil
             }
         } message: {
             Text(pandocInitError ?? "")
         }
     }
-    
+
     private func showError(_ message: String) {
         errorMessage = message
         showingErrorAlert = true
     }
-    
+
     private func cancelConversion() {
         // Cancel the Task
         conversionTask?.cancel()
         conversionTask = nil
-        
+
         // Cancel any running processes
         pandocWrapper?.cancel()
         imageMagickWrapper?.cancel()
         ffmpegWrapper?.cancel()
         ocrService?.cancel()
         ttsWrapper?.cancel()
-        
+
         // Reset conversion state
         isConverting = false
         currentConversionFile = ""
         conversionProgress = (current: 0, total: 0)
-        
+
         // Reset any converting files back to input state
         for i in files.indices {
             if case .converting(let url, _) = files[i] {
@@ -638,7 +635,7 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private func initializePandoc() {
         do {
             print("Attempting to initialize PandocWrapper...")
@@ -651,7 +648,7 @@ struct ConverterView: View {
             pandocInitError = error.localizedDescription
         }
     }
-    
+
     private func initializeImageMagick() {
         do {
             print("Attempting to initialize ImageMagick...")
@@ -664,7 +661,7 @@ struct ConverterView: View {
             imageMagickInitError = error.localizedDescription
         }
     }
-    
+
     private func initializeFFmpeg() {
         do {
             print("Attempting to initialize FFmpeg...")
@@ -677,7 +674,7 @@ struct ConverterView: View {
             ffmpegInitError = error.localizedDescription
         }
     }
-    
+
     private func initializeOCR() {
         print("Initializing OCR Service...")
         ocrService = OCRService()
@@ -686,7 +683,7 @@ struct ConverterView: View {
         ocrOptions.recognitionLanguages = [ocrSelectedLanguage]
         print("OCR Service initialized successfully")
     }
-    
+
     private func initializeTTS() {
         do {
             ttsWrapper = try TextToSpeechWrapper()
@@ -696,25 +693,25 @@ struct ConverterView: View {
             ttsInitError = error.localizedDescription
         }
     }
-    
+
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         for provider in providers {
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (urlData, error) in
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { urlData, _ in
                 DispatchQueue.main.async {
                     if let urlData = urlData as? Data,
                        let path = String(data: urlData, encoding: .utf8),
                        let url = URL(string: path) {
-                        
+
                         // Check if file already exists
                         if self.files.contains(where: { $0.url == url }) {
                             return
                         }
-                        
+
                         guard self.isSupportedFileType(url) else {
                             self.showError("Unsupported file type: \(url.pathExtension)")
                             return
                         }
-                        
+
                         // If this is the first file, allow it
                         if self.files.isEmpty {
                             self.files.append(.input(url))
@@ -723,24 +720,24 @@ struct ConverterView: View {
                             self.detectInputAudioBitDepth()
                             return
                         }
-                        
+
                         // Check if the new file is compatible with existing files
                         let existingURLs = self.files.compactMap { $0.url }
                         let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
                         let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
                         let existingMediaFormats = existingURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
-                        
+
                         let newDocumentFormat = PandocFormat.detectFormat(from: url)
                         let newImageFormat = ImageFormat.detectFormat(from: url)
                         let newMediaFormat = FFmpegFormat.detectFormat(from: url)
-                        
+
                         let isNewDocument = newDocumentFormat != nil
                         let isNewImage = newImageFormat != nil
                         let isNewMedia = newMediaFormat != nil
                         let hasExistingDocuments = !existingDocumentFormats.isEmpty
                         let hasExistingImages = !existingImageFormats.isEmpty
                         let hasExistingMedia = !existingMediaFormats.isEmpty
-                        
+
                         // Allow if new file type matches existing file types
                         if (isNewDocument && hasExistingDocuments && !hasExistingImages && !hasExistingMedia) ||
                            (isNewImage && hasExistingImages && !hasExistingDocuments && !hasExistingMedia) ||
@@ -760,10 +757,10 @@ struct ConverterView: View {
                 }
             }
         }
-        
+
         return true
     }
-    
+
     private func selectFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
@@ -786,19 +783,19 @@ struct ConverterView: View {
             UTType(filenameExtension: "svg")!,
             UTType(filenameExtension: "ico")!
         ]
-        
+
         if panel.runModal() == .OK {
             for url in panel.urls {
                 // Check if file already exists
                 if files.contains(where: { $0.url == url }) {
                     continue
                 }
-                
+
                 guard isSupportedFileType(url) else {
                     showError("Unsupported file type: \(url.pathExtension)")
                     continue
                 }
-                
+
                 // If this is the first file, allow it
                 if files.isEmpty {
                     files.append(.input(url))
@@ -806,24 +803,24 @@ struct ConverterView: View {
                     detectInputAudioBitDepth()
                     continue
                 }
-                
+
                 // Check if the new file is compatible with existing files
                 let existingURLs = files.compactMap { $0.url }
                 let existingDocumentFormats = existingURLs.compactMap { PandocFormat.detectFormat(from: $0) }
                 let existingImageFormats = existingURLs.compactMap { ImageFormat.detectFormat(from: $0) }
                 let existingMediaFormats = existingURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
-                
+
                 let newDocumentFormat = PandocFormat.detectFormat(from: url)
                 let newImageFormat = ImageFormat.detectFormat(from: url)
                 let newMediaFormat = FFmpegFormat.detectFormat(from: url)
-                
+
                 let isNewDocument = newDocumentFormat != nil
                 let isNewImage = newImageFormat != nil
                 let isNewMedia = newMediaFormat != nil
                 let hasExistingDocuments = !existingDocumentFormats.isEmpty
                 let hasExistingImages = !existingImageFormats.isEmpty
                 let hasExistingMedia = !existingMediaFormats.isEmpty
-                
+
                 // Allow if new file type matches existing file types
                 if (isNewDocument && hasExistingDocuments && !hasExistingImages && !hasExistingMedia) ||
                    (isNewImage && hasExistingImages && !hasExistingDocuments && !hasExistingMedia) ||
@@ -841,13 +838,13 @@ struct ConverterView: View {
                     break
                 }
             }
-            
+
             if errorMessage == nil {
                 errorMessage = nil // Clear any previous errors if successful
             }
         }
     }
-    
+
     private func convertFile() async {
         let inputURLs = files.compactMap { fileState in
             switch fileState {
@@ -861,79 +858,79 @@ struct ConverterView: View {
             print("convertFile: no input files")
             return
         }
-        
+
         // Track if we've played the failure sound
         var hasPlayedFailureSound = false
-        
+
         // Check which service we need
         switch outputService {
-        case .pandoc(_):
+        case .pandoc:
             guard pandocWrapper != nil else {
                 print("convertFile: pandoc not available")
                 showError("Pandoc is not available")
                 return
             }
-        case .imagemagick(_):
+        case .imagemagick:
             guard imageMagickWrapper != nil else {
                 print("convertFile: ImageMagick not available")
                 showError("ImageMagick is not available")
                 return
             }
-        case .ffmpeg(_):
+        case .ffmpeg:
             guard ffmpegWrapper != nil else {
                 print("convertFile: FFmpeg not available")
                 showError("FFmpeg is not available")
                 return
             }
-        case .ocr(_):
+        case .ocr:
             guard ocrService != nil else {
                 print("convertFile: OCR not available")
                 showError("OCR is not available")
                 return
             }
-        case .tts(_):
+        case .tts:
             guard ttsWrapper != nil else {
                 showError("Text-to-Speech is not available")
                 return
             }
-        case .archive(_):
+        case .archive:
             // Archive service doesn't require external tools
             break
         }
-        
+
         // Check if we're creating an archive
         if case .archive(let format) = outputService {
             // Special handling for creating archives
             print("Creating \(format.displayName) with \(inputURLs.count) files")
-            
+
             isConverting = true
             errorMessage = nil
             conversionProgress = (current: 1, total: 1)
             currentConversionFile = "Creating archive..."
-            
+
             // Mark all files as converting
             for url in inputURLs {
                 if let fileIndex = files.firstIndex(where: { $0.url == url }) {
                     files[fileIndex] = .converting(url, fileName: url.lastPathComponent)
                 }
             }
-            
+
             do {
                 // Check for cancellation
                 if Task.isCancelled {
                     print("Archive creation cancelled")
                     return
                 }
-                
+
                 let archiveService = ArchiveService()
                 let createdArchives: [URL]
-                
+
                 if archiveOptions.archiveSeparately {
                     // Create separate archives for each file
                     let tempDirectory = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                     try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-                    
+
                     createdArchives = try await archiveService.createArchive(
                         format: format,
                         from: inputURLs,
@@ -947,7 +944,7 @@ struct ConverterView: View {
                     let tempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathExtension(format.fileExtension)
-                    
+
                     createdArchives = try await archiveService.createArchive(
                         format: format,
                         from: inputURLs,
@@ -957,22 +954,22 @@ struct ConverterView: View {
                         compressionLevel: archiveOptions.compressionLevel
                     )
                 }
-                
+
                 // Create ConvertedFile objects for each created archive
                 var convertedFiles: [ConvertedFile] = []
-                
+
                 for (index, archiveURL) in createdArchives.enumerated() {
                     let fileName = archiveURL.lastPathComponent
-                    let originalURL = archiveOptions.archiveSeparately && index < inputURLs.count ? 
+                    let originalURL = archiveOptions.archiveSeparately && index < inputURLs.count ?
                         inputURLs[index] : inputURLs[0]
-                    
+
                     // Move to final temp location with proper filename
                     let finalTempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try FileManager.default.moveItem(at: archiveURL, to: finalTempURL)
-                    
+
                     let convertedFile = ConvertedFile(
                         originalURL: originalURL,
                         tempURL: finalTempURL,
@@ -980,7 +977,7 @@ struct ConverterView: View {
                     )
                     convertedFiles.append(convertedFile)
                 }
-                
+
                 // Remove all converting files and add the archive results
                 files.removeAll { fileState in
                     if case .converting = fileState {
@@ -988,23 +985,23 @@ struct ConverterView: View {
                     }
                     return false
                 }
-                
+
                 for convertedFile in convertedFiles {
                     files.append(.converted(convertedFile))
                 }
-                
+
                 print("Successfully created archive")
-                
+
                 // Play completion sound
                 if playSounds {
                     completionSound?.play()
                 }
-                
+
                 isConverting = false
                 currentConversionFile = ""
                 conversionProgress = (current: 0, total: 0)
                 conversionTask = nil
-                
+
                 return // Exit early, we're done
             } catch {
                 // Handle cancellation errors differently
@@ -1012,80 +1009,80 @@ struct ConverterView: View {
                     print("Archive creation cancelled")
                     return
                 }
-                
+
                 print("Archive creation failed: \(error)")
-                
+
                 // Mark all files as error
                 for url in inputURLs {
                     if let fileIndex = files.firstIndex(where: { $0.url == url }) {
                         files[fileIndex] = .error(url, errorMessage: error.localizedDescription)
                     }
                 }
-                
+
                 // Play failure sound
                 if playSounds {
                     failureSound?.play()
                 }
-                
+
                 isConverting = false
                 currentConversionFile = ""
                 conversionProgress = (current: 0, total: 0)
                 conversionTask = nil
-                
+
                 return
             }
         }
-        
+
         // Check if we're combining multiple PDFs
         let allPDFs = inputURLs.allSatisfy { $0.pathExtension.lowercased() == "pdf" }
         if case .imagemagick(.pdf) = outputService, allPDFs, inputURLs.count > 1 {
             // Special handling for merging PDFs
             print("Merging \(inputURLs.count) PDFs into one")
-            
+
             isConverting = true
             errorMessage = nil
             conversionProgress = (current: 1, total: 1)
             currentConversionFile = "Merging PDFs..."
-            
+
             // Mark all files as converting
             for url in inputURLs {
                 if let fileIndex = files.firstIndex(where: { $0.url == url }) {
                     files[fileIndex] = .converting(url, fileName: url.lastPathComponent)
                 }
             }
-            
+
             do {
                 // Check for cancellation
                 if Task.isCancelled {
                     print("PDF combination cancelled")
                     return
                 }
-                
+
                 let tempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
                     .appendingPathExtension("pdf")
-                
+
                 // Combine all PDFs
                 try await PDFKitService.combinePDFs(at: inputURLs, outputURL: tempURL)
-                
+
                 // Create output filename
-                let fileName = inputURLs.count == 2 ? 
+                let fileName = inputURLs.count == 2 ?
                     "\(inputURLs[0].deletingPathExtension().lastPathComponent)_\(inputURLs[1].deletingPathExtension().lastPathComponent)_combined.pdf" :
                     "combined_\(inputURLs.count)_pdfs.pdf"
-                
+
                 // Move to final temp location with proper filename
                 let finalTempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
                     .appendingPathComponent(fileName)
                 try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                
+
                 let convertedFile = ConvertedFile(
                     originalURL: inputURLs[0], // Use first file as original
                     tempURL: finalTempURL,
                     fileName: fileName
                 )
-                
+
                 // Remove all converting files and add the single combined result
                 files.removeAll { fileState in
                     if case .converting = fileState {
@@ -1094,21 +1091,21 @@ struct ConverterView: View {
                     return false
                 }
                 files.append(.converted(convertedFile))
-                
+
                 print("Successfully combined PDFs")
-                
+
                 // Play completion sound
                 if playSounds {
                     if playSounds {
                 completionSound?.play()
             }
                 }
-                
+
                 isConverting = false
                 currentConversionFile = ""
                 conversionProgress = (current: 0, total: 0)
                 conversionTask = nil
-                
+
                 return // Exit early, we're done
             } catch {
                 // Handle cancellation errors differently
@@ -1116,44 +1113,44 @@ struct ConverterView: View {
                     print("PDF combination cancelled")
                     return
                 }
-                
+
                 print("PDF combination failed: \(error)")
-                
+
                 // Mark all files as error
                 for url in inputURLs {
                     if let fileIndex = files.firstIndex(where: { $0.url == url }) {
                         files[fileIndex] = .error(url, errorMessage: error.localizedDescription)
                     }
                 }
-                
+
                 // Play failure sound
                 if playSounds {
                     failureSound?.play()
                 }
-                
+
                 isConverting = false
                 currentConversionFile = ""
                 conversionProgress = (current: 0, total: 0)
                 conversionTask = nil
-                
+
                 return
             }
         }
-        
+
         let serviceDescription = getServiceDescription(outputService)
         print("Starting batch conversion of \(inputURLs.count) files to \(serviceDescription)")
-        
+
         isConverting = true
         errorMessage = nil
         conversionProgress = (current: 0, total: inputURLs.count)
-        
+
         for (index, inputURL) in inputURLs.enumerated() {
             // Check for cancellation
             if Task.isCancelled {
                 print("Conversion cancelled")
                 return
             }
-            
+
             // Mark this file as converting
             if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                 files[fileIndex] = .converting(inputURL, fileName: inputURL.lastPathComponent)
@@ -1164,9 +1161,9 @@ struct ConverterView: View {
                 let tempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
                     .appendingPathExtension(outputService.fileExtension)
-                
+
                 print("Converting \(inputURL.lastPathComponent) to temporary file: \(tempURL.path)")
-                
+
                 switch outputService {
                 case .pandoc(let format):
                     try await pandocWrapper!.convertFile(
@@ -1174,77 +1171,77 @@ struct ConverterView: View {
                         outputURL: tempURL,
                         to: format
                     )
-                    
+
                     // Single file output for Pandoc
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
-                    
+
                     // Move temp file to a more permanent temp location with proper filename
                     let finalTempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                    
+
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
                         tempURL: finalTempURL,
                         fileName: fileName
                     )
-                    
+
                     // Replace the converting file with the converted file
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
+
                 case .imagemagick(let format):
                     // Check if we should use native PDF conversion
                     if useNativePDFConversion && inputURL.pathExtension.lowercased() == "pdf" {
                         // Use PDFKit for PDF to image conversion
                         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
                         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                        
+
                         // JPEG always needs a background since it doesn't support transparency
-                        let backgroundColor: NSColor = (format == .jpeg || format == .jpg) ? .white : 
+                        let backgroundColor: NSColor = (format == .jpeg || format == .jpg) ? .white :
                                                       (pdfNativeAddBackground ? .white : .clear)
-                        
+
                         let options = PDFKitService.PDFConversionOptions(
                             scale: CGFloat(pdfNativeScale),
                             format: mapImageFormatToPDFKitFormat(format),
                             backgroundColor: backgroundColor,
                             jpegQuality: CGFloat(imageQuality) / 100.0
                         )
-                        
+
                         let outputURLs = try await PDFKitService.convertPDFToImages(
                             at: inputURL,
                             outputDirectory: tempDir,
                             options: options
                         )
-                        
+
                         // PDFKit handles multi-page PDFs directly, no need for the complex file detection
                         // Skip to the end of the ImageMagick-specific handling
-                        
+
                         // Handle the converted files
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                             if outputURLs.count == 1 {
                                 // Single page PDF
                                 let baseName = inputURL.deletingPathExtension().lastPathComponent
                                 let fileName = "\(baseName).\(format.fileExtension)"
-                                
+
                                 // Move to final temp location with proper filename
                                 let finalTempURL = FileManager.default.temporaryDirectory
                                     .appendingPathComponent(UUID().uuidString)
                                     .appendingPathComponent(fileName)
                                 try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                                 try FileManager.default.moveItem(at: outputURLs[0], to: finalTempURL)
-                                
+
                                 let convertedFile = ConvertedFile(
                                     originalURL: inputURL,
                                     tempURL: finalTempURL,
                                     fileName: fileName
                                 )
                                 files[fileIndex] = .converted(convertedFile)
-                                
+
                                 // Clean up the temp directory
                                 try FileManager.default.removeItem(at: tempDir)
                             } else {
@@ -1261,7 +1258,7 @@ struct ConverterView: View {
                                 // Don't remove tempDir for multi-page since we're using those URLs
                             }
                         }
-                        
+
                         // Skip the rest of ImageMagick handling for this file
                         continue
                     } else {
@@ -1274,7 +1271,7 @@ struct ConverterView: View {
                             dpi: pdfToDpi
                         )
                     }
-                    
+
                 case .ffmpeg(let format):
                     try await ffmpegWrapper!.convertFile(
                         inputURL: inputURL,
@@ -1284,32 +1281,32 @@ struct ConverterView: View {
                         audioOptions: format.isVideo ? nil : audioOptions,
                         videoOptions: format.isVideo ? videoOptions : nil
                     )
-                    
+
                     // Single file output for FFmpeg
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
-                    
+
                     // Move temp file to a more permanent temp location with proper filename
                     let finalTempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                    
+
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
                         tempURL: finalTempURL,
                         fileName: fileName
                     )
-                    
+
                     // Replace the converting file with the converted file
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
+
                 case .ocr(let format):
                     let recognizedText: String
-                    
+
                     switch format {
                     case .txt:
                         // Always use Vision OCR for the generic .txt format
@@ -1323,11 +1320,11 @@ struct ConverterView: View {
                                 options: ocrOptions
                             )
                         }
-                        
+
                     case .txtExtract:
                         // Direct text extraction using PDFKit
                         recognizedText = try await PDFTextExtractor.extractText(from: inputURL, method: .pdfKit)
-                        
+
                     case .txtOCR:
                         // OCR using Vision framework
                         if inputURL.pathExtension.lowercased() == "pdf" {
@@ -1341,28 +1338,28 @@ struct ConverterView: View {
                             )
                         }
                     }
-                    
+
                     // Write text to temp file
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
-                    
+
                     let finalTempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try recognizedText.write(to: finalTempURL, atomically: true, encoding: .utf8)
-                    
+
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
                         tempURL: finalTempURL,
                         fileName: fileName
                     )
-                    
+
                     // Replace the converting file with the converted file
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
+
                 case .tts(let format):
                     // Convert text to speech
                     try await ttsWrapper!.convertTextToSpeech(
@@ -1372,34 +1369,34 @@ struct ConverterView: View {
                         voice: ttsOptions.selectedVoice,
                         rate: ttsOptions.speechRate
                     )
-                    
+
                     // Single file output for TTS
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
-                    
+
                     // Move temp file to a more permanent temp location with proper filename
                     let finalTempURL = FileManager.default.temporaryDirectory
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathComponent(fileName)
                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                    
+
                     let convertedFile = ConvertedFile(
                         originalURL: inputURL,
                         tempURL: finalTempURL,
                         fileName: fileName
                     )
-                    
+
                     // Replace the converting file with the converted file
                     if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                         files[fileIndex] = .converted(convertedFile)
                     }
-                    
-                case .archive(_):
+
+                case .archive:
                     // Archive creation should have been handled earlier - this is an error
                     fatalError("Archive creation should not reach individual file conversion loop")
                 }
-                
+
                 // ImageMagick-specific handling
                 if case .imagemagick = outputService {
                     // Strip EXIF metadata if requested (preserving orientation)
@@ -1410,7 +1407,7 @@ struct ConverterView: View {
                             try ImageProcessor.shared.strip(exifMetadataExceptOrientation: tempURL)
                         }
                     }
-                    
+
                     // For PDF input, ImageMagick might create multiple files
                     if let inputFormat = ImageFormat.detectFormat(from: inputURL),
                        inputFormat.requiresDpiConfiguration {
@@ -1418,11 +1415,9 @@ struct ConverterView: View {
                         let tempDir = tempURL.deletingLastPathComponent()
                         let baseTempName = tempURL.deletingPathExtension().lastPathComponent
                         let ext = tempURL.pathExtension
-                        
-                        
-                        
+
                         var pageIndex = 0
-                        
+
                         // Based on the debug output, ImageMagick uses: filename-N.ext
                         var pageFiles: [ConvertedFile] = []
                         while true {
@@ -1431,33 +1426,33 @@ struct ConverterView: View {
                                 print("Multi-page PDF processing cancelled")
                                 break
                             }
-                            
+
                             let testFileName = "\(baseTempName)-\(pageIndex).\(ext)"
                             let testURL = tempDir.appendingPathComponent(testFileName)
-                            
+
                             if FileManager.default.fileExists(atPath: testURL.path) {
                                 let fileName = "\(baseName)-page\(pageIndex + 1).\(outputService.fileExtension)"
-                                
+
                                 // Move to final location with proper filename
                                 let finalTempURL = FileManager.default.temporaryDirectory
                                     .appendingPathComponent(UUID().uuidString)
                                     .appendingPathComponent(fileName)
                                 try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                                 try FileManager.default.moveItem(at: testURL, to: finalTempURL)
-                                
+
                                 let convertedFile = ConvertedFile(
                                     originalURL: inputURL,
                                     tempURL: finalTempURL,
                                     fileName: fileName
                                 )
                                 pageFiles.append(convertedFile)
-                                
+
                                 pageIndex += 1
                             } else {
                                 break
                             }
                         }
-                        
+
                         // Replace the converting file with converted files
                         print("PDF conversion found \(pageFiles.count) page files")
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
@@ -1466,20 +1461,20 @@ struct ConverterView: View {
                                 if FileManager.default.fileExists(atPath: tempURL.path) {
                                     print("PDF conversion: Using fallback single file approach")
                                     let fileName = "\(baseName).\(outputService.fileExtension)"
-                                    
+
                                     // Move to final location with proper filename
                                     let finalTempURL = FileManager.default.temporaryDirectory
                                         .appendingPathComponent(UUID().uuidString)
                                         .appendingPathComponent(fileName)
                                     try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                                    
+
                                     let convertedFile = ConvertedFile(
                                         originalURL: inputURL,
                                         tempURL: finalTempURL,
                                         fileName: fileName
                                     )
-                                    
+
                                     // Replace the converting file with the converted file
                                     files[fileIndex] = .converted(convertedFile)
                                     print("Files array now has \(files.count) items after fallback")
@@ -1497,27 +1492,27 @@ struct ConverterView: View {
                         // Single file output for non-PDF images
                         let baseName = inputURL.deletingPathExtension().lastPathComponent
                         let fileName = "\(baseName).\(outputService.fileExtension)"
-                        
+
                         // Move to final location with proper filename
                         let finalTempURL = FileManager.default.temporaryDirectory
                             .appendingPathComponent(UUID().uuidString)
                             .appendingPathComponent(fileName)
                         try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                         try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
-                        
+
                         let convertedFile = ConvertedFile(
                             originalURL: inputURL,
                             tempURL: finalTempURL,
                             fileName: fileName
                         )
-                        
+
                         // Replace the converting file with the converted file
                         if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                             files[fileIndex] = .converted(convertedFile)
                         }
                     }
                 }
-                
+
                 print("Successfully converted \(inputURL.lastPathComponent)")
             } catch {
                 // Handle cancellation errors differently
@@ -1525,14 +1520,14 @@ struct ConverterView: View {
                     print("Conversion cancelled for \(inputURL.lastPathComponent)")
                     return
                 }
-                
+
                 print("Conversion failed for \(inputURL.lastPathComponent): \(error)")
-                
+
                 // Mark this file as error
                 if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
                     files[fileIndex] = .error(inputURL, errorMessage: error.localizedDescription)
                 }
-                
+
                 // Play failure sound only on first error
                 if !hasPlayedFailureSound {
                     if playSounds {
@@ -1540,24 +1535,24 @@ struct ConverterView: View {
                 }
                     hasPlayedFailureSound = true
                 }
-                
+
                 // Continue to next file instead of stopping entire conversion
                 continue
             }
         }
-        
+
         // Check if there are no files currently converting (completion of current batch)
-        let convertingCount = files.filter { 
+        let convertingCount = files.filter {
             if case .converting = $0 { return true }
             return false
         }.count
-        
+
         // Count successfully converted files
         let convertedCount = files.filter {
             if case .converted = $0 { return true }
             return false
         }.count
-        
+
         // Only play completion sound if we have at least one successful conversion
         if convertingCount == 0 && convertedCount > 0 {
             print("Batch conversion completed with \(convertedCount) successful conversions")
@@ -1566,19 +1561,19 @@ struct ConverterView: View {
                 completionSound?.play()
             }
         }
-        
+
         isConverting = false
         currentConversionFile = ""
         conversionProgress = (current: 0, total: 0)
         conversionTask = nil
     }
-    
+
     private func saveFile(_ convertedFile: ConvertedFile) {
         if saveToSourceFolder {
             // Save directly to source folder
             let sourceFolder = convertedFile.originalURL.deletingLastPathComponent()
             let destinationURL = sourceFolder.appendingPathComponent(convertedFile.fileName)
-            
+
             do {
                 // Check if file already exists
                 if FileManager.default.fileExists(atPath: destinationURL.path) {
@@ -1587,7 +1582,7 @@ struct ConverterView: View {
                     panel.nameFieldStringValue = convertedFile.fileName
                     panel.directoryURL = sourceFolder
                     panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-                    
+
                     if panel.runModal() == .OK, let url = panel.url {
                         try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
                         addToHistory(convertedFile: convertedFile, savedURL: url)
@@ -1605,7 +1600,7 @@ struct ConverterView: View {
             let panel = NSSavePanel()
             panel.nameFieldStringValue = convertedFile.fileName
             panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-            
+
             if panel.runModal() == .OK, let url = panel.url {
                 do {
                     // Copy the temp file to the destination
@@ -1617,7 +1612,7 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private func addToHistory(convertedFile: ConvertedFile, savedURL: URL) {
         let inputFormat = convertedFile.originalURL.pathExtension.uppercased()
         let outputFormat = savedURL.pathExtension.uppercased()
@@ -1628,13 +1623,13 @@ struct ConverterView: View {
             outputFileURL: savedURL
         )
     }
-    
+
     private func saveFile(data: Data, fileName: String, originalURL: URL) {
         if saveToSourceFolder {
             // Save directly to source folder
             let sourceFolder = originalURL.deletingLastPathComponent()
             let destinationURL = sourceFolder.appendingPathComponent(fileName)
-            
+
             do {
                 // Check if file already exists
                 if FileManager.default.fileExists(atPath: destinationURL.path) {
@@ -1643,7 +1638,7 @@ struct ConverterView: View {
                     panel.nameFieldStringValue = fileName
                     panel.directoryURL = sourceFolder
                     panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-                    
+
                     if panel.runModal() == .OK, let url = panel.url {
                         try data.write(to: url)
                         addToHistory(originalURL: originalURL, savedURL: url)
@@ -1661,7 +1656,7 @@ struct ConverterView: View {
             let panel = NSSavePanel()
             panel.nameFieldStringValue = fileName
             panel.allowedContentTypes = [UTType(filenameExtension: outputService.fileExtension)!]
-            
+
             if panel.runModal() == .OK, let url = panel.url {
                 do {
                     try data.write(to: url)
@@ -1672,7 +1667,7 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private func addToHistory(originalURL: URL, savedURL: URL) {
         let inputFormat = originalURL.pathExtension.uppercased()
         let outputFormat = savedURL.pathExtension.uppercased()
@@ -1683,7 +1678,7 @@ struct ConverterView: View {
             outputFileURL: savedURL
         )
     }
-    
+
     private func saveAllFiles() {
         let convertedFilesList = files.compactMap { file in
             if case .converted(let convertedFile) = file {
@@ -1692,13 +1687,13 @@ struct ConverterView: View {
                 return nil
             }
         }
-        
+
         if saveToSourceFolder {
             // Save all files to their respective source folders
             for file in convertedFilesList {
                 let sourceFolder = file.originalURL.deletingLastPathComponent()
                 let fileURL = sourceFolder.appendingPathComponent(file.fileName)
-                
+
                 do {
                     // Check if file already exists
                     if FileManager.default.fileExists(atPath: fileURL.path) {
@@ -1707,13 +1702,13 @@ struct ConverterView: View {
                         let fileExtension = (file.fileName as NSString).pathExtension
                         var counter = 1
                         var newFileURL = fileURL
-                        
+
                         while FileManager.default.fileExists(atPath: newFileURL.path) {
                             let newFileName = "\(baseFileName)_\(counter).\(fileExtension)"
                             newFileURL = sourceFolder.appendingPathComponent(newFileName)
                             counter += 1
                         }
-                        
+
                         try FileManager.default.copyItem(at: file.tempURL, to: newFileURL)
                         addToHistory(convertedFile: file, savedURL: newFileURL)
                     } else {
@@ -1733,7 +1728,7 @@ struct ConverterView: View {
             panel.canChooseDirectories = true
             panel.allowsMultipleSelection = false
             panel.prompt = "Choose Folder"
-            
+
             if panel.runModal() == .OK, let folderURL = panel.url {
                 for file in convertedFilesList {
                     let fileURL = folderURL.appendingPathComponent(file.fileName)
@@ -1749,71 +1744,71 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private func isConversionServiceAvailable() -> Bool {
         switch outputService {
-        case .pandoc(_):
+        case .pandoc:
             return pandocWrapper != nil
-        case .imagemagick(_):
+        case .imagemagick:
             return imageMagickWrapper != nil
-        case .ffmpeg(_):
+        case .ffmpeg:
             return ffmpegWrapper != nil
-        case .ocr(_):
+        case .ocr:
             return ocrService != nil
-        case .tts(_):
+        case .tts:
             return ttsWrapper != nil
-        case .archive(_):
+        case .archive:
             return true // Archive service is always available
         }
     }
-    
+
     private func isSupportedFileType(_ url: URL) -> Bool {
         // Detect format of the file (document, image, or media)
         let documentFormat = PandocFormat.detectFormat(from: url)
         let imageFormat = ImageFormat.detectFormat(from: url)
         let mediaFormat = FFmpegFormat.detectFormat(from: url)
-        
+
         return documentFormat != nil || imageFormat != nil || mediaFormat != nil
     }
-    
+
     private func updateOutputService() {
         let compatibleServices = getCompatibleServices()
-        
+
         // If current outputService is still compatible, keep it
         if compatibleServices.contains(where: { $0.0 == outputService }) {
             return
         }
-        
+
         // Otherwise, select the first compatible option if available
         if let firstService = compatibleServices.first {
             outputService = firstService.0
         }
     }
-    
+
     private func detectInputAudioBitDepth() {
         // Reset audio properties
         inputAudioBitDepth = nil
         inputAudioSampleRate = nil
         inputAudioChannels = nil
         inputAudioBitRate = nil
-        
+
         // Detect for both audio and video files (video may have audio tracks)
         guard let firstFile = files.first,
               let url = firstFile.url else { return }
-        
+
         // Detect audio properties asynchronously using hybrid approach
         Task {
             do {
                 // Create detector with FFmpeg fallback if available
                 let detector = AudioPropertyDetector(ffmpegWrapper: ffmpegWrapper)
                 let properties = try await detector.detectProperties(from: url)
-                
+
                 await MainActor.run {
                     self.inputAudioBitDepth = properties.bitDepth
                     self.inputAudioSampleRate = properties.sampleRate
                     self.inputAudioChannels = properties.channels
                     self.inputAudioBitRate = properties.bitRate
-                    
+
                     // Auto-update sample size if output is lossless
                     if case .ffmpeg(let outputFormat) = outputService,
                        let config = FormatRegistry.shared.config(for: outputFormat),
@@ -1821,7 +1816,7 @@ struct ConverterView: View {
                        let bitDepth = properties.bitDepth {
                         updateSampleSizeForBitDepth(bitDepth)
                     }
-                    
+
                     // Don't auto-update sample rate and channels when they're automatic
                     // Automatic means FFmpeg will preserve the source values
                 }
@@ -1830,18 +1825,18 @@ struct ConverterView: View {
             }
         }
     }
-    
+
     private func updateSampleSizeForBitDepth(_ bitDepth: Int) {
         // Map bit depth to AudioSampleSize
         let targetSampleSize: AudioSampleSize?
-        
+
         // Check if exact match is available
         if let outputFormat = currentFFmpegFormat,
            let config = FormatRegistry.shared.config(for: outputFormat),
            config.supportsSampleSize {
-            
+
             let availableSizes = config.availableSampleSizes
-            
+
             // Find exact match
             if availableSizes.contains(where: { $0.rawValue == bitDepth }) {
                 targetSampleSize = AudioSampleSize(rawValue: bitDepth)
@@ -1855,28 +1850,28 @@ struct ConverterView: View {
                     targetSampleSize = availableSizes.min(by: { $0.rawValue < $1.rawValue })
                 }
             }
-            
+
             // Update the audio options
             if let newSize = targetSampleSize {
                 audioOptions.sampleSize = newSize
             }
         }
     }
-    
+
     private func updateSampleRateForInput(_ sampleRate: Int) {
         // Only update if automatic is selected
         guard audioOptions.sampleRate == .automatic else { return }
-        
+
         // Find matching AudioSampleRate
         if let matchingRate = AudioSampleRate.allCases.first(where: { $0.value == sampleRate }) {
             audioOptions.sampleRate = matchingRate
         }
     }
-    
+
     private func updateChannelsForInput(_ channels: Int) {
         // Only update if automatic is selected
         guard audioOptions.channels == .automatic else { return }
-        
+
         // Map to AudioChannels
         switch channels {
         case 1:
@@ -1888,20 +1883,20 @@ struct ConverterView: View {
             break
         }
     }
-    
+
     private func getCompatibleServices() -> [(ConversionService, String)] {
         let inputURLs = files.compactMap { $0.url }
         guard !inputURLs.isEmpty else {
             return []
         }
-        
+
         // Detect if inputs are documents, images, or media files
         let documentFormats = inputURLs.compactMap { PandocFormat.detectFormat(from: $0) }
         let imageFormats = inputURLs.compactMap { ImageFormat.detectFormat(from: $0) }
         let mediaFormats = inputURLs.compactMap { FFmpegFormat.detectFormat(from: $0) }
-        
+
         var compatibleServices: [(ConversionService, String)] = []
-        
+
         if !documentFormats.isEmpty {
             // Document conversion with Pandoc
             var compatiblePandocFormats = Set(PandocFormat.compatibleOutputFormats(for: documentFormats[0]))
@@ -1912,7 +1907,7 @@ struct ConverterView: View {
                 (.pandoc(format), format.displayName)
             })
         }
-        
+
         if !imageFormats.isEmpty {
             // Image conversion with ImageMagick
             let compatibleImageFormats = ImageFormat.outputFormats
@@ -1920,7 +1915,7 @@ struct ConverterView: View {
                 (.imagemagick(format), format.displayName)
             })
         }
-        
+
         if !mediaFormats.isEmpty {
             // Media conversion with FFmpeg
             let compatibleMediaFormats = FFmpegFormat.allCases
@@ -1929,13 +1924,13 @@ struct ConverterView: View {
                 return (.ffmpeg(format), config.displayName)
             })
         }
-        
+
         // Add OCR/Text extraction for PDFs and images
         let hasPDFs = inputURLs.contains { url in
             url.pathExtension.lowercased() == "pdf"
         }
         let hasImages = !imageFormats.isEmpty
-        
+
         if hasPDFs && hasImages {
             // Both PDFs and images: show generic text option
             compatibleServices.append((.ocr(.txt), "Text"))
@@ -1947,29 +1942,28 @@ struct ConverterView: View {
             // Only images: show generic text option
             compatibleServices.append((.ocr(.txt), "Text"))
         }
-        
+
         // Add TTS for text files
         let hasTextFiles = inputURLs.contains { url in
             let ext = url.pathExtension.lowercased()
             let isText = ext == "txt" || ext == "text"
             let pandocFormat = PandocFormat.detectFormat(from: url)
             let isPandocPlain = pandocFormat == .plain
-            
-            
+
             // Check if it's a text file by extension or if Pandoc detected it as plain text
             return isText || isPandocPlain
         }
-        
+
         if hasTextFiles {
             // Add TTS audio output formats
             compatibleServices.append(contentsOf: TTSFormat.allCases.map { format in
                 (.tts(format), "\(format.displayName) (TTS)")
             })
         }
-        
+
         return compatibleServices.sorted { $0.1 < $1.1 }
     }
-    
+
     private func getServiceDescription(_ service: ConversionService) -> String {
         switch service {
         case .pandoc(let format):
@@ -1993,7 +1987,7 @@ struct ConverterView: View {
             return format.rawValue
         }
     }
-    
+
     private var shouldShowDpiSelector: Bool {
         // Show DPI selector when converting from formats that require DPI configuration
         let inputURLs = files.compactMap { $0.url }
@@ -2001,18 +1995,18 @@ struct ConverterView: View {
             guard let format = ImageFormat.detectFormat(from: url) else { return false }
             return format.requiresDpiConfiguration
         }
-        let isImageOutput = if case .imagemagick(_) = outputService { true } else { false }
+        let isImageOutput = if case .imagemagick = outputService { true } else { false }
         return hasInputRequiringDpi && isImageOutput
     }
-    
+
     private var inputFFmpegFormat: FFmpegFormat? {
         // Get the format of the first input file
         guard let firstFile = files.first,
               let url = firstFile.url else { return nil }
-        
+
         return FFmpegFormat.detectFormat(from: url)
     }
-    
+
     private var shouldShowAudioOptions: Bool {
         // Show audio options when:
         // 1. We're converting to an audio format with FFmpeg
@@ -2021,7 +2015,7 @@ struct ConverterView: View {
         }
         return false
     }
-    
+
     private var shouldShowVideoOptions: Bool {
         // Show video options when:
         // 1. We're converting to a video format with FFmpeg
@@ -2030,7 +2024,7 @@ struct ConverterView: View {
         }
         return false
     }
-    
+
     private var shouldShowOCROptions: Bool {
         // Show OCR options only for actual OCR (not for text extraction)
         if case .ocr(let format) = outputService {
@@ -2043,23 +2037,23 @@ struct ConverterView: View {
         }
         return false
     }
-    
+
     private var shouldShowTTSOptions: Bool {
         // Show TTS options when converting text to speech
-        if case .tts(_) = outputService {
+        if case .tts = outputService {
             return true
         }
         return false
     }
-    
+
     private var shouldShowArchiveOptions: Bool {
         // Show archive options when creating archives
-        if case .archive(_) = outputService {
+        if case .archive = outputService {
             return true
         }
         return false
     }
-    
+
     private var shouldShowExifOption: Bool {
         // Show EXIF metadata option only when:
         // 1. We're converting to an image format that supports EXIF metadata
@@ -2068,27 +2062,26 @@ struct ConverterView: View {
         }
         return false
     }
-    
+
     private var currentFFmpegFormat: FFmpegFormat? {
         if case .ffmpeg(let format) = outputService {
             return format
         }
         return nil
     }
-    
+
     private var pdfToDpiIndex: Int {
         switch pdfToDpi {
         case 72: return 0
         case 150: return 1
         case 300: return 2
         case 600: return 3
-        case 1200: return 4
-        case 2400: return 5
+        case 1_200: return 4
+        case 2_400: return 5
         default: return 1
         }
     }
-    
-    
+
     private func iconForFile(fileState: FileState) -> NSImage {
         switch fileState {
         case .input(let url), .converting(let url, _), .error(let url, _):
@@ -2097,7 +2090,7 @@ struct ConverterView: View {
             return iconForFile(fileName: file.fileName)
         }
     }
-    
+
     private func iconForFile(fileName: String) -> NSImage {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         if !FileManager.default.fileExists(atPath: tempURL.path) {
@@ -2107,7 +2100,7 @@ struct ConverterView: View {
         try? FileManager.default.removeItem(at: tempURL)
         return icon
     }
-    
+
     @ViewBuilder
     private func fileRow(for fileState: FileState) -> some View {
         switch fileState {
@@ -2155,8 +2148,8 @@ struct ConverterView: View {
             )
         case .error(let url, let message):
             ErrorFileRow(
-                url: url, 
-                fileName: fileState.fileName, 
+                url: url,
+                fileName: fileState.fileName,
                 message: message,
                 onRemove: {
                     files.removeAll { $0.id == fileState.id }
@@ -2165,7 +2158,7 @@ struct ConverterView: View {
             )
         }
     }
-    
+
     private func mapImageFormatToPDFKitFormat(_ format: ImageFormat) -> PDFKitService.PDFConversionOptions.ImageFormat {
         switch format {
         case .png:
@@ -2195,7 +2188,7 @@ extension PandocFormat {
         case .rtf: return "rtf"
         case .epub, .epub2, .epub3: return "epub"
         case .plain: return "txt"
-        
+
         // Lightweight markup
         case .rst: return "rst"
         case .asciidoc: return "adoc"
@@ -2206,18 +2199,18 @@ extension PandocFormat {
         case .djot: return "djot"
         case .markua: return "markua"
         case .txt2tags: return "t2t"
-        
+
         // Wiki formats
         case .mediawiki, .dokuwiki, .tikiwiki, .twiki, .vimwiki, .xwiki, .zimwiki, .jira:
             return "wiki"
-        
+
         // Documentation formats
         case .man: return "man"
         case .ms: return "ms"
         case .mdoc: return "mdoc"
         case .texinfo: return "texi"
         case .haddock: return "haddock"
-        
+
         // XML formats
         case .docbook, .docbook4, .docbook5: return "xml"
         case .jats, .jatsArchiving, .jatsPublishing, .jatsArticleauthoring: return "xml"
@@ -2225,23 +2218,23 @@ extension PandocFormat {
         case .tei: return "xml"
         case .opml: return "opml"
         case .opendocument: return "xml"
-        
+
         // Office formats
         case .odt: return "odt"
         case .powerpoint: return "pptx"
         case .openoffice: return "odf"
-        
+
         // Academic formats
         case .context: return "tex"
         case .biblatex, .bibtex: return "bib"
         case .csljson: return "json"
         case .ris: return "ris"
         case .endnotexml: return "xml"
-        
+
         // Presentation formats
         case .beamer: return "tex"
         case .slidy, .slideous, .dzslides, .revealjs, .s5: return "html"
-        
+
         // Other formats
         case .json: return "json"
         case .native: return "native"
@@ -2256,13 +2249,12 @@ extension PandocFormat {
     }
 }
 
-
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
-    
+
     ConverterView(savedHistoryManager: manager)
         .modelContainer(container)
 }

@@ -15,7 +15,7 @@ struct ConvertedFileRow: View {
     let file: ConvertedFile
     let onSave: () -> Void
     @State private var isHoveringRow = false
-    
+
     var body: some View {
         BaseFileRow(
             url: nil,
@@ -36,12 +36,12 @@ struct ConvertedFileRow: View {
                     }, size: 14)
                     .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
-                
+
                 SaveButton(action: onSave, size: 14)
             }
         }
     }
-    
+
     private func iconForFile(fileName: String) -> NSImage {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
         if !FileManager.default.fileExists(atPath: tempURL.path) {

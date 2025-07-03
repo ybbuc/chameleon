@@ -14,8 +14,8 @@ struct FileToolbar: View {
     let onSaveAll: () -> Void
     let onSave: (ConvertedFile) -> Void
     let onUpdateOutputService: () -> Void
-    var onClear: (() -> Void)? = nil
-    
+    var onClear: (() -> Void)?
+
     private var hasResettableFiles: Bool {
         files.contains { fileState in
             switch fileState {
@@ -26,16 +26,16 @@ struct FileToolbar: View {
             }
         }
     }
-    
+
     private var convertedCount: Int {
         files.filter { if case .converted = $0 { true } else { false } }.count
     }
-    
+
     var body: some View {
         VStack {
             Divider()
                 .padding(.horizontal)
-            
+
             if files.count == 1, let fileState = files.first {
                 // Single file toolbar
                 HStack(spacing: 12) {
@@ -46,15 +46,15 @@ struct FileToolbar: View {
                             isDisabled: true,
                             action: onReset
                         )
-                        
+
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: url)
                         })
-                        
+
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                         })
-                        
+
                         HoverButton(
                             systemImage: "xmark",
                             helpText: "Clear",
@@ -67,44 +67,44 @@ struct FileToolbar: View {
                                 onUpdateOutputService()
                             }
                         )
-                        
+
                     case .converting(let url, _):
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                         })
-                        
+
                     case .converted(let convertedFile):
                         ResetButton(
                             label: "Reset",
                             isDisabled: false,
                             action: onReset
                         )
-                        
+
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: convertedFile.tempURL)
                         })
-                        
+
                         SaveButton(
                             action: {
                                 onSave(convertedFile)
                             }
                         )
-                        
+
                         RemoveButton(
                             action: onClearConverted
                         )
-                        
+
                     case .error(let url, _):
                         ResetButton(
                             label: "Reset",
                             isDisabled: false,
                             action: onReset
                         )
-                        
+
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                         })
-                        
+
                         HoverButton(
                             systemImage: "xmark",
                             helpText: "Clear",
@@ -129,13 +129,13 @@ struct FileToolbar: View {
                         isDisabled: !hasResettableFiles,
                         action: onReset
                     )
-                    
+
                     if convertedCount > 0 {
                         ClearButton(
                             action: onClearConverted,
                             helpText: "Clear all converted files"
                         )
-                        
+
                         SaveButton(
                             action: onSaveAll,
                             helpText: convertedCount == 1 ? "Save" : "Save All"
@@ -160,7 +160,7 @@ struct FileToolbar: View {
             onSave: { _ in },
             onUpdateOutputService: {}
         )
-        
+
         // Multiple files preview
         FileToolbar(
             files: .constant([

@@ -14,7 +14,7 @@ enum CompressionLevel: String, CaseIterable {
     case normal = "Normal"
     case better = "Better"
     case best = "Best"
-    
+
     var zipLevel: String {
         switch self {
         case .fastest: return "-1"
@@ -24,7 +24,7 @@ enum CompressionLevel: String, CaseIterable {
         case .best: return "-9"
         }
     }
-    
+
     var gzipLevel: String {
         switch self {
         case .fastest: return "-1"
@@ -34,7 +34,7 @@ enum CompressionLevel: String, CaseIterable {
         case .best: return "-9"
         }
     }
-    
+
     var bzip2Level: String {
         switch self {
         case .fastest: return "-1"
@@ -44,7 +44,7 @@ enum CompressionLevel: String, CaseIterable {
         case .best: return "-9"
         }
     }
-    
+
     var xzLevel: String {
         switch self {
         case .fastest: return "-0"
@@ -61,7 +61,7 @@ enum TarCompressionType {
     case gzip
     case bzip2
     case xz
-    
+
     var tarFlag: String {
         switch self {
         case .none:
@@ -77,21 +77,21 @@ enum TarCompressionType {
 }
 
 class ArchiveService {
-    
+
     func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         if separately {
             return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent(), verifyAfterCreation: verifyAfterCreation, compressionLevel: compressionLevel)
         } else {
             try await createSingleArchive(format: format, from: files, outputURL: outputURL, compressionLevel: compressionLevel)
-            
+
             if verifyAfterCreation {
                 _ = try await verifyArchive(at: outputURL, format: format)
             }
-            
+
             return [outputURL]
         }
     }
-    
+
     private func createSingleArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, compressionLevel: CompressionLevel = .normal) async throws {
         switch format {
         case .zip:
@@ -106,45 +106,45 @@ class ArchiveService {
             try await createTarArchive(from: files, outputURL: outputURL, compressionType: .bzip2, compressionLevel: compressionLevel)
         }
     }
-    
+
     private func createArchivesSeparately(format: ArchiveFormat, from files: [URL], outputDirectory: URL, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         var createdArchives: [URL] = []
-        
+
         for file in files {
             let fileName = file.deletingPathExtension().lastPathComponent
             let archiveURL = outputDirectory
                 .appendingPathComponent("\(fileName).\(format.fileExtension)")
-            
+
             try await createSingleArchive(format: format, from: [file], outputURL: archiveURL, compressionLevel: compressionLevel)
-            
+
             if verifyAfterCreation {
                 _ = try await verifyArchive(at: archiveURL, format: format)
             }
-            
+
             createdArchives.append(archiveURL)
         }
-        
+
         return createdArchives
     }
-    
+
     private func createZipArchive(from files: [URL], outputURL: URL, compressionLevel: CompressionLevel = .normal) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-        
+
         var arguments = [compressionLevel.zipLevel, "-r", outputURL.path]
-        
+
         // Add all input files
         for file in files {
             arguments.append(file.path)
         }
-        
+
         process.arguments = arguments
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
-        
+
         try process.run()
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -152,30 +152,30 @@ class ArchiveService {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw ArchiveError.zipCreationFailed(errorString)
         }
     }
-    
+
     private func createTarArchive(from files: [URL], outputURL: URL, compressionType: TarCompressionType, compressionLevel: CompressionLevel = .normal) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-        
+
         var arguments: [String] = []
-        
+
         arguments.append(compressionType.tarFlag)
         arguments.append(outputURL.path)
-        
+
         // Add all input files
         for file in files {
             arguments.append(file.path)
         }
-        
+
         process.arguments = arguments
-        
+
         // Set compression level via environment variables
         var environment = ProcessInfo.processInfo.environment
         switch compressionType {
@@ -189,12 +189,12 @@ class ArchiveService {
             break // No compression level for uncompressed tar
         }
         process.environment = environment
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
-        
+
         try process.run()
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -202,16 +202,16 @@ class ArchiveService {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw ArchiveError.tarCreationFailed(errorString)
         }
     }
-    
+
     // MARK: - Archive Verification
-    
+
     func verifyArchive(at url: URL, format: ArchiveFormat) async throws -> Bool {
         switch format {
         case .zip:
@@ -226,18 +226,18 @@ class ArchiveService {
             return try await verifyTarArchive(at: url, compressionType: .bzip2)
         }
     }
-    
+
     private func verifyZipArchive(at url: URL) async throws -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-t", url.path]
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
         process.standardOutput = Pipe()
-        
+
         try process.run()
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -245,16 +245,16 @@ class ArchiveService {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw ArchiveError.zipVerificationFailed(errorString)
         }
-        
+
         return true
     }
-    
+
     private func verifyTarArchive(at url: URL, compressionType: TarCompressionType) async throws -> Bool {
         switch compressionType {
         case .gzip:
@@ -267,18 +267,18 @@ class ArchiveService {
             return try await verifyTarContents(at: url, compressionFlag: "-tf")
         }
     }
-    
+
     private func verifyCompressionIntegrity(at url: URL, tool: String) async throws -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: tool)
         process.arguments = ["-t", url.path]
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
         process.standardOutput = Pipe()
-        
+
         try process.run()
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -286,27 +286,27 @@ class ArchiveService {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw ArchiveError.compressionVerificationFailed(errorString)
         }
-        
+
         return true
     }
-    
+
     private func verifyTarContents(at url: URL, compressionFlag: String) async throws -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
         process.arguments = [compressionFlag, url.path]
-        
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
         process.standardOutput = Pipe()
-        
+
         try process.run()
-        
+
         while process.isRunning {
             if Task.isCancelled {
                 process.terminate()
@@ -314,13 +314,13 @@ class ArchiveService {
             }
             try await Task.sleep(for: .milliseconds(100))
         }
-        
+
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
             let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw ArchiveError.tarVerificationFailed(errorString)
         }
-        
+
         return true
     }
 }
@@ -331,7 +331,7 @@ enum ArchiveFormat: String, CaseIterable {
     case tarGz = "tar.gz"
     case tarXz = "tar.xz"
     case tarBz2 = "tar.bz2"
-    
+
     var displayName: String {
         switch self {
         case .zip:
@@ -346,7 +346,7 @@ enum ArchiveFormat: String, CaseIterable {
             return "TAR.BZ2"
         }
     }
-    
+
     var description: String {
         switch self {
         case .zip:
@@ -361,7 +361,7 @@ enum ArchiveFormat: String, CaseIterable {
             return "Create a bzip2-compressed TAR archive containing all selected files."
         }
     }
-    
+
     var fileExtension: String {
         return rawValue
     }
@@ -373,7 +373,7 @@ enum ArchiveError: LocalizedError {
     case zipVerificationFailed(String)
     case tarVerificationFailed(String)
     case compressionVerificationFailed(String)
-    
+
     var errorDescription: String? {
         switch self {
         case .zipCreationFailed(let message):

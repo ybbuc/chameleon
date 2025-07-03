@@ -10,11 +10,11 @@ import SwiftUI
 struct ArchiveOptionsView: View {
     @Binding var archiveOptions: ArchiveOptions
     let fileCount: Int
-    
+
     private var isToggleDisabled: Bool {
         return fileCount <= 1
     }
-    
+
     private var compressionDescription: String {
         switch archiveOptions.compressionLevel {
         case .fastest:
@@ -29,7 +29,7 @@ struct ArchiveOptionsView: View {
             return "Maximum compression, slowest processing"
         }
     }
-    
+
     var body: some View {
         Form {
             // Compression level at the top
@@ -40,28 +40,28 @@ struct ArchiveOptionsView: View {
             }
             .pickerStyle(.menu)
             .transition(.opacity.combined(with: .move(edge: .top)))
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(compressionDescription)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             .transition(.opacity.combined(with: .move(edge: .top)))
-            
+
             Toggle("Archive items separately", isOn: $archiveOptions.archiveSeparately)
                 .disabled(isToggleDisabled)
                 .onChange(of: archiveOptions.archiveSeparately) { _, newValue in
                     print("Archive separately changed to: \(newValue)")
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
-            
+
             if isToggleDisabled {
                 Text("Multiple files required for separate archiving")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
             Toggle("Verify compression integrity", isOn: $archiveOptions.verifyAfterCreation)
                 .transition(.opacity.combined(with: .move(edge: .top)))
         }

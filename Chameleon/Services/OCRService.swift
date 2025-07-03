@@ -14,7 +14,7 @@ class OCRService {
         case imageLoadingFailed
         case textRecognitionFailed(String)
         case noTextFound
-        
+
         var errorDescription: String? {
             switch self {
             case .imageLoadingFailed:
@@ -26,11 +26,11 @@ class OCRService {
             }
         }
     }
-    
+
     enum RecognitionLevel: String, CaseIterable {
         case fast = "Fast"
         case accurate = "Accurate"
-        
+
         var visionLevel: VNRequestTextRecognitionLevel {
             switch self {
             case .fast: return .fast
@@ -38,7 +38,7 @@ class OCRService {
             }
         }
     }
-    
+
     struct Options {
         var recognitionLevel: RecognitionLevel = .accurate
         var recognitionLanguages: [String] = ["automatic"] // Default to automatic language detection
@@ -46,25 +46,25 @@ class OCRService {
         var minimumTextHeight: Float = 0.0 // 0.0 means no minimum
         var customWords: [String] = []
     }
-    
+
     private var currentRequest: VNRecognizeTextRequest?
-    
+
     func recognizeText(from imageURL: URL, options: Options = Options()) async throws -> String {
         guard let image = NSImage(contentsOf: imageURL) else {
             throw OCRError.imageLoadingFailed
         }
-        
+
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             throw OCRError.imageLoadingFailed
         }
-        
+
         return try await recognizeText(from: cgImage, options: options)
     }
-    
+
     func recognizeText(from cgImage: CGImage, options: Options = Options()) async throws -> String {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = options.recognitionLevel.visionLevel
-        
+
         // Handle "automatic" language option
         if options.recognitionLanguages.contains("automatic") {
             request.automaticallyDetectsLanguage = true
@@ -72,42 +72,42 @@ class OCRService {
             request.recognitionLanguages = options.recognitionLanguages
             request.automaticallyDetectsLanguage = false
         }
-        
+
         request.usesLanguageCorrection = options.usesLanguageCorrection
         request.minimumTextHeight = options.minimumTextHeight
         request.customWords = options.customWords
-        
+
         currentRequest = request
         defer { currentRequest = nil }
-        
+
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        
+
         do {
             try handler.perform([request])
         } catch {
             throw OCRError.textRecognitionFailed(error.localizedDescription)
         }
-        
+
         guard let observations = request.results else {
             throw OCRError.noTextFound
         }
-        
+
         if observations.isEmpty {
             throw OCRError.noTextFound
         }
-        
+
         // Extract text maintaining paragraph structure
         let recognizedStrings = observations.compactMap { observation in
             observation.topCandidates(1).first?.string
         }
-        
+
         return recognizedStrings.joined(separator: "\n")
     }
-    
+
     struct Language: Identifiable, Hashable {
         let id: String  // Language code (e.g., "en-US")
         let displayName: String
-        
+
         static let supportedLanguages: [Language] = [
             Language(id: "automatic", displayName: "Automatic"),
             Language(id: "en-US", displayName: "English"),
@@ -130,7 +130,7 @@ class OCRService {
             Language(id: "ars-SA", displayName: "Arabic (Saudi)")
         ]
     }
-    
+
     func cancel() {
         // Vision framework doesn't support cancellation directly
         currentRequest = nil
@@ -142,7 +142,7 @@ enum OCRFormat: String, CaseIterable {
     case txt = "txt"
     case txtExtract = "txt_extract"  // PDF text extraction using PDFKit
     case txtOCR = "txt_ocr"          // OCR using Vision framework
-    
+
     var displayName: String {
         switch self {
         case .txt: return "Text"
@@ -150,14 +150,14 @@ enum OCRFormat: String, CaseIterable {
         case .txtOCR: return "Text (OCR)"
         }
     }
-    
+
     var fileExtension: String {
         switch self {
         case .txt, .txtExtract, .txtOCR:
             return "txt"
         }
     }
-    
+
     var description: String {
         switch self {
         case .txt:

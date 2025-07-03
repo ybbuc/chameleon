@@ -14,7 +14,7 @@ struct HoverButton: View {
     var size: CGFloat = 16
     var color: Color = .secondary
     @State private var isHovering = false
-    
+
     var body: some View {
         Button {
             action()

@@ -10,13 +10,13 @@ import Foundation
 class TextToSpeechWrapper {
     private let sayPath = "/usr/bin/say"
     private var currentProcess: Process?
-    
+
     enum TTSError: LocalizedError {
         case sayCommandNotFound
         case textFileReadError
         case conversionFailed(String)
         case cancelled
-        
+
         var errorDescription: String? {
             switch self {
             case .sayCommandNotFound:
@@ -30,18 +30,18 @@ class TextToSpeechWrapper {
             }
         }
     }
-    
+
     struct Voice: Identifiable, Hashable {
         let id: String
         let name: String
         let language: String
         let languageCode: String
         let sampleText: String
-        
+
         var displayName: String {
             return name
         }
-        
+
         // Hardcoded voices for each language
         static let voicesByLanguage: [String: [Voice]] = [
             "en": [
@@ -120,12 +120,12 @@ class TextToSpeechWrapper {
             ]
         ]
     }
-    
+
     struct Language: Identifiable, Hashable {
         let id: String
         let displayName: String
         let code: String
-        
+
         static let supportedLanguages: [Language] = {
             // Only include languages that have voices defined
             let languagesWithVoices = Set(Voice.voicesByLanguage.keys)
@@ -154,62 +154,62 @@ class TextToSpeechWrapper {
             return allLanguages.filter { languagesWithVoices.contains($0.id) }
         }()
     }
-    
+
     init() throws {
         // Verify say command exists
         guard FileManager.default.fileExists(atPath: sayPath) else {
             throw TTSError.sayCommandNotFound
         }
     }
-    
+
     func getAvailableVoices() async throws -> [Voice] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: sayPath)
         process.arguments = ["-v", "?"]
-        
+
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = Pipe()
-        
+
         try process.run()
         process.waitUntilExit()
-        
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else {
             return []
         }
-        
+
         var voices: [Voice] = []
         let lines = output.components(separatedBy: .newlines)
-        
+
         for line in lines {
             guard !line.isEmpty else { continue }
-            
+
             // Parse voice line format: "Name               lang_CODE    # Sample text"
             let components = line.split(separator: "#", maxSplits: 1)
             guard components.count == 2 else { continue }
-            
+
             let voiceInfo = components[0].trimmingCharacters(in: .whitespaces)
             let sampleText = components[1].trimmingCharacters(in: .whitespaces)
-            
+
             // Extract name and language code
             let voiceComponents = voiceInfo.split(separator: " ", omittingEmptySubsequences: true)
             guard voiceComponents.count >= 2 else { continue }
-            
+
             // Handle voices with parenthetical descriptions
             var name = String(voiceComponents[0])
             let languageCode = String(voiceComponents[voiceComponents.count - 1])
-            
+
             // Some voices have descriptions like "Eddy (English (UK))"
             if voiceComponents.count > 2 && name != "Bad" && name != "Good" {
                 // Reconstruct the full name
                 let endIndex = voiceComponents.count - 1
                 name = voiceComponents[0..<endIndex].joined(separator: " ")
             }
-            
+
             // Extract language from language code (e.g., "en_US" -> "en")
             let language = String(languageCode.split(separator: "_").first ?? "")
-            
+
             let voice = Voice(
                 id: name,
                 name: name,
@@ -217,18 +217,18 @@ class TextToSpeechWrapper {
                 languageCode: languageCode,
                 sampleText: sampleText
             )
-            
+
             voices.append(voice)
         }
-        
+
         return voices
     }
-    
+
     func getVoicesForLanguage(_ language: Language) async throws -> [Voice] {
         // Return hardcoded voices for the language
         return Voice.voicesByLanguage[language.code] ?? []
     }
-    
+
     func convertTextToSpeech(
         inputURL: URL,
         outputURL: URL,
@@ -240,26 +240,26 @@ class TextToSpeechWrapper {
         guard FileManager.default.fileExists(atPath: inputURL.path) else {
             throw TTSError.textFileReadError
         }
-        
+
         // Create the process
         let process = Process()
         currentProcess = process
-        
+
         process.executableURL = URL(fileURLWithPath: sayPath)
-        
+
         var arguments: [String] = []
-        
+
         // Add voice if specified
         if let voice = voice {
             arguments.append(contentsOf: ["-v", voice])
         }
-        
+
         // Add speech rate
         arguments.append(contentsOf: ["-r", String(rate)])
-        
+
         // Add output file and format
         arguments.append(contentsOf: ["-o", outputURL.path])
-        
+
         // Add file format arguments
         switch format {
         case .aiff:
@@ -271,20 +271,20 @@ class TextToSpeechWrapper {
         case .caf:
             arguments.append(contentsOf: ["--file-format=caff"])
         }
-        
+
         // Use -f flag to read from file instead of passing text as argument
         arguments.append(contentsOf: ["-f", inputURL.path])
-        
+
         process.arguments = arguments
-        
+
         // Set up pipes for error handling
         let errorPipe = Pipe()
         process.standardError = errorPipe
         process.standardOutput = Pipe()
-        
+
         do {
             try process.run()
-            
+
             // Wait for completion in a cancellable way
             await withCheckedContinuation { continuation in
                 DispatchQueue.global().async {
@@ -292,7 +292,7 @@ class TextToSpeechWrapper {
                     continuation.resume()
                 }
             }
-            
+
             if process.terminationStatus != 0 {
                 let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                 let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
@@ -305,31 +305,31 @@ class TextToSpeechWrapper {
             throw error
         }
     }
-    
+
     func cancel() {
         currentProcess?.terminate()
         currentProcess = nil
     }
-    
+
     func previewVoice(_ voice: String, text: String? = nil, rate: Int? = nil) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: sayPath)
-        
+
         var arguments = ["-v", voice]
-        
+
         // Add speech rate if provided
         if let rate = rate {
             arguments.append(contentsOf: ["-r", "\(rate)"])
         }
-        
+
         // Use provided text or default sample
         let previewText = text ?? "Hello, this is a preview of the \(voice) voice."
         arguments.append(previewText)
-        
+
         process.arguments = arguments
         process.standardOutput = Pipe()
         process.standardError = Pipe()
-        
+
         try process.run()
         process.waitUntilExit()
     }
@@ -341,15 +341,15 @@ enum TTSFormat: String, CaseIterable {
     case m4a = "m4a"
     case wav = "wav"
     case caf = "caf"
-    
+
     var displayName: String {
         return rawValue.uppercased()
     }
-    
+
     var fileExtension: String {
         return rawValue
     }
-    
+
     var description: String? {
         switch self {
         case .aiff:

@@ -12,7 +12,7 @@ enum FileState: Identifiable {
     case converting(URL, fileName: String)
     case converted(ConvertedFile)
     case error(URL, errorMessage: String)
-    
+
     var id: String {
         switch self {
         case .input(let url), .converting(let url, _), .error(let url, _):
@@ -21,7 +21,7 @@ enum FileState: Identifiable {
             return file.id.uuidString
         }
     }
-    
+
     var fileName: String {
         switch self {
         case .input(let url), .error(let url, _):
@@ -32,7 +32,7 @@ enum FileState: Identifiable {
             return file.fileName
         }
     }
-    
+
     var url: URL? {
         switch self {
         case .input(let url), .converting(let url, _), .error(let url, _):
@@ -41,7 +41,7 @@ enum FileState: Identifiable {
             return file.originalURL
         }
     }
-    
+
     var isConverting: Bool {
         switch self {
         case .converting:

@@ -14,7 +14,7 @@ struct ErrorFileRow: View {
     let message: String
     let onRemove: () -> Void
     @State private var isHoveringRow = false
-    
+
     var body: some View {
         BaseFileRow(
             url: url,
@@ -25,7 +25,7 @@ struct ErrorFileRow: View {
             VStack(alignment: .leading) {
                 Text(fileName)
                     .lineLimit(1)
-                
+
                 Text(message)
                     .font(.caption)
                     .foregroundColor(.red)
@@ -37,7 +37,7 @@ struct ErrorFileRow: View {
                 FinderButton(action: {
                     NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                 }, size: 14)
-                
+
                 RemoveButton(action: onRemove, size: 14)
             }
         }

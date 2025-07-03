@@ -14,7 +14,7 @@ struct SavedHistoryView: View {
     @State private var showingClearAlert = false
     @State private var showingClearMissingAlert = false
     @AppStorage("autoClearMissingFiles") private var autoClearMissingFiles: Bool = false
-    
+
     private var filteredConversions: [ConversionRecord] {
         if searchText.isEmpty {
             return savedHistoryManager.savedHistory
@@ -27,20 +27,20 @@ struct SavedHistoryView: View {
             }
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header - always show
             HStack {
                 Spacer()
-                
+
                 Button("Clear Missing") {
                     showingClearMissingAlert = true
                 }
                 .foregroundColor(savedHistoryManager.hasMissingFiles ? .orange : .secondary)
                 .buttonStyle(.bordered)
                 .disabled(!savedHistoryManager.hasMissingFiles || savedHistoryManager.savedHistory.isEmpty)
-                
+
                 Button("Clear History") {
                     showingClearAlert = true
                 }
@@ -51,21 +51,21 @@ struct SavedHistoryView: View {
             .padding(.horizontal, 24)
             .padding(.top, 16)
             .padding(.bottom, 16)
-            
+
             Divider()
-            
+
             // Content
             if savedHistoryManager.savedHistory.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
                         .font(.system(size: 64))
                         .foregroundStyle(.quaternary)
-                    
+
                     Text("No Saved History")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
-                    
+
                     Text("Saved conversions appear here.")
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -78,12 +78,12 @@ struct SavedHistoryView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 64))
                         .foregroundStyle(.quaternary)
-                    
+
                     Text("No Results Found")
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
-                    
+
                     Text("Try adjusting your search terms.")
                         .font(.body)
                         .foregroundColor(.secondary)
@@ -95,11 +95,11 @@ struct SavedHistoryView: View {
                     LazyVStack(spacing: 0) {
                         ForEach(filteredConversions) { record in
                             SavedHistoryRow(
-                                record: record, 
+                                record: record,
                                 savedHistoryManager: savedHistoryManager,
                                 searchText: searchText
                             )
-                            
+
                             if record.id != filteredConversions.last?.id {
                                 Divider()
                                     .padding(.horizontal, 24)
@@ -143,7 +143,7 @@ struct SavedHistoryRow: View {
     @State private var showingDeleteAlert = false
     @State private var isFileAccessible: Bool = true
     @State private var cachedThumbnail: NSImage?
-    
+
     var body: some View {
         HStack(spacing: 16) {
             // Thumbnail or file icon
@@ -167,7 +167,7 @@ struct SavedHistoryRow: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
-            
+
             VStack(alignment: .leading, spacing: 6) {
                 // File name with search highlighting and file size
                 HStack {
@@ -176,14 +176,14 @@ struct SavedHistoryRow: View {
                         .fontWeight(.medium)
                         .lineLimit(1)
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     Text(record.formattedFileSize)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 HStack(spacing: 12) {
                     // Format conversion
                     HStack(spacing: 4) {
@@ -191,34 +191,34 @@ struct SavedHistoryRow: View {
                             .font(.caption2)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
-                        
+
                         Image(systemName: "arrow.right")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         Text(record.outputFormat.uppercased())
                             .font(.caption2)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     // Relative time
                     Text(record.relativeTime)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             if !isFileAccessible {
                 Spacer()
-                
+
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundColor(.orange)
                     .help("File no longer accessible")
             }
-            
+
             if isHovering {
                 HStack(spacing: 8) {
                     if isFileAccessible {
@@ -233,7 +233,7 @@ struct SavedHistoryRow: View {
                         .background(Color.secondary.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .help("Quick Look")
-                        
+
                         Button {
                             savedHistoryManager.openFile(record)
                         } label: {
@@ -245,7 +245,7 @@ struct SavedHistoryRow: View {
                         .background(Color.secondary.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .help("Open file")
-                        
+
                         Button {
                             savedHistoryManager.revealInFinder(record)
                         } label: {
@@ -258,7 +258,7 @@ struct SavedHistoryRow: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         .help("Show in Finder")
                     }
-                    
+
                     Button {
                         showingDeleteAlert = true
                     } label: {
@@ -300,18 +300,18 @@ struct SavedHistoryRow: View {
                 Button("Quick Look") {
                     QuickLookManager.shared.previewFile(at: record.outputFileURL)
                 }
-                
+
                 Button("Open") {
                     savedHistoryManager.openFile(record)
                 }
-                
+
                 Button("Show in Finder") {
                     savedHistoryManager.revealInFinder(record)
                 }
-                
+
                 Divider()
             }
-            
+
             Button("Remove from Saved History", role: .destructive) {
                 showingDeleteAlert = true
             }
@@ -321,7 +321,7 @@ struct SavedHistoryRow: View {
             cachedThumbnail = record.thumbnailImage
         }
     }
-    
+
     private var fileIcon: String {
         let ext = record.outputFormat.lowercased()
         switch ext {
@@ -335,14 +335,14 @@ struct SavedHistoryRow: View {
         default: return "doc"
         }
     }
-    
+
     private func highlightedText(_ text: String, searchText: String) -> AttributedString {
         guard !searchText.isEmpty else {
             return AttributedString(text)
         }
-        
+
         var attributedString = AttributedString(text)
-        
+
         if let range = text.range(of: searchText, options: .caseInsensitive) {
             let nsRange = NSRange(range, in: text)
             if let attributedRange = Range<AttributedString.Index>(nsRange, in: attributedString) {
@@ -350,7 +350,7 @@ struct SavedHistoryRow: View {
                 attributedString[attributedRange].foregroundColor = .primary
             }
         }
-        
+
         return attributedString
     }
 }
@@ -361,7 +361,7 @@ struct SavedHistoryRow: View {
     let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
-    
+
     SavedHistoryView(
         searchText: $searchText,
         savedHistoryManager: manager

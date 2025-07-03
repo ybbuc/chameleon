@@ -17,7 +17,7 @@ struct FileRow: View {
     let onMoveDown: () -> Void
     let onRemove: () -> Void
     @State private var isHoveringRow = false
-    
+
     var body: some View {
         BaseFileRow(
             url: url,
@@ -40,7 +40,7 @@ struct FileRow: View {
                         size: 14
                     )
                     .disabled(index == 0)
-                    
+
                     HoverButton(
                         systemImage: "chevron.down",
                         helpText: "Move down",
@@ -55,14 +55,14 @@ struct FileRow: View {
                             QuickLookManager.shared.previewFile(at: url)
                         }, size: 14)
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                        
+
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                         }, size: 14)
                         .transition(.opacity.combined(with: .scale(scale: 0.8)))
                     }
                 }
-                
+
                 RemoveButton(action: onRemove, size: 14)
             }
         }

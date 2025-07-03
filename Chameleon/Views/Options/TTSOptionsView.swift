@@ -10,9 +10,9 @@ import SwiftUI
 struct TTSOptionsView: View {
     @Binding var ttsOptions: TTSOptions
     let ttsWrapper: TextToSpeechWrapper?
-    
+
     @State private var availableVoices: [TextToSpeechWrapper.Voice] = []
-    
+
     var body: some View {
         Form {
             // Language Selection
@@ -29,11 +29,11 @@ struct TTSOptionsView: View {
                     ttsOptions.selectedVoice = nil
                     loadVoicesForLanguage(newLanguage)
                 }
-                
+
                 Spacer()
                     .frame(width: 82)
             }
-            
+
             // Voice Selection
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -48,7 +48,7 @@ struct TTSOptionsView: View {
                     }
                     .pickerStyle(MenuPickerStyle())
                     .disabled(availableVoices.isEmpty || availableVoices.count == 1)
-                    
+
                     // Preview button
                     Button(action: previewVoice) {
                         Image(systemName: "speaker.wave.2")
@@ -59,7 +59,7 @@ struct TTSOptionsView: View {
                     .frame(width: 74, alignment: .leading)
                 }
             }
-            
+
             // Speech Rate
             HStack {
                 Picker("Speed:", selection: $ttsOptions.speechRate) {
@@ -71,7 +71,7 @@ struct TTSOptionsView: View {
                     Text("Maximum").tag(270)
                 }
                 .pickerStyle(MenuPickerStyle())
-                
+
                 Text("\(ttsOptions.speechRate) WPM")
                     .monospacedDigit()
                     .frame(width: 74, alignment: .leading)
@@ -81,29 +81,29 @@ struct TTSOptionsView: View {
             loadVoicesForLanguage(ttsOptions.selectedLanguage)
         }
     }
-    
+
     private func loadVoicesForLanguage(_ language: TextToSpeechWrapper.Language) {
         // Load hardcoded voices immediately (no async needed)
         availableVoices = TextToSpeechWrapper.Voice.voicesByLanguage[language.code] ?? []
-        
+
         // If switching languages and no voice is selected, select the first one
         if ttsOptions.selectedVoice == nil && !availableVoices.isEmpty {
             ttsOptions.selectedVoice = availableVoices.first?.id
         }
-        
+
         // If the currently selected voice is not available in the new language, reset it
         if let currentVoice = ttsOptions.selectedVoice,
            !availableVoices.contains(where: { $0.id == currentVoice }) {
             ttsOptions.selectedVoice = availableVoices.first?.id
         }
     }
-    
+
     private func previewVoice() {
         guard let wrapper = ttsWrapper else { return }
-        
+
         let voiceToPreview = ttsOptions.selectedVoice ?? availableVoices.first?.id
         guard let voice = voiceToPreview else { return }
-        
+
         Task {
             do {
                 // Use the sample text from the voice if available

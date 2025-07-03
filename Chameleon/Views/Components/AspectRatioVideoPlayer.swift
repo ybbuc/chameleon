@@ -11,8 +11,8 @@ import AVKit
 struct AspectRatioVideoPlayer: View {
     let url: URL
     @State private var player: AVPlayer?
-    @State private var aspectRatio: CGFloat = 16/9 // Default aspect ratio
-    
+    @State private var aspectRatio: CGFloat = 16 / 9 // Default aspect ratio
+
     var body: some View {
         Group {
             if let player = player {
@@ -37,10 +37,10 @@ struct AspectRatioVideoPlayer: View {
             player = nil
         }
     }
-    
+
     private func loadVideo() {
         let asset = AVAsset(url: url)
-        
+
         Task {
             do {
                 // Load the video tracks to get dimensions
@@ -48,12 +48,12 @@ struct AspectRatioVideoPlayer: View {
                 if let track = tracks.first {
                     let size = try await track.load(.naturalSize)
                     let transform = try await track.load(.preferredTransform)
-                    
+
                     // Calculate the actual size considering the transform
                     let transformedSize = size.applying(transform)
                     let width = abs(transformedSize.width)
                     let height = abs(transformedSize.height)
-                    
+
                     await MainActor.run {
                         if height > 0 {
                             self.aspectRatio = width / height

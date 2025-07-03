@@ -11,11 +11,11 @@ struct AudioOptionsView: View {
     @Binding var audioOptions: AudioOptions
     let outputFormat: FFmpegFormat?
     let inputFormat: FFmpegFormat?
-    var inputSampleRate: Int? = nil
-    var inputChannels: Int? = nil
-    var inputBitDepth: Int? = nil
-    var inputBitRate: Int? = nil
-    
+    var inputSampleRate: Int?
+    var inputChannels: Int?
+    var inputBitDepth: Int?
+    var inputBitRate: Int?
+
     private var availableSampleRates: [AudioSampleRate] {
         guard let format = outputFormat,
               let config = FormatRegistry.shared.config(for: format) else {
@@ -23,7 +23,7 @@ struct AudioOptionsView: View {
         }
         return config.availableSampleRates
     }
-    
+
     private var availableSampleSizes: [AudioSampleSize] {
         guard let format = outputFormat,
               let config = FormatRegistry.shared.config(for: format) else {
@@ -31,7 +31,7 @@ struct AudioOptionsView: View {
         }
         return config.availableSampleSizes
     }
-    
+
     private var isInputLossless: Bool {
         guard let format = inputFormat,
               let config = FormatRegistry.shared.config(for: format) else {
@@ -39,14 +39,14 @@ struct AudioOptionsView: View {
         }
         return config.isLossless
     }
-    
+
     private var isInputVideo: Bool {
         guard let format = inputFormat else {
             return false
         }
         return format.isVideo
     }
-    
+
     var body: some View {
         Form {
             // Bit Rate or VBR Quality dropdown (only for lossy formats)
@@ -67,17 +67,17 @@ struct AudioOptionsView: View {
                         Text("kbps average")
                             .frame(width: 85, alignment: .leading)
                     }
-                    
+
                 } else {
                     // Regular bit rate dropdown
                     HStack {
                         Picker("Bit rate:", selection: $audioOptions.bitRate) {
                             if !isInputLossless && !isInputVideo {
                                 Text(AudioBitRate.automatic.displayName).tag(AudioBitRate.automatic)
-                                
+
                                 Divider()
                             }
-                            
+
                             ForEach(AudioBitRate.allCases.filter { $0 != .automatic }, id: \.self) { bitRate in
                                 Text(bitRate.displayName).tag(bitRate)
                             }
@@ -90,13 +90,13 @@ struct AudioOptionsView: View {
                         }
                         .pickerStyle(.menu)
                         .transition(.opacity.combined(with: .move(edge: .top)))
-                        
+
                         Text("kbps")
                             .frame(width: 50, alignment: .leading)
                     }
                 }
             }
-            
+
             // Variable Bit Rate toggle (only for formats that support it)
             if let format = outputFormat,
                let config = FormatRegistry.shared.config(for: format),
@@ -104,13 +104,13 @@ struct AudioOptionsView: View {
                 Toggle("Use Variable Bit Rate (VBR)", isOn: $audioOptions.useVariableBitRate)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            
+
             // Channels dropdown (for all audio formats)
             Picker("Channels:", selection: $audioOptions.channels) {
                 Text(AudioChannels.automatic.displayName).tag(AudioChannels.automatic)
-                
+
                 Divider()
-                
+
                 ForEach(AudioChannels.allCases.filter { $0 != .automatic }, id: \.self) { channels in
                     Text(channels.displayName).tag(channels)
                 }
@@ -118,22 +118,22 @@ struct AudioOptionsView: View {
             .pickerStyle(.menu)
             .transition(.opacity.combined(with: .move(edge: .top)))
             .padding(.trailing, 58)
-            
+
             // Sample Rate dropdown (for all audio formats)
             HStack {
                 Picker("Sample rate:", selection: $audioOptions.sampleRate) {
                     if availableSampleRates.contains(.automatic) {
                         Text(AudioSampleRate.automatic.displayName).tag(AudioSampleRate.automatic)
-                        
+
                         Divider()
                     }
-                    
+
                     ForEach(availableSampleRates.filter { $0 != .automatic }, id: \.self) { sampleRate in
                         Text(sampleRate.displayName).tag(sampleRate)
                     }
                 }
                 .pickerStyle(.menu)
-                .onChange(of: outputFormat) { _, newFormat in
+                .onChange(of: outputFormat) { _, _ in
                     // Adjust sample rate if current selection is not available for new format
                     if !availableSampleRates.contains(audioOptions.sampleRate) {
                         audioOptions.sampleRate = availableSampleRates.first ?? .hz44100
@@ -144,11 +144,11 @@ struct AudioOptionsView: View {
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
-                
+
                 Text("Hz")
                     .frame(width: 50, alignment: .leading)
             }
-            
+
             // Sample Size dropdown (only for lossless formats)
             if let format = outputFormat,
                let config = FormatRegistry.shared.config(for: format),
@@ -161,22 +161,22 @@ struct AudioOptionsView: View {
                     }
                     .pickerStyle(.menu)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    
+
                     Text("bits")
                         .frame(width: 50, alignment: .leading)
                 }
             }
-            
+
             // Resulting file preview
             if let format = outputFormat {
                 VStack(alignment: .leading, spacing: 4) {
                     Divider()
                         .padding(.vertical, 4)
-                    
+
                     Text("Resulting File:")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text(resultingFileDescription(for: format))
                         .font(.caption)
                         .foregroundColor(.primary)
@@ -204,18 +204,18 @@ struct AudioOptionsView: View {
             }
         }
     }
-    
+
     private func resultingFileDescription(for format: FFmpegFormat) -> String {
         var components: [String] = []
-        
+
         // Format name
         components.append(format.displayName)
-        
+
         // Get format config
         guard let config = FormatRegistry.shared.config(for: format) else {
             return components.joined(separator: ", ")
         }
-        
+
         // Bit rate (for lossy formats)
         if config.supportsBitRate && !audioOptions.useVariableBitRate {
             if audioOptions.bitRate == .automatic {
@@ -231,7 +231,7 @@ struct AudioOptionsView: View {
             // Show the VBR quality
             components.append("VBR \(audioOptions.vbrQuality.displayName) kbps")
         }
-        
+
         // Sample rate
         if audioOptions.sampleRate == .automatic {
             if let inputRate = inputSampleRate {
@@ -242,12 +242,12 @@ struct AudioOptionsView: View {
         } else if let sampleRateValue = audioOptions.sampleRate.value {
             components.append("\(sampleRateValue) Hz")
         }
-        
+
         // Sample size (for lossless formats)
         if config.supportsSampleSize {
             components.append("\(audioOptions.sampleSize.rawValue) bits")
         }
-        
+
         // Channels
         if audioOptions.channels == .automatic {
             if let inputCh = inputChannels {
@@ -258,7 +258,7 @@ struct AudioOptionsView: View {
         } else {
             components.append(audioOptions.channels.displayName)
         }
-        
+
         return components.joined(separator: ", ")
     }
 }
