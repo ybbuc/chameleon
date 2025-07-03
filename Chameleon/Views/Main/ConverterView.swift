@@ -487,7 +487,8 @@ struct ConverterView: View {
                     }
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 // Show audio options for FFmpeg audio conversions
@@ -512,7 +513,8 @@ struct ConverterView: View {
                         }
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
-                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 // Show video options for FFmpeg video conversions
@@ -520,7 +522,8 @@ struct ConverterView: View {
                     VideoOptionsView(videoOptions: $videoOptions, outputFormat: currentFFmpegFormat)
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
-                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 // Show OCR options
@@ -532,7 +535,8 @@ struct ConverterView: View {
                     )
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 // Show TTS options
@@ -543,7 +547,8 @@ struct ConverterView: View {
                     )
                     .padding(.top, 8)
                     .transition(.opacity.combined(with: .move(edge: .top)))
-                    .animation(.easeInOut(duration: 0.2), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: outputService)
+                    .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 // Show archive options
@@ -558,7 +563,8 @@ struct ConverterView: View {
                     ArchiveOptionsView(archiveOptions: $archiveOptions, fileCount: inputFileCount)
                         .padding(.top, 8)
                         .transition(.opacity.combined(with: .move(edge: .top)))
-                        .animation(.easeInOut(duration: 0.2), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: outputService)
+                        .animation(.easeInOut(duration: 0.4), value: files.isEmpty)
                 }
 
                 Spacer()
@@ -2051,7 +2057,9 @@ struct ConverterView: View {
 
     private var shouldShowAudioOptions: Bool {
         // Show audio options when:
-        // 1. We're converting to an audio format with FFmpeg
+        // 1. We have files loaded AND
+        // 2. We're converting to an audio format with FFmpeg
+        guard !files.isEmpty else { return false }
         if case .ffmpeg(let format) = outputService {
             return !format.isVideo
         }
@@ -2060,7 +2068,9 @@ struct ConverterView: View {
 
     private var shouldShowVideoOptions: Bool {
         // Show video options when:
-        // 1. We're converting to a video format with FFmpeg
+        // 1. We have files loaded AND
+        // 2. We're converting to a video format with FFmpeg
+        guard !files.isEmpty else { return false }
         if case .ffmpeg(let format) = outputService {
             return format.isVideo
         }
@@ -2069,6 +2079,7 @@ struct ConverterView: View {
 
     private var shouldShowOCROptions: Bool {
         // Show OCR options only for actual OCR (not for text extraction)
+        guard !files.isEmpty else { return false }
         if case .ocr(let format) = outputService {
             switch format {
             case .txt, .txtOCR:
@@ -2082,6 +2093,7 @@ struct ConverterView: View {
 
     private var shouldShowTTSOptions: Bool {
         // Show TTS options when converting text to speech
+        guard !files.isEmpty else { return false }
         if case .tts = outputService {
             return true
         }
@@ -2090,6 +2102,7 @@ struct ConverterView: View {
 
     private var shouldShowArchiveOptions: Bool {
         // Show archive options when creating archives
+        guard !files.isEmpty else { return false }
         if case .archive = outputService {
             return true
         }
