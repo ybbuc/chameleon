@@ -13,44 +13,17 @@ class FFmpegWrapper {
     private var currentProcess: Process?
 
     init() throws {
-        // Use system ffmpeg from PATH
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["ffmpeg"]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        if process.terminationStatus == 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                print("Found ffmpeg at: \(path)")
-                self.ffmpegPath = path
-                return
-            }
+        // Use only bundled ffmpeg binary
+        guard let bundlePath = Bundle.main.path(forResource: "ffmpeg", ofType: nil) else {
+            throw FFmpegError.ffmpegNotInstalled
         }
-
-        // Fallback to common locations
-        let commonPaths = [
-            "/usr/local/bin/ffmpeg",
-            "/opt/homebrew/bin/ffmpeg",
-            "/opt/local/bin/ffmpeg"
-        ]
-
-        for path in commonPaths {
-            if FileManager.default.fileExists(atPath: path) && FileManager.default.isExecutableFile(atPath: path) {
-                print("Found ffmpeg at fallback location: \(path)")
-                self.ffmpegPath = path
-                return
-            } else if FileManager.default.fileExists(atPath: path) {
-                print("File exists but not executable: \(path)")
-            }
+        
+        guard FileManager.default.fileExists(atPath: bundlePath) && FileManager.default.isExecutableFile(atPath: bundlePath) else {
+            throw FFmpegError.ffmpegNotInstalled
         }
-
-        throw FFmpegError.ffmpegNotInstalled
+        
+        print("Using bundled FFmpeg at: \(bundlePath)")
+        self.ffmpegPath = bundlePath
     }
 
     func convertFile(inputURL: URL, outputURL: URL, format: FFmpegFormat, quality: FFmpegQuality = .medium, audioOptions: AudioOptions? = nil, videoOptions: VideoOptions? = nil) async throws {
@@ -365,8 +338,21 @@ class FFmpegWrapper {
     func getFileInfo(url: URL) async throws -> MediaFileInfo {
         let process = Process()
 
-        // Use ffprobe (should be in same location as ffmpeg)
-        let ffprobePath = ffmpegPath.replacingOccurrences(of: "ffmpeg", with: "ffprobe")
+        // Try bundled ffprobe first, then fall back to ffmpeg with probe capability
+        var ffprobePath: String
+        if let bundleProbePath = Bundle.main.path(forResource: "ffprobe", ofType: nil),
+           FileManager.default.fileExists(atPath: bundleProbePath) {
+            ffprobePath = bundleProbePath
+        } else {
+            // Some ffmpeg builds include probe functionality
+            ffprobePath = ffmpegPath.replacingOccurrences(of: "ffmpeg", with: "ffprobe")
+            
+            // If ffprobe doesn't exist, throw a more helpful error
+            if !FileManager.default.fileExists(atPath: ffprobePath) {
+                throw FFmpegError.conversionFailed("ffprobe not found. Media info analysis is not available.")
+            }
+        }
+        
         process.executableURL = URL(fileURLWithPath: ffprobePath)
 
         process.arguments = [
@@ -778,7 +764,7 @@ enum FFmpegError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .ffmpegNotInstalled:
-            return "FFmpeg is not installed. Please install it via Homebrew: brew install ffmpeg"
+            return "Bundled FFmpeg binary not found or not executable."
         case .conversionFailed(let message):
             return "FFmpeg conversion failed: \(message)"
         }

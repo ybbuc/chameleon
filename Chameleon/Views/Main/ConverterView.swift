@@ -328,9 +328,12 @@ struct ConverterView: View {
                         }
                     } else {
                         VStack(spacing: 12) {
-                            Image(systemName: "doc")
-                                .font(.system(size: 48))
-                                .foregroundStyle(Color.secondary.opacity(0.3))
+                            Image("chameleon.glyph")
+                                .renderingMode(.template)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 128, height: 128)
+                                .foregroundStyle(Color.secondary.opacity(0.4))
 
                             Text("Drop Files Here")
                                 .font(.headline)
