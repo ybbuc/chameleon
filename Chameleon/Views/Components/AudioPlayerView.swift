@@ -139,7 +139,7 @@ struct AudioPlayerView: View {
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                         Spacer()
-                        Text(formatTime(audioPlayer.duration))
+                        Text("-\(formatTime(audioPlayer.duration - audioPlayer.currentTime))")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .monospacedDigit()
