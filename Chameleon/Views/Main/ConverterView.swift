@@ -668,7 +668,7 @@ struct ConverterView: View {
         } catch {
             print("PandocWrapper initialization failed: \(error)")
             pandocWrapper = nil
-            pandocInitError = error.localizedDescription
+            pandocInitError = nil
         }
     }
 
