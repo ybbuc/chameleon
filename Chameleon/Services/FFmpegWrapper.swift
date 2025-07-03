@@ -164,10 +164,24 @@ class FFmpegWrapper {
         let logFileBase = tempDir.appendingPathComponent("ffmpeg2pass-\(UUID().uuidString)")
 
         // First pass
-        try await runPass(1, inputURL: inputURL, outputURL: URL(fileURLWithPath: "/dev/null"), format: format, videoOptions: videoOptions, logFile: logFileBase.path)
+        try await runPass(
+            1,
+            inputURL: inputURL,
+            outputURL: URL(fileURLWithPath: "/dev/null"),
+            format: format,
+            videoOptions: videoOptions,
+            logFile: logFileBase.path
+        )
 
         // Second pass
-        try await runPass(2, inputURL: inputURL, outputURL: outputURL, format: format, videoOptions: videoOptions, logFile: logFileBase.path)
+        try await runPass(
+            2,
+            inputURL: inputURL,
+            outputURL: outputURL,
+            format: format,
+            videoOptions: videoOptions,
+            logFile: logFileBase.path
+        )
 
         // Clean up log files
         try? FileManager.default.removeItem(at: logFileBase.appendingPathExtension("0.log"))

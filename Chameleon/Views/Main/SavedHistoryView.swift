@@ -124,7 +124,8 @@ struct SavedHistoryView: View {
                 savedHistoryManager.clearMissingFiles()
             }
         } message: {
-            Text("This will remove all saved history entries for files that no longer exist. This action cannot be undone.")
+            Text("This will remove all saved history entries for files that no longer exist. " +
+                 "This action cannot be undone.")
         }
         .onAppear {
             savedHistoryManager.checkForMissingFiles()
@@ -358,7 +359,8 @@ struct SavedHistoryRow: View {
 #Preview {
     @Previewable @State var searchText = ""
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
+    let container = (try? ModelContainer(for: ConversionRecord.self, configurations: config)) ?? 
+                    (try! ModelContainer(for: ConversionRecord.self))
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
 

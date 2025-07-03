@@ -25,7 +25,8 @@ protocol ImageFormatConfig {
 
 struct JPEGConfig: ImageFormatConfig {
     let displayName = "JPEG"
-    let description: String? = "Widely supported lossy format with good compression. Ideal for photos and images with many colors."
+    let description: String? = "Widely supported lossy format with good compression. " +
+                               "Ideal for photos and images with many colors."
     let fileExtension = "jpg"
     let isLossy = true
     let supportsExifMetadata = true
@@ -49,7 +50,8 @@ struct PNGConfig: ImageFormatConfig {
 
 struct GIFConfig: ImageFormatConfig {
     let displayName = "GIF"
-    let description: String? = "Supports 256 colors with animation and transparency, ideal for simple graphics and animations."
+    let description: String? = "Supports 256 colors with animation and transparency, " +
+                               "ideal for simple graphics and animations."
     let fileExtension = "gif"
     let isLossy = false
     let supportsExifMetadata = false
@@ -61,7 +63,8 @@ struct GIFConfig: ImageFormatConfig {
 
 struct BMPConfig: ImageFormatConfig {
     let displayName = "BMP"
-    let description: String? = "Uncompressed format with large file sizes. Widely supported but inefficient for storage."
+    let description: String? = "Uncompressed format with large file sizes. " +
+                               "Widely supported but inefficient for storage."
     let fileExtension = "bmp"
     let isLossy = false
     let supportsExifMetadata = false
@@ -73,7 +76,8 @@ struct BMPConfig: ImageFormatConfig {
 
 struct TIFFConfig: ImageFormatConfig {
     let displayName = "TIFF"
-    let description: String? = "Lossless with extensive metadata capabilities, widely used in publishing and photography."
+    let description: String? = "Lossless with extensive metadata capabilities, " +
+                               "widely used in publishing and photography."
     let fileExtension = "tif"
     let isLossy = false
     let supportsExifMetadata = true
@@ -109,7 +113,8 @@ struct PDFConfig: ImageFormatConfig {
 
 struct SVGConfig: ImageFormatConfig {
     let displayName = "SVG"
-    let description: String? = "Scalable vector format ideal for logos and simple graphics. Maintains quality at any size."
+    let description: String? = "Scalable vector format ideal for logos and simple graphics. " +
+                               "Maintains quality at any size."
     let fileExtension = "svg"
     let isLossy = false
     let supportsExifMetadata = false
@@ -121,7 +126,8 @@ struct SVGConfig: ImageFormatConfig {
 
 struct ICOConfig: ImageFormatConfig {
     let displayName = "ICO"
-    let description: String? = "Windows icon format supporting multiple sizes and transparency. Used for application icons."
+    let description: String? = "Windows icon format supporting multiple sizes and transparency. " +
+                               "Used for application icons."
     let fileExtension = "ico"
     let isLossy = false
     let supportsExifMetadata = false

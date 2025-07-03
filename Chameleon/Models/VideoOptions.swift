@@ -31,6 +31,8 @@ enum VideoAspectRatio: String, CaseIterable {
     case sixteenNine = "16:9"
     case square = "1:1"
 
+    static let standardRatios: [VideoAspectRatio] = [.fourThree, .sixteenNine, .square]
+
     var displayName: String {
         switch self {
         case .automatic:
@@ -228,11 +230,17 @@ enum VideoResolution: String, CaseIterable {
         }
     }
 
+    static let standardResolutions: [VideoResolution] = [
+        .res480p, .res576p, .res720p, .res1080p,
+        .res1440p, .res2160p, .res4320p
+    ]
+
     var ffmpegScaleFilter: String {
         if self == .automatic {
             return ""  // No scaling for automatic
         }
-        return "scale=\(width):\(height):force_original_aspect_ratio=decrease,pad=\(width):\(height):(ow-iw)/2:(oh-ih)/2"
+        return "scale=\(width):\(height):force_original_aspect_ratio=decrease," +
+               "pad=\(width):\(height):(ow-iw)/2:(oh-ih)/2"
     }
 
     func ffmpegScaleFilter(aspectRatio: VideoAspectRatio) -> String {
@@ -245,9 +253,11 @@ enum VideoResolution: String, CaseIterable {
             // Only change aspect ratio, preserve resolution
             switch aspectRatio {
             case .fourThree:
-                return "scale='iw*min(1,4/3*ih/iw)':'ih*min(1,iw*3/4/ih)',pad='max(iw,ih*4/3)':'max(ih,iw*3/4)':(ow-iw)/2:(oh-ih)/2,setsar=1"
+                return "scale='iw*min(1,4/3*ih/iw)':'ih*min(1,iw*3/4/ih)'," +
+                       "pad='max(iw,ih*4/3)':'max(ih,iw*3/4)':(ow-iw)/2:(oh-ih)/2,setsar=1"
             case .sixteenNine:
-                return "scale='iw*min(1,16/9*ih/iw)':'ih*min(1,iw*9/16/ih)',pad='max(iw,ih*16/9)':'max(ih,iw*9/16)':(ow-iw)/2:(oh-ih)/2,setsar=1"
+                return "scale='iw*min(1,16/9*ih/iw)':'ih*min(1,iw*9/16/ih)'," +
+                       "pad='max(iw,ih*16/9)':'max(ih,iw*9/16)':(ow-iw)/2:(oh-ih)/2,setsar=1"
             case .square:
                 return "scale='min(iw,ih)':'min(iw,ih)',pad='max(iw,ih)':'max(iw,ih)':(ow-iw)/2:(oh-ih)/2,setsar=1"
             case .automatic:
@@ -276,7 +286,8 @@ enum VideoResolution: String, CaseIterable {
         }
 
         // Scale and pad to exact aspect ratio
-        return "scale=\(targetWidth):\(targetHeight):force_original_aspect_ratio=decrease,pad=\(targetWidth):\(targetHeight):(ow-iw)/2:(oh-ih)/2,setsar=1"
+        return "scale=\(targetWidth):\(targetHeight):force_original_aspect_ratio=decrease," +
+               "pad=\(targetWidth):\(targetHeight):(ow-iw)/2:(oh-ih)/2,setsar=1"
     }
 }
 

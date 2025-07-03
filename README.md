@@ -4,46 +4,60 @@
 
 # Chameleon
 
-A macOS application with integrated pandoc and ImageMagick support for document and image conversion.
+A native macOS desktop application for universal file conversion, supporting document, image, video, and audio formats. Built with Swift and SwiftUI, it provides a drag-and-drop interface for converting between 100+ file formats.
 </div>
 
 ## Requirements
 
 - macOS 14.0+
 - Xcode 16.4+
-- Pandoc (required): `brew install pandoc`
-- ImageMagick (required): `brew install imagemagick`
-- LaTeX (optional, for PDF export): `brew install --cask basictex`
+- External dependencies:
+  - Pandoc: `brew install pandoc`
+  - ImageMagick: `brew install imagemagick`
+  - FFmpeg: `brew install ffmpeg`
+  - LaTeX (optional): `brew install --cask basictex`
+  - Ghostscript (optional): `brew install ghostscript`
 
 ## Setup
 
 1. Clone the repository
 2. Install dependencies:
    ```bash
-   # Install pandoc (required)
-   brew install pandoc
+   brew install pandoc imagemagick ffmpeg
    
-   # Install ImageMagick (required)
-   brew install imagemagick
-   
-   # Install LaTeX for PDF support (optional)
+   # Optional for enhanced PDF support
    brew install --cask basictex
+   brew install ghostscript
    ```
 3. Open `Chameleon.xcodeproj` in Xcode
-4. Build and run
+4. Build and run (⌘R)
 
 ## Project Structure
 
-- `Chameleon/` - Main application source code
-- `ChameleonTests/` - Unit tests
-- `ChameleonUITests/` - UI tests
+```
+Chameleon/
+├── Models/          # Data models, format configs, conversion options
+├── Services/        # Conversion wrappers and business logic
+├── Views/           # SwiftUI views
+│   ├── Components/  # Reusable UI components
+│   ├── FileViews/   # File state-specific views
+│   ├── Main/        # Main app views (ConverterView, HistoryView)
+│   └── Options/     # Format-specific option views
+└── Assets.xcassets/ # App resources and sounds
+```
 
 ## Features
 
-- Document conversion between multiple formats
-- Image conversion with ImageMagick integration
-- Drag-and-drop interface
-- Quick Look preview for converted files before saving
-- Recent conversions history with quick access
-- Native SwiftUI design
-- Supports: Markdown, HTML, DOCX, LaTeX, PDF (with LaTeX), RTF, EPUB, image formats (JPEG, PNG, TIFF, etc.), and more
+- **Universal File Conversion**: Support for 100+ file formats across documents, images, audio, and video
+- **Document Conversion**: Markdown, HTML, DOCX, LaTeX, PDF, RTF, EPUB, and more via Pandoc
+- **Image Conversion**: JPEG, PNG, GIF, WebP, TIFF, and more via ImageMagick
+- **Audio/Video Conversion**: MP4, MP3, AVI, MOV, and more via FFmpeg
+- **Archive Support**: ZIP, TAR, and other archive formats with compression levels
+- **OCR Text Extraction**: Extract text from images using Vision framework
+- **PDF Processing**: Native PDF to image conversion using Apple's PDFKit
+- **Drag-and-Drop Interface**: Intuitive file handling with visual feedback
+- **Quick Look Preview**: Preview converted files before saving
+- **Conversion History**: Track and quickly access recent conversions
+- **Format-Specific Options**: Quality settings, compression levels, and advanced parameters
+- **Native SwiftUI Design**: Modern macOS interface with responsive UI
+- **Batch Processing**: Convert multiple files at once

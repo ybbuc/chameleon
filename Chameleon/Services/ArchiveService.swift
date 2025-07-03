@@ -80,7 +80,13 @@ class ArchiveService {
 
     func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         if separately {
-            return try await createArchivesSeparately(format: format, from: files, outputDirectory: outputURL.deletingLastPathComponent(), verifyAfterCreation: verifyAfterCreation, compressionLevel: compressionLevel)
+            return try await createArchivesSeparately(
+                format: format,
+                from: files,
+                outputDirectory: outputURL.deletingLastPathComponent(),
+                verifyAfterCreation: verifyAfterCreation,
+                compressionLevel: compressionLevel
+            )
         } else {
             try await createSingleArchive(format: format, from: files, outputURL: outputURL, compressionLevel: compressionLevel)
 

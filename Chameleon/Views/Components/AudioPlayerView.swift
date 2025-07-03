@@ -89,7 +89,10 @@ struct AudioPlayerView: View {
                                 if isHoveringProgressBar {
                                     let xOffset = geometry.size.width * hoverProgress
                                     let tooltipWidth: CGFloat = 50
-                                    let clampedXOffset = max(tooltipWidth / 2, min(xOffset, geometry.size.width - tooltipWidth / 2))
+                                    let clampedXOffset = max(
+                                        tooltipWidth / 2,
+                                        min(xOffset, geometry.size.width - tooltipWidth / 2)
+                                    )
 
                                     // Hover position indicator
                                     RoundedRectangle(cornerRadius: 2, style: .continuous)

@@ -103,7 +103,10 @@ class PDFKitService {
             case .png:
                 imageData = bitmap.representation(using: NSBitmapImageRep.FileType.png, properties: [:])
             case .jpeg:
-                imageData = bitmap.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [NSBitmapImageRep.PropertyKey.compressionFactor: options.jpegQuality])
+                imageData = bitmap.representation(
+                    using: NSBitmapImageRep.FileType.jpeg,
+                    properties: [NSBitmapImageRep.PropertyKey.compressionFactor: options.jpegQuality]
+                )
             case .tiff:
                 imageData = bitmap.representation(using: NSBitmapImageRep.FileType.tiff, properties: [:])
             }

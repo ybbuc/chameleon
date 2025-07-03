@@ -56,6 +56,21 @@ struct ConverterView: View {
     @State private var inputAudioBitRate: Int?
     private let audioPropertyDetector = AudioPropertyDetector()
 
+    // MARK: - Computed Properties
+    
+    private var isConvertButtonDisabled: Bool {
+        return files.isEmpty ||
+               !isConversionServiceAvailable() ||
+               files.contains(where: { if case .converting = $0 { true } else { false } }) ||
+               !files.contains(where: { if case .input = $0 { true } else { false } })
+    }
+
+    private var isNativePDFImageConversion: Bool {
+        guard case .imagemagick(let format) = outputService else { return false }
+        return useNativePDFConversion && 
+               (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif)
+    }
+
     private func cleanupTempFiles() {
         for fileState in files {
             if case .converted(let convertedFile) = fileState {
@@ -177,10 +192,16 @@ struct ConverterView: View {
                         .fill(Color.gray.opacity(0.1))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(isTargeted ? Color.accentColor : Color.gray.opacity(0.3), style: StrokeStyle(lineWidth: isTargeted ? 2.5 : 2, dash: [8, 8]))
+                                .stroke(
+                                    isTargeted ? Color.accentColor : Color.gray.opacity(0.3),
+                                    style: StrokeStyle(lineWidth: isTargeted ? 2.5 : 2, dash: [8, 8])
+                                )
                                 .animation(.easeInOut(duration: 0.2), value: isTargeted)
                         )
-                        .shadow(color: isTargeted ? Color.accentColor.opacity(0.4) : Color.clear, radius: isTargeted ? 12 : 0)
+                        .shadow(
+                            color: isTargeted ? Color.accentColor.opacity(0.4) : Color.clear,
+                            radius: isTargeted ? 12 : 0
+                        )
                         .animation(.easeInOut(duration: 0.2), value: isTargeted)
 
                     if !files.isEmpty {
@@ -205,7 +226,10 @@ struct ConverterView: View {
                                             Rectangle()
                                                 .fill(Color.black.opacity(0.6))
                                                 .overlay(
-                                                    ActivityIndicatorView(isVisible: .constant(true), type: .scalingDots(count: 3, inset: 4))
+                                                    ActivityIndicatorView(
+                                                        isVisible: .constant(true),
+                                                        type: .scalingDots(count: 3, inset: 4)
+                                                    )
                                                         .frame(width: 40, height: 20)
                                                         .foregroundStyle(.white)
                                                 )
@@ -247,7 +271,10 @@ struct ConverterView: View {
                                                     QuickLookManager.shared.previewFile(at: url)
                                                 })
                                                 FinderButton(action: {
-                                                    NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
+                                                    NSWorkspace.shared.selectFile(
+                                                        url.path,
+                                                        inFileViewerRootedAtPath: ""
+                                                    )
                                                 })
                                             }
                                         }
@@ -372,7 +399,7 @@ struct ConverterView: View {
                                 .padding(.bottom, 8)
                             }
 
-                            if useNativePDFConversion && (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif) {
+                            if isNativePDFImageConversion {
                                 HStack {
                                     Text("PDF Scale")
                                         .font(.caption)
@@ -567,7 +594,7 @@ struct ConverterView: View {
                                 .padding(.vertical, 8)
                         })
                         .buttonStyle(.bordered)
-                        .disabled(files.isEmpty || !isConversionServiceAvailable() || files.contains(where: { if case .converting = $0 { true } else { false } }) || !files.contains(where: { if case .input = $0 { true } else { false } }))
+                        .disabled(isConvertButtonDisabled)
                         .controlSize(.large)
                         .padding(.bottom)
                     }
@@ -1232,7 +1259,10 @@ struct ConverterView: View {
                                 let finalTempURL = FileManager.default.temporaryDirectory
                                     .appendingPathComponent(UUID().uuidString)
                                     .appendingPathComponent(fileName)
-                                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                try FileManager.default.createDirectory(
+                                    at: finalTempURL.deletingLastPathComponent(),
+                                    withIntermediateDirectories: true
+                                )
                                 try FileManager.default.moveItem(at: outputURLs[0], to: finalTempURL)
 
                                 let convertedFile = ConvertedFile(
@@ -1437,7 +1467,10 @@ struct ConverterView: View {
                                 let finalTempURL = FileManager.default.temporaryDirectory
                                     .appendingPathComponent(UUID().uuidString)
                                     .appendingPathComponent(fileName)
-                                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                try FileManager.default.createDirectory(
+                                    at: finalTempURL.deletingLastPathComponent(),
+                                    withIntermediateDirectories: true
+                                )
                                 try FileManager.default.moveItem(at: testURL, to: finalTempURL)
 
                                 let convertedFile = ConvertedFile(
@@ -1466,7 +1499,10 @@ struct ConverterView: View {
                                     let finalTempURL = FileManager.default.temporaryDirectory
                                         .appendingPathComponent(UUID().uuidString)
                                         .appendingPathComponent(fileName)
-                                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                                    try FileManager.default.createDirectory(
+                                        at: finalTempURL.deletingLastPathComponent(),
+                                        withIntermediateDirectories: true
+                                    )
                                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                                     let convertedFile = ConvertedFile(
@@ -2251,7 +2287,8 @@ extension PandocFormat {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: ConversionRecord.self, configurations: config)
+    let container = (try? ModelContainer(for: ConversionRecord.self, configurations: config)) ?? 
+                    (try! ModelContainer(for: ConversionRecord.self))
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
 

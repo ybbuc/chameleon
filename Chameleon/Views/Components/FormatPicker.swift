@@ -303,7 +303,8 @@ struct FormatPicker: View {
                 if inputFileURLs.count > 1 {
                     return "Merge multiple PDF files into a single document while preserving all pages and formatting."
                 } else {
-                    return "Convert PDF to an image-based PDF. Useful for flattening forms, removing text layers, or ensuring consistent rendering."
+                    return "Convert PDF to an image-based PDF. Useful for flattening forms, " +
+                           "removing text layers, or ensuring consistent rendering."
                 }
             }
             return format.description

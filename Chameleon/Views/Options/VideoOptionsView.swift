@@ -71,7 +71,7 @@ struct VideoOptionsView: View {
                 Picker("Resolution:", selection: $videoOptions.resolution) {
                 Text(VideoResolution.automatic.displayName).tag(VideoResolution.automatic)
                 Divider()
-                ForEach([VideoResolution.res480p, VideoResolution.res576p, VideoResolution.res720p, VideoResolution.res1080p, VideoResolution.res1440p, VideoResolution.res2160p, VideoResolution.res4320p], id: \.self) { resolution in
+                ForEach(VideoResolution.standardResolutions, id: \.self) { resolution in
                     Text(resolution.displayName).tag(resolution)
                 }
             }
@@ -89,7 +89,7 @@ struct VideoOptionsView: View {
             Picker("Aspect ratio:", selection: $videoOptions.aspectRatio) {
                 Text(VideoAspectRatio.automatic.displayName).tag(VideoAspectRatio.automatic)
                 Divider()
-                ForEach([VideoAspectRatio.fourThree, VideoAspectRatio.sixteenNine, VideoAspectRatio.square], id: \.self) { ratio in
+                ForEach(VideoAspectRatio.standardRatios, id: \.self) { ratio in
                     Text(ratio.displayName).tag(ratio)
                 }
             }

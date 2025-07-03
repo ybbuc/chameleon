@@ -153,6 +153,10 @@ class TextToSpeechWrapper {
             ]
             return allLanguages.filter { languagesWithVoices.contains($0.id) }
         }()
+        
+        static var defaultLanguage: Language {
+            return supportedLanguages.first(where: { $0.code == "en" }) ?? supportedLanguages[0]
+        }
     }
 
     init() throws {

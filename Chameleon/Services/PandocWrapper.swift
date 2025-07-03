@@ -565,64 +565,36 @@ extension PandocFormat {
     // Detect format from file extension
     static func detectFormat(from url: URL) -> PandocFormat? {
         let ext = url.pathExtension.lowercased()
-
-        switch ext {
-        case "md", "markdown":
-            return .markdown
-        case "html", "htm":
-            return .html
-        case "tex":
-            return .latex
-        case "pdf":
-            return nil // PDFs are treated as image format, not document format
-        case "docx":
-            return .docx
-        case "odt":
-            return .odt
-        case "rtf":
-            return .rtf
-        case "epub":
-            return .epub
-        case "txt", "text":
-            return .plain
-        case "rst":
-            return .rst
-        case "adoc", "asciidoc":
-            return .asciidoc
-        case "textile":
-            return .textile
-        case "org":
-            return .org
-        case "wiki":
-            return .mediawiki
-        case "texi", "texinfo":
-            return .texinfo
-        case "xml":
-            return .docbook
-        case "json":
-            return .json
-        case "csv":
-            return .csv
-        case "tsv":
-            return .tsv
-        case "ipynb":
-            return .ipynb
-        case "typ":
-            return .typst
-        case "bib":
-            return .bibtex
-        case "fb2":
-            return .fb2
-        case "opml":
-            return .opml
-        case "man":
-            return .man
-        case "ms":
-            return .ms
-        case "t2t":
-            return .txt2tags
-        default:
-            return nil
-        }
+        return Self.extensionToFormatMap[ext]
     }
+    
+    private static let extensionToFormatMap: [String: PandocFormat] = [
+        "md": .markdown, "markdown": .markdown,
+        "html": .html, "htm": .html,
+        "tex": .latex,
+        "docx": .docx,
+        "odt": .odt,
+        "rtf": .rtf,
+        "epub": .epub,
+        "txt": .plain, "text": .plain,
+        "rst": .rst,
+        "adoc": .asciidoc, "asciidoc": .asciidoc,
+        "textile": .textile,
+        "org": .org,
+        "wiki": .mediawiki,
+        "texi": .texinfo, "texinfo": .texinfo,
+        "xml": .docbook,
+        "json": .json,
+        "csv": .csv,
+        "tsv": .tsv,
+        "ipynb": .ipynb,
+        "typ": .typst,
+        "bib": .bibtex,
+        "fb2": .fb2,
+        "opml": .opml,
+        "man": .man,
+        "ms": .ms,
+        "t2t": .txt2tags
+        // Note: PDFs are treated as image format, not document format, so not included
+    ]
 }

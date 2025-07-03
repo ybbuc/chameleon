@@ -22,7 +22,8 @@ protocol TTSFormatConfig: FormatConfig {
 
 struct AIFFTTSConfig: TTSFormatConfig {
     let displayName = "AIFF"
-    let description: String? = "Lossless, but the files are quite large. Standard on Apple platforms, but less common than WAV elsewhere."
+    let description: String? = "Lossless, but the files are quite large. " +
+                               "Standard on Apple platforms, but less common than WAV elsewhere."
     let fileExtension = "aiff"
     let audioCodec = "lpcm"
     let supportsMultipleVoices = true
@@ -33,7 +34,8 @@ struct AIFFTTSConfig: TTSFormatConfig {
 
 struct M4ATTSConfig: TTSFormatConfig {
     let displayName = "M4A"
-    let description: String? = "Lossy, though less than MP3. The files are very compact, and are generally well supported by most applications."
+    let description: String? = "Lossy, though less than MP3. The files are very compact, " +
+                               "and are generally well supported by most applications."
     let fileExtension = "m4a"
     let audioCodec = "aac"
     let supportsMultipleVoices = true
@@ -55,7 +57,7 @@ struct WAVTTSConfig: TTSFormatConfig {
 
 struct CAFTTSConfig: TTSFormatConfig {
     let displayName = "CAF"
-    let description: String? = "Apple's flexible audio container format. Supports both lossy and lossless codecs, widely compatible on Apple platforms."
+    let description: String? = "Apple's flexible audio container format. Supports both lossy and lossless codecs."
     let fileExtension = "caf"
     let audioCodec = "aac"
     let supportsMultipleVoices = true
