@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C502F2622E0EADA800A38245 /* ActivityIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C502F2612E0EADA800A38245 /* ActivityIndicatorView */; };
-		C502F2652E0EAEE700A38245 /* ProgressIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C502F2642E0EAEE700A38245 /* ProgressIndicatorView */; };
+		C5383E4A2E166F4D006087F0 /* ProgressIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C5383E492E166F4D006087F0 /* ProgressIndicatorView */; };
+		C5383E4D2E166F5D006087F0 /* ActivityIndicatorView in Frameworks */ = {isa = PBXBuildFile; productRef = C5383E4C2E166F5D006087F0 /* ActivityIndicatorView */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,8 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C502F2652E0EAEE700A38245 /* ProgressIndicatorView in Frameworks */,
-				C502F2622E0EADA800A38245 /* ActivityIndicatorView in Frameworks */,
+				C5383E4D2E166F5D006087F0 /* ActivityIndicatorView in Frameworks */,
+				C5383E4A2E166F4D006087F0 /* ProgressIndicatorView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -120,8 +120,8 @@
 			);
 			name = Chameleon;
 			packageProductDependencies = (
-				C502F2612E0EADA800A38245 /* ActivityIndicatorView */,
-				C502F2642E0EAEE700A38245 /* ProgressIndicatorView */,
+				C5383E492E166F4D006087F0 /* ProgressIndicatorView */,
+				C5383E4C2E166F5D006087F0 /* ActivityIndicatorView */,
 			);
 			productName = Chameleon;
 			productReference = 85000BC12E0836EB000D312F /* Chameleon.app */;
@@ -206,8 +206,8 @@
 			mainGroup = 85000BB82E0836EB000D312F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */,
-				C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */,
+				C5383E482E166F4D006087F0 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */,
+				C5383E4B2E166F5D006087F0 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85000BC22E0836EB000D312F /* Products */;
@@ -489,7 +489,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ybbuc.ChameleonTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -506,7 +506,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ybbuc.ChameleonTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -588,15 +588,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/exyte/ActivityIndicatorView.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.1;
-			};
-		};
-		C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */ = {
+		C5383E482E166F4D006087F0 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/exyte/ProgressIndicatorView.git";
 			requirement = {
@@ -604,18 +596,26 @@
 				minimumVersion = 1.1.0;
 			};
 		};
+		C5383E4B2E166F5D006087F0 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/exyte/ActivityIndicatorView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		C502F2612E0EADA800A38245 /* ActivityIndicatorView */ = {
+		C5383E492E166F4D006087F0 /* ProgressIndicatorView */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = C502F2602E0EADA800A38245 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */;
-			productName = ActivityIndicatorView;
-		};
-		C502F2642E0EAEE700A38245 /* ProgressIndicatorView */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C502F2632E0EAEE700A38245 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */;
+			package = C5383E482E166F4D006087F0 /* XCRemoteSwiftPackageReference "ProgressIndicatorView" */;
 			productName = ProgressIndicatorView;
+		};
+		C5383E4C2E166F5D006087F0 /* ActivityIndicatorView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C5383E4B2E166F5D006087F0 /* XCRemoteSwiftPackageReference "ActivityIndicatorView" */;
+			productName = ActivityIndicatorView;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

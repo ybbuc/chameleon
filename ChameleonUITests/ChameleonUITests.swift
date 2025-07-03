@@ -35,7 +35,14 @@ final class ChameleonUITests: XCTestCase {
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let app = XCUIApplication()
+            app.launch()
+            
+            // Wait for the app to be in a stable state
+            XCTAssertTrue(app.wait(for: .runningForeground, timeout: 10))
+            
+            // Terminate the app to ensure clean state for next iteration
+            app.terminate()
         }
     }
 }
