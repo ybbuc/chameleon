@@ -28,78 +28,242 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		C5387F2B2E16EA68006087F0 /* Copy Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Copy Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		85000BC12E0836EB000D312F /* Chameleon.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chameleon.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85000BCF2E0836EC000D312F /* ChameleonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChameleonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		85000BD92E0836EC000D312F /* ChameleonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChameleonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		C53856F52E16ABCA006087F0 /* Exceptions for "libs" folder in "Copy Bundle Resources" phase from "Chameleon" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 85000BBF2E0836EB000D312F /* Resources */;
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C53880242E16F0AA006087F0 /* Exceptions for "Chameleon" folder in "Chameleon" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				libaom.3.12.1.dylib,
-				libbrotlicommon.1.1.0.dylib,
-				libbrotlidec.1.1.0.dylib,
-				libbrotlienc.1.1.0.dylib,
-				libcairo.2.dylib,
-				libde265.0.dylib,
-				libdeflate.0.dylib,
-				libdjvulibre.21.dylib,
-				libfontconfig.1.dylib,
-				libfreetype.6.dylib,
-				libfribidi.0.dylib,
-				"libgio-2.0.0.dylib",
-				"libglib-2.0.0.dylib",
-				"libgmodule-2.0.0.dylib",
-				"libgobject-2.0.0.dylib",
-				libgraphite2.3.2.1.dylib,
-				libharfbuzz.0.dylib,
-				libheif.1.19.8.dylib,
-				libhwy.1.2.0.dylib,
-				"libIex-3_3.32.3.3.3.dylib",
-				"libIlmThread-3_3.32.3.3.3.dylib",
-				"libImath-3_1.29.11.0.dylib",
-				libintl.8.dylib,
-				libjasper.7.0.0.dylib,
-				libjpeg.8.3.2.dylib,
-				libjpeg.9.dylib,
-				libjxl_cms.0.11.1.dylib,
-				libjxl_threads.0.11.1.dylib,
-				libjxl.0.11.1.dylib,
-				liblcms2.2.dylib,
-				liblzma.5.dylib,
-				libomp.dylib,
-				"libOpenEXR-3_3.32.3.3.3.dylib",
-				"libOpenEXRCore-3_3.32.3.3.3.dylib",
-				"libOpenEXRUtil-3_3.32.3.3.3.dylib",
-				libopenjp2.2.5.3.dylib,
-				"libpango-1.0.0.dylib",
-				"libpangocairo-1.0.0.dylib",
-				"libpangoft2-1.0.0.dylib",
-				"libpcre2-8.0.dylib",
-				"libpixman-1.0.dylib",
-				libpng16.16.dylib,
-				libraqm.0.dylib,
-				libraw_r.23.dylib,
-				libsharpyuv.0.1.1.dylib,
-				libtiff.6.dylib,
-				libvmaf.3.dylib,
-				libwebp.7.1.10.dylib,
-				libwebpdemux.2.0.16.dylib,
-				libwebpmux.3.1.1.dylib,
-				libX11.6.dylib,
-				libx265.215.dylib,
-				libXau.6.dylib,
-				"libxcb-render.0.0.0.dylib",
-				"libxcb-shm.0.0.0.dylib",
-				libxcb.1.1.0.dylib,
-				libXdmcp.6.dylib,
-				libXext.6.dylib,
-				libXrender.1.dylib,
-				libzip.5.5.dylib,
-				libzstd.1.5.7.dylib,
+				Frameworks/libaom.3.12.1.dylib,
+				Frameworks/libbrotlicommon.1.1.0.dylib,
+				Frameworks/libbrotlidec.1.1.0.dylib,
+				Frameworks/libbrotlienc.1.1.0.dylib,
+				Frameworks/libcairo.2.dylib,
+				Frameworks/libcdt.6.dylib,
+				Frameworks/libcgraph.7.dylib,
+				Frameworks/libde265.0.dylib,
+				Frameworks/libdeflate.0.dylib,
+				Frameworks/libdjvulibre.21.dylib,
+				Frameworks/libfontconfig.1.dylib,
+				Frameworks/libfreetype.6.dylib,
+				Frameworks/libfribidi.0.dylib,
+				"Frameworks/libgio-2.0.0.dylib",
+				"Frameworks/libglib-2.0.0.dylib",
+				"Frameworks/libgmodule-2.0.0.dylib",
+				"Frameworks/libgobject-2.0.0.dylib",
+				Frameworks/libgraphite2.3.2.1.dylib,
+				Frameworks/libgvc.7.dylib,
+				Frameworks/libharfbuzz.0.dylib,
+				Frameworks/libheif.1.19.8.dylib,
+				Frameworks/libhwy.1.2.0.dylib,
+				"Frameworks/libIex-3_3.32.3.3.3.dylib",
+				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib",
+				"Frameworks/libImath-3_1.29.11.0.dylib",
+				Frameworks/libintl.8.dylib,
+				Frameworks/libjasper.7.0.0.dylib,
+				Frameworks/libjpeg.8.3.2.dylib,
+				Frameworks/libjpeg.9.dylib,
+				Frameworks/libjxl_cms.0.11.1.dylib,
+				Frameworks/libjxl_threads.0.11.1.dylib,
+				Frameworks/libjxl.0.11.1.dylib,
+				Frameworks/liblcms2.2.dylib,
+				Frameworks/libltdl.7.dylib,
+				Frameworks/liblzma.5.dylib,
+				Frameworks/libomp.dylib,
+				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib",
+				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib",
+				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib",
+				Frameworks/libopenjp2.2.5.3.dylib,
+				"Frameworks/libpango-1.0.0.dylib",
+				"Frameworks/libpangocairo-1.0.0.dylib",
+				"Frameworks/libpangoft2-1.0.0.dylib",
+				Frameworks/libpathplan.4.dylib,
+				"Frameworks/libpcre2-8.0.dylib",
+				"Frameworks/libpixman-1.0.dylib",
+				Frameworks/libpng16.16.dylib,
+				Frameworks/libraqm.0.dylib,
+				Frameworks/libraw_r.23.dylib,
+				Frameworks/libsharpyuv.0.1.1.dylib,
+				Frameworks/libtiff.6.dylib,
+				Frameworks/libvmaf.3.dylib,
+				Frameworks/libwebp.7.1.10.dylib,
+				Frameworks/libwebpdemux.2.0.16.dylib,
+				Frameworks/libwebpmux.3.1.1.dylib,
+				Frameworks/libX11.6.dylib,
+				Frameworks/libx265.215.dylib,
+				Frameworks/libXau.6.dylib,
+				"Frameworks/libxcb-render.0.0.0.dylib",
+				"Frameworks/libxcb-shm.0.0.0.dylib",
+				Frameworks/libxcb.1.1.0.dylib,
+				Frameworks/libXdmcp.6.dylib,
+				Frameworks/libxdot.4.dylib,
+				Frameworks/libXext.6.dylib,
+				Frameworks/libXrender.1.dylib,
+				Frameworks/libzip.5.5.dylib,
+				Frameworks/libzstd.1.5.7.dylib,
+			);
+			target = 85000BC02E0836EB000D312F /* Chameleon */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		C53880F62E16F62A006087F0 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				"Frameworks/libIex-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libImath-3_1.29.11.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				Frameworks/libX11.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libXau.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libXdmcp.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libXext.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libXrender.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libaom.3.12.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libbrotlicommon.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libbrotlidec.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libbrotlienc.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libcairo.2.dylib = (CodeSignOnCopy, );
+				Frameworks/libcdt.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libcgraph.7.dylib = (CodeSignOnCopy, );
+				Frameworks/libde265.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libdeflate.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libdjvulibre.21.dylib = (CodeSignOnCopy, );
+				Frameworks/libfontconfig.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libfreetype.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libfribidi.0.dylib = (CodeSignOnCopy, );
+				"Frameworks/libgio-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libglib-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libgmodule-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libgobject-2.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/libgraphite2.3.2.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libgvc.7.dylib = (CodeSignOnCopy, );
+				Frameworks/libharfbuzz.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libheif.1.19.8.dylib = (CodeSignOnCopy, );
+				Frameworks/libhwy.1.2.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libintl.8.dylib = (CodeSignOnCopy, );
+				Frameworks/libjasper.7.0.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libjpeg.8.3.2.dylib = (CodeSignOnCopy, );
+				Frameworks/libjpeg.9.dylib = (CodeSignOnCopy, );
+				Frameworks/libjxl.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libjxl_cms.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libjxl_threads.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/liblcms2.2.dylib = (CodeSignOnCopy, );
+				Frameworks/libltdl.7.dylib = (CodeSignOnCopy, );
+				Frameworks/liblzma.5.dylib = (CodeSignOnCopy, );
+				Frameworks/libomp.dylib = (CodeSignOnCopy, );
+				Frameworks/libopenjp2.2.5.3.dylib = (CodeSignOnCopy, );
+				"Frameworks/libpango-1.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libpangocairo-1.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libpangoft2-1.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/libpathplan.4.dylib = (CodeSignOnCopy, );
+				"Frameworks/libpcre2-8.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libpixman-1.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/libpng16.16.dylib = (CodeSignOnCopy, );
+				Frameworks/libraqm.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libraw_r.23.dylib = (CodeSignOnCopy, );
+				Frameworks/libsharpyuv.0.1.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libtiff.6.dylib = (CodeSignOnCopy, );
+				Frameworks/libvmaf.3.dylib = (CodeSignOnCopy, );
+				Frameworks/libwebp.7.1.10.dylib = (CodeSignOnCopy, );
+				Frameworks/libwebpdemux.2.0.16.dylib = (CodeSignOnCopy, );
+				Frameworks/libwebpmux.3.1.1.dylib = (CodeSignOnCopy, );
+				Frameworks/libx265.215.dylib = (CodeSignOnCopy, );
+				"Frameworks/libxcb-render.0.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/libxcb-shm.0.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/libxcb.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libxdot.4.dylib = (CodeSignOnCopy, );
+				Frameworks/libzip.5.5.dylib = (CodeSignOnCopy, );
+				Frameworks/libzstd.1.5.7.dylib = (CodeSignOnCopy, );
+			};
+			buildPhase = C5387F2B2E16EA68006087F0 /* Copy Frameworks */;
+			membershipExceptions = (
+				Frameworks/libaom.3.12.1.dylib,
+				Frameworks/libbrotlicommon.1.1.0.dylib,
+				Frameworks/libbrotlidec.1.1.0.dylib,
+				Frameworks/libbrotlienc.1.1.0.dylib,
+				Frameworks/libcairo.2.dylib,
+				Frameworks/libcdt.6.dylib,
+				Frameworks/libcgraph.7.dylib,
+				Frameworks/libde265.0.dylib,
+				Frameworks/libdeflate.0.dylib,
+				Frameworks/libdjvulibre.21.dylib,
+				Frameworks/libfontconfig.1.dylib,
+				Frameworks/libfreetype.6.dylib,
+				Frameworks/libfribidi.0.dylib,
+				"Frameworks/libgio-2.0.0.dylib",
+				"Frameworks/libglib-2.0.0.dylib",
+				"Frameworks/libgmodule-2.0.0.dylib",
+				"Frameworks/libgobject-2.0.0.dylib",
+				Frameworks/libgraphite2.3.2.1.dylib,
+				Frameworks/libgvc.7.dylib,
+				Frameworks/libharfbuzz.0.dylib,
+				Frameworks/libheif.1.19.8.dylib,
+				Frameworks/libhwy.1.2.0.dylib,
+				"Frameworks/libIex-3_3.32.3.3.3.dylib",
+				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib",
+				"Frameworks/libImath-3_1.29.11.0.dylib",
+				Frameworks/libintl.8.dylib,
+				Frameworks/libjasper.7.0.0.dylib,
+				Frameworks/libjpeg.8.3.2.dylib,
+				Frameworks/libjpeg.9.dylib,
+				Frameworks/libjxl_cms.0.11.1.dylib,
+				Frameworks/libjxl_threads.0.11.1.dylib,
+				Frameworks/libjxl.0.11.1.dylib,
+				Frameworks/liblcms2.2.dylib,
+				Frameworks/libltdl.7.dylib,
+				Frameworks/liblzma.5.dylib,
+				Frameworks/libomp.dylib,
+				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib",
+				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib",
+				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib",
+				Frameworks/libopenjp2.2.5.3.dylib,
+				"Frameworks/libpango-1.0.0.dylib",
+				"Frameworks/libpangocairo-1.0.0.dylib",
+				"Frameworks/libpangoft2-1.0.0.dylib",
+				Frameworks/libpathplan.4.dylib,
+				"Frameworks/libpcre2-8.0.dylib",
+				"Frameworks/libpixman-1.0.dylib",
+				Frameworks/libpng16.16.dylib,
+				Frameworks/libraqm.0.dylib,
+				Frameworks/libraw_r.23.dylib,
+				Frameworks/libsharpyuv.0.1.1.dylib,
+				Frameworks/libtiff.6.dylib,
+				Frameworks/libvmaf.3.dylib,
+				Frameworks/libwebp.7.1.10.dylib,
+				Frameworks/libwebpdemux.2.0.16.dylib,
+				Frameworks/libwebpmux.3.1.1.dylib,
+				Frameworks/libX11.6.dylib,
+				Frameworks/libx265.215.dylib,
+				Frameworks/libXau.6.dylib,
+				"Frameworks/libxcb-render.0.0.0.dylib",
+				"Frameworks/libxcb-shm.0.0.0.dylib",
+				Frameworks/libxcb.1.1.0.dylib,
+				Frameworks/libXdmcp.6.dylib,
+				Frameworks/libxdot.4.dylib,
+				Frameworks/libXext.6.dylib,
+				Frameworks/libXrender.1.dylib,
+				Frameworks/libzip.5.5.dylib,
+				Frameworks/libzstd.1.5.7.dylib,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -107,6 +271,10 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		85000BC32E0836EB000D312F /* Chameleon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C53880242E16F0AA006087F0 /* Exceptions for "Chameleon" folder in "Chameleon" target */,
+				C53880F62E16F62A006087F0 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */,
+			);
 			path = Chameleon;
 			sourceTree = "<group>";
 		};
@@ -118,14 +286,6 @@
 		85000BDC2E0836EC000D312F /* ChameleonUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ChameleonUITests;
-			sourceTree = "<group>";
-		};
-		C538567A2E16AAC9006087F0 /* libs */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				C53856F52E16ABCA006087F0 /* Exceptions for "libs" folder in "Copy Bundle Resources" phase from "Chameleon" target */,
-			);
-			path = libs;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -160,7 +320,6 @@
 		85000BB82E0836EB000D312F = {
 			isa = PBXGroup;
 			children = (
-				C538567A2E16AAC9006087F0 /* libs */,
 				85000BC32E0836EB000D312F /* Chameleon */,
 				85000BD22E0836EC000D312F /* ChameleonTests */,
 				85000BDC2E0836EC000D312F /* ChameleonUITests */,
@@ -189,6 +348,7 @@
 				85000BBD2E0836EB000D312F /* Sources */,
 				85000BBE2E0836EB000D312F /* Frameworks */,
 				85000BBF2E0836EB000D312F /* Resources */,
+				C5387F2B2E16EA68006087F0 /* Copy Frameworks */,
 				C5383E4F2E1676E2006087F0 /* SwiftLint */,
 			);
 			buildRules = (
@@ -197,7 +357,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				85000BC32E0836EB000D312F /* Chameleon */,
-				C538567A2E16AAC9006087F0 /* libs */,
 			);
 			name = Chameleon;
 			packageProductDependencies = (
@@ -536,7 +695,7 @@
 				CODE_SIGN_ENTITLEMENTS = Chameleon/Chameleon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = J742TPJFF2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -550,8 +709,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Chameleon/libs",
-					"$(PROJECT_DIR)/libs",
+					"$(PROJECT_DIR)/Chameleon/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
@@ -572,7 +730,7 @@
 				CODE_SIGN_ENTITLEMENTS = Chameleon/Chameleon.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = J742TPJFF2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -586,8 +744,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Chameleon/libs",
-					"$(PROJECT_DIR)/libs",
+					"$(PROJECT_DIR)/Chameleon/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;

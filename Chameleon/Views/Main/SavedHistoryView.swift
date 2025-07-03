@@ -360,8 +360,9 @@ struct SavedHistoryRow: View {
     @Previewable @State var searchText = ""
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = (try? ModelContainer(for: ConversionRecord.self, configurations: config)) ??
-                    (try! ModelContainer(for: ConversionRecord.self,
-                                       configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+                    (try? ModelContainer(for: ConversionRecord.self,
+                                       configurations: ModelConfiguration(isStoredInMemoryOnly: true))) ??
+                    (try! ModelContainer(for: ConversionRecord.self))
     let context = container.mainContext
     let manager = SavedHistoryManager(modelContext: context)
 

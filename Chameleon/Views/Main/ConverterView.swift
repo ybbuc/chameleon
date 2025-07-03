@@ -350,7 +350,13 @@ struct ConverterView: View {
 
             // MARK: - Convert pane
             VStack {
-                FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url }, isPandocAvailable: pandocWrapper != nil, isImageMagickAvailable: imageMagickWrapper != nil, isFFmpegAvailable: ffmpegWrapper != nil)
+                FormatPicker(
+                    selectedService: $outputService,
+                    inputFileURLs: files.compactMap { $0.url },
+                    isPandocAvailable: pandocWrapper != nil,
+                    isImageMagickAvailable: imageMagickWrapper != nil,
+                    isFFmpegAvailable: ffmpegWrapper != nil
+                )
                     .padding(.top)
                     .disabled(files.isEmpty ||
                               files.contains(where: { if case .converting = $0 { true } else { false } }))
@@ -781,12 +787,12 @@ struct ConverterView: View {
     private func utType(for extension: String) -> UTType? {
         return UTType(filenameExtension: `extension`)
     }
-    
+
     private func selectFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        
+
         var allowedTypes: [UTType] = [
             // Document types
             .text, .plainText, .sourceCode, .html,
