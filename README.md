@@ -57,7 +57,7 @@ Chameleon/
 - **PDF Processing**: Native PDF to image conversion using Apple's PDFKit
 - **Drag-and-Drop Interface**: Intuitive file handling with visual feedback
 - **Quick Look Preview**: Preview converted files before saving
-- **Conversion History**: Track and quickly access recent conversions
+- **Conversion History**: Track and quickly access recent saved conversions
 - **Format-Specific Options**: Quality settings, compression levels, and advanced parameters
 - **Native SwiftUI Design**: Modern macOS interface with responsive UI
 - **Batch Processing**: Convert multiple files at once

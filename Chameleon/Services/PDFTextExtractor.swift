@@ -126,7 +126,8 @@ class PDFTextExtractor {
             context?.scaleBy(x: scale, y: -scale)
 
             // Draw the PDF page
-            page.draw(with: .mediaBox, to: context!)
+            guard let drawContext = context else { continue }
+            page.draw(with: .mediaBox, to: drawContext)
 
             pageImage.unlockFocus()
 

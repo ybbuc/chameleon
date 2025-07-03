@@ -121,7 +121,12 @@ class ArchiveService {
             let archiveURL = outputDirectory
                 .appendingPathComponent("\(fileName).\(format.fileExtension)")
 
-            try await createSingleArchive(format: format, from: [file], outputURL: archiveURL, compressionLevel: compressionLevel)
+            try await createSingleArchive(
+                format: format,
+                from: [file],
+                outputURL: archiveURL,
+                compressionLevel: compressionLevel
+            )
 
             if verifyAfterCreation {
                 _ = try await verifyArchive(at: archiveURL, format: format)

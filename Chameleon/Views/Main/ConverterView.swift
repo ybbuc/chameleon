@@ -364,7 +364,8 @@ struct ConverterView: View {
             VStack {
                 FormatPicker(selectedService: $outputService, inputFileURLs: files.compactMap { $0.url })
                     .padding(.top)
-                    .disabled(files.isEmpty || files.contains(where: { if case .converting = $0 { true } else { false } }))
+                    .disabled(files.isEmpty ||
+                              files.contains(where: { if case .converting = $0 { true } else { false } }))
 
                 // Show image conversion options
                 if case .imagemagick(let format) = outputService, !files.isEmpty {
@@ -386,7 +387,8 @@ struct ConverterView: View {
                             return inputFormat.requiresDpiConfiguration
                         }) {
                             // Only show native PDF option for formats that PDFKit supports
-                            if format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif {
+                            if format == .png || format == .jpeg || format == .jpg ||
+                               format == .tiff || format == .tif {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Picker("Engine", selection: $useNativePDFConversion) {
                                         Text("ImageMagick").tag(false)
@@ -787,28 +789,31 @@ struct ConverterView: View {
         return true
     }
 
+    private func utType(for extension: String) -> UTType? {
+        return UTType(filenameExtension: `extension`)
+    }
+    
     private func selectFile() {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [
+        
+        var allowedTypes: [UTType] = [
             // Document types
             .text, .plainText, .sourceCode, .html,
-            UTType(filenameExtension: "md")!,
-            UTType(filenameExtension: "tex")!,
-            UTType(filenameExtension: "rst")!,
-            UTType(filenameExtension: "org")!,
-            UTType(filenameExtension: "docx")!,
-            UTType(filenameExtension: "odt")!,
-            UTType(filenameExtension: "epub")!,
             // Image types
-            .image, .jpeg, .png, .gif, .bmp, .tiff, .pdf,
-            UTType(filenameExtension: "webp")!,
-            UTType(filenameExtension: "heic")!,
-            UTType(filenameExtension: "heif")!,
-            UTType(filenameExtension: "svg")!,
-            UTType(filenameExtension: "ico")!
+            .image, .jpeg, .png, .gif, .bmp, .tiff, .pdf
         ]
+        
+        // Add custom file types safely
+        let customExtensions = ["md", "tex", "rst", "org", "docx", "odt", "epub", "webp", "heic", "heif", "svg", "ico"]
+        for ext in customExtensions {
+            if let type = utType(for: ext) {
+                allowedTypes.append(type)
+            }
+        }
+        
+        panel.allowedContentTypes = allowedTypes
 
         if panel.runModal() == .OK {
             for url in panel.urls {
@@ -960,7 +965,8 @@ struct ConverterView: View {
                     createdArchives = try await archiveService.createArchive(
                         format: format,
                         from: inputURLs,
-                        outputURL: tempDirectory.appendingPathComponent("placeholder"), // Will be ignored for separate archiving
+                        outputURL: tempDirectory.appendingPathComponent("placeholder"),
+                        // Will be ignored for separate archiving
                         separately: true,
                         verifyAfterCreation: archiveOptions.verifyAfterCreation,
                         compressionLevel: archiveOptions.compressionLevel

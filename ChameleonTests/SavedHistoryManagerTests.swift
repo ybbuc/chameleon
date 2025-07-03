@@ -49,7 +49,10 @@ struct SavedHistoryManagerTests {
 
         #expect(manager.savedHistory.count == 1)
 
-        let record = manager.savedHistory.first!
+        guard let record = manager.savedHistory.first else {
+            #expect(Bool(false), "Should have a saved record")
+            return
+        }
         #expect(record.inputFileName == "test.md")
         #expect(record.inputFormat == "markdown")
         #expect(record.outputFormat == "pdf")
@@ -75,7 +78,10 @@ struct SavedHistoryManagerTests {
 
         #expect(manager.savedHistory.count == 1)
 
-        let record = manager.savedHistory.first!
+        guard let record = manager.savedHistory.first else {
+            #expect(Bool(false), "Should have a saved record")
+            return
+        }
         manager.removeConversion(record)
 
         #expect(manager.savedHistory.isEmpty)
@@ -180,7 +186,10 @@ struct SavedHistoryManagerTests {
             outputFileURL: tempURL
         )
 
-        let record = manager.savedHistory.first!
+        guard let record = manager.savedHistory.first else {
+            #expect(Bool(false), "Should have a saved record")
+            return
+        }
         #expect(record.isFileAccessible == true)
 
         // Delete the file
@@ -204,7 +213,10 @@ struct SavedHistoryManagerTests {
             outputFileURL: tempURL
         )
 
-        let record = manager.savedHistory.first!
+        guard let record = manager.savedHistory.first else {
+            #expect(Bool(false), "Should have a saved record")
+            return
+        }
 
         // We can't actually test NSWorkspace.open in unit tests,
         // but we can verify the method doesn't crash
@@ -231,7 +243,10 @@ struct SavedHistoryManagerTests {
             outputFileURL: tempURL
         )
 
-        let record = manager.savedHistory.first!
+        guard let record = manager.savedHistory.first else {
+            #expect(Bool(false), "Should have a saved record")
+            return
+        }
 
         // We can't actually test NSWorkspace.activateFileViewerSelecting in unit tests,
         // but we can verify the method doesn't crash

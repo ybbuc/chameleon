@@ -332,7 +332,6 @@ class AudioPlayerViewModel: ObservableObject {
             timeObserver = nil
         }
 
-        NotificationCenter.default.removeObserver(self)
         player = nil
     }
 
@@ -392,6 +391,7 @@ class AudioPlayerViewModel: ObservableObject {
 
     deinit {
         stop()
+        NotificationCenter.default.removeObserver(self)
     }
 }
 

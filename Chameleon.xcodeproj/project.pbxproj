@@ -34,6 +34,76 @@
 		85000BD92E0836EC000D312F /* ChameleonUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChameleonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		C53856F52E16ABCA006087F0 /* Exceptions for "libs" folder in "Copy Bundle Resources" phase from "Chameleon" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 85000BBF2E0836EB000D312F /* Resources */;
+			membershipExceptions = (
+				libaom.3.12.1.dylib,
+				libbrotlicommon.1.1.0.dylib,
+				libbrotlidec.1.1.0.dylib,
+				libbrotlienc.1.1.0.dylib,
+				libcairo.2.dylib,
+				libde265.0.dylib,
+				libdeflate.0.dylib,
+				libdjvulibre.21.dylib,
+				libfontconfig.1.dylib,
+				libfreetype.6.dylib,
+				libfribidi.0.dylib,
+				"libgio-2.0.0.dylib",
+				"libglib-2.0.0.dylib",
+				"libgmodule-2.0.0.dylib",
+				"libgobject-2.0.0.dylib",
+				libgraphite2.3.2.1.dylib,
+				libharfbuzz.0.dylib,
+				libheif.1.19.8.dylib,
+				libhwy.1.2.0.dylib,
+				"libIex-3_3.32.3.3.3.dylib",
+				"libIlmThread-3_3.32.3.3.3.dylib",
+				"libImath-3_1.29.11.0.dylib",
+				libintl.8.dylib,
+				libjasper.7.0.0.dylib,
+				libjpeg.8.3.2.dylib,
+				libjpeg.9.dylib,
+				libjxl_cms.0.11.1.dylib,
+				libjxl_threads.0.11.1.dylib,
+				libjxl.0.11.1.dylib,
+				liblcms2.2.dylib,
+				liblzma.5.dylib,
+				libomp.dylib,
+				"libOpenEXR-3_3.32.3.3.3.dylib",
+				"libOpenEXRCore-3_3.32.3.3.3.dylib",
+				"libOpenEXRUtil-3_3.32.3.3.3.dylib",
+				libopenjp2.2.5.3.dylib,
+				"libpango-1.0.0.dylib",
+				"libpangocairo-1.0.0.dylib",
+				"libpangoft2-1.0.0.dylib",
+				"libpcre2-8.0.dylib",
+				"libpixman-1.0.dylib",
+				libpng16.16.dylib,
+				libraqm.0.dylib,
+				libraw_r.23.dylib,
+				libsharpyuv.0.1.1.dylib,
+				libtiff.6.dylib,
+				libvmaf.3.dylib,
+				libwebp.7.1.10.dylib,
+				libwebpdemux.2.0.16.dylib,
+				libwebpmux.3.1.1.dylib,
+				libX11.6.dylib,
+				libx265.215.dylib,
+				libXau.6.dylib,
+				"libxcb-render.0.0.0.dylib",
+				"libxcb-shm.0.0.0.dylib",
+				libxcb.1.1.0.dylib,
+				libXdmcp.6.dylib,
+				libXext.6.dylib,
+				libXrender.1.dylib,
+				libzip.5.5.dylib,
+				libzstd.1.5.7.dylib,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		85000BC32E0836EB000D312F /* Chameleon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -48,6 +118,14 @@
 		85000BDC2E0836EC000D312F /* ChameleonUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ChameleonUITests;
+			sourceTree = "<group>";
+		};
+		C538567A2E16AAC9006087F0 /* libs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C53856F52E16ABCA006087F0 /* Exceptions for "libs" folder in "Copy Bundle Resources" phase from "Chameleon" target */,
+			);
+			path = libs;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -82,6 +160,7 @@
 		85000BB82E0836EB000D312F = {
 			isa = PBXGroup;
 			children = (
+				C538567A2E16AAC9006087F0 /* libs */,
 				85000BC32E0836EB000D312F /* Chameleon */,
 				85000BD22E0836EC000D312F /* ChameleonTests */,
 				85000BDC2E0836EC000D312F /* ChameleonUITests */,
@@ -118,6 +197,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				85000BC32E0836EB000D312F /* Chameleon */,
+				C538567A2E16AAC9006087F0 /* libs */,
 			);
 			name = Chameleon;
 			packageProductDependencies = (
@@ -468,6 +548,11 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Chameleon/libs",
+					"$(PROJECT_DIR)/libs",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ybbuc.Chameleon;
@@ -498,6 +583,11 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Chameleon/libs",
+					"$(PROJECT_DIR)/libs",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;

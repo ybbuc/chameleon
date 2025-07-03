@@ -13,51 +13,19 @@ class ImageMagickWrapper {
     private var currentProcess: Process?
 
     init() throws {
-        // Use bundled magick binary first
-        if let bundlePath = Bundle.main.path(forResource: "magick", ofType: nil) {
-            if FileManager.default.fileExists(atPath: bundlePath) && FileManager.default.isExecutableFile(atPath: bundlePath) {
-                print("Using bundled ImageMagick at: \(bundlePath)")
-                self.magickPath = bundlePath
-                return
-            }
+        // Use only bundled magick binary
+        guard let bundlePath = Bundle.main.path(forResource: "magick", ofType: nil) else {
+            throw ImageMagickError.imageMagickNotInstalled
         }
-
-        // Use system magick from PATH (ImageMagick v7)
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = ["magick"]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        if process.terminationStatus == 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                print("Found ImageMagick at: \(path)")
-                self.magickPath = path
-                return
-            }
+        
+        guard FileManager.default.fileExists(atPath: bundlePath) && FileManager.default.isExecutableFile(atPath: bundlePath) else {
+            throw ImageMagickError.imageMagickNotInstalled
         }
-
-        // Fallback to common locations
-        let commonPaths = [
-            "/usr/local/bin/magick",
-            "/opt/homebrew/bin/magick",
-            "/opt/local/bin/magick"
-        ]
-
-        for path in commonPaths {
-            if FileManager.default.fileExists(atPath: path) && FileManager.default.isExecutableFile(atPath: path) {
-                print("Found ImageMagick at fallback location: \(path)")
-                self.magickPath = path
-                return
-            }
-        }
-
-        throw ImageMagickError.imageMagickNotInstalled
+        
+        // Libraries should be in Contents/libs/ directory (build-time setup required)
+        
+        print("Using bundled ImageMagick at: \(bundlePath)")
+        self.magickPath = bundlePath
     }
 
     func convertImage(inputURL: URL, outputURL: URL, to outputFormat: ImageFormat, quality: Int = 100, dpi: Int = 150) async throws {
@@ -99,13 +67,19 @@ class ImageMagickWrapper {
         let errorPipe = Pipe()
         process.standardError = errorPipe
 
-        // Set up environment to include common Homebrew paths for Ghostscript
+        // Set up environment to use bundled libraries
         var environment = ProcessInfo.processInfo.environment
-        let existingPath = environment["PATH"] ?? ""
-        let homebrewPaths = "/opt/homebrew/bin:/usr/local/bin"
-        if !existingPath.contains(homebrewPaths) {
-            environment["PATH"] = "\(homebrewPaths):\(existingPath)"
-        }
+        
+        // Point to bundled libs directory - magick expects libs at @executable_path/../libs/
+        let bundleContentsPath = Bundle.main.bundlePath
+        let libsPath = bundleContentsPath + "/Contents/Resources"
+        environment["DYLD_LIBRARY_PATH"] = libsPath
+        environment["LD_LIBRARY_PATH"] = libsPath
+        
+        // Also set the path where magick binary expects to find libs
+        let expectedLibsPath = bundleContentsPath + "/Contents/libs"
+        environment["DYLD_FALLBACK_LIBRARY_PATH"] = "\(libsPath):\(expectedLibsPath)"
+        
         process.environment = environment
 
         try process.run()
@@ -167,17 +141,17 @@ class ImageMagickWrapper {
 }
 
 enum ImageFormat: String, CaseIterable {
-    case jpeg = "jpeg"
-    case jpg = "jpg"
-    case png = "png"
-    case gif = "gif"
-    case bmp = "bmp"
-    case tiff = "tiff"
-    case tif = "tif"
-    case webp = "webp"
-    case pdf = "pdf"
-    case svg = "svg"
-    case ico = "ico"
+    case jpeg
+    case jpg
+    case png
+    case gif
+    case bmp
+    case tiff
+    case tif
+    case webp
+    case pdf
+    case svg
+    case ico
 
     var config: ImageFormatConfig {
         switch self {

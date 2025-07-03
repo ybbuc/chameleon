@@ -730,10 +730,10 @@ enum FFmpegFormat: String, CaseIterable {
 }
 
 enum FFmpegQuality: String, CaseIterable {
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
-    case veryhigh = "veryhigh"
+    case low
+    case medium
+    case high
+    case veryhigh
 
     var displayName: String {
         switch self {
