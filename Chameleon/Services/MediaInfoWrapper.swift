@@ -162,6 +162,11 @@ class MediaInfoWrapper {
         let hasAudio = audioStreamCount > 0
         print("  🔊 Audio streams: \(audioStreamCount)")
         
+        // Check for subtitle/text streams
+        let textStreamCount = getInt(handle: handle, streamKind: .text, streamNumber: 0, parameter: "StreamCount") ?? 0
+        let hasSubtitles = textStreamCount > 0
+        print("  💬 Subtitle streams: \(textStreamCount)")
+        
         // Get video codec if present
         let videoCodec = hasVideo ? getString(handle: handle, streamKind: .video, streamNumber: 0, parameter: "Format") : nil
         
@@ -210,6 +215,7 @@ class MediaInfoWrapper {
             formatName: formatName ?? "unknown",
             hasVideo: hasVideo,
             hasAudio: hasAudio,
+            hasSubtitles: hasSubtitles,
             videoCodec: videoCodec,
             audioCodec: audioCodec,
             duration: duration,
@@ -364,13 +370,40 @@ extension MediaInfoWrapper {
             }
         }
         
+        // Get subtitle/text stream count
+        let textStreamCountStr = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "TextCount")
+        let textStreamCount = textStreamCountStr.flatMap { Int($0) } ?? 0
+        
+        // Get all subtitle streams
+        var subtitleStreams: [SubtitleStreamInfo] = []
+        for streamIndex in 0..<textStreamCount {
+            // Check if stream exists by trying to get codec
+            if let codec = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Format") {
+                let language = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Language/String")
+                let title = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Title")
+                let forced = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Forced") == "Yes"
+                let isDefault = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Default") == "Yes"
+                
+                let streamInfo = SubtitleStreamInfo(
+                    streamIndex: streamIndex,
+                    codec: codec,
+                    language: language,
+                    title: title,
+                    forced: forced,
+                    `default`: isDefault
+                )
+                subtitleStreams.append(streamInfo)
+            }
+        }
+        
         let detailedInfo = DetailedMediaInfo(
             format: format,
             fileSize: fileSize,
             duration: duration,
             overallBitRate: overallBitRate,
             videoStreams: videoStreams,
-            audioStreams: audioStreams
+            audioStreams: audioStreams,
+            subtitleStreams: subtitleStreams
         )
         
         return detailedInfo

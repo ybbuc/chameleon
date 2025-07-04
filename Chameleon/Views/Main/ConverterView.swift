@@ -2272,7 +2272,8 @@ struct ConverterView: View {
                     onRemove: {
                         files.removeAll { $0.id == fileState.id }
                         updateOutputService()
-                    }
+                    },
+                    mediaInfo: mediaInfoCache[url]
                 )
             } else {
                 FileRow(
@@ -2285,7 +2286,8 @@ struct ConverterView: View {
                     onRemove: {
                         files.removeAll { $0.id == fileState.id }
                         updateOutputService()
-                    }
+                    },
+                    mediaInfo: mediaInfoCache[url]
                 )
             }
         case .converting(let url, let fileName):

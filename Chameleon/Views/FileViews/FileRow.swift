@@ -16,8 +16,16 @@ struct FileRow: View {
     let onMoveUp: () -> Void
     let onMoveDown: () -> Void
     let onRemove: () -> Void
+    let mediaInfo: DetailedMediaInfo?
     @State private var isHoveringRow = false
     @State private var showingMediaInfo = false
+    @State private var showingSubtitleSelection = false
+    @State private var selectedSubtitles: Set<Int> = []
+    
+    // Keep hover buttons visible when any popover is open
+    private var shouldShowHoverButtons: Bool {
+        isHoveringRow || showingMediaInfo || showingSubtitleSelection
+    }
 
     var body: some View {
         BaseFileRow(
@@ -50,8 +58,25 @@ struct FileRow: View {
                     )
                     .disabled(index == totalFiles - 1)
                 } else {
-                    // Show preview/finder buttons for normal mode
-                    if isHoveringRow {
+                    // Show hover buttons for normal mode
+                    if shouldShowHoverButtons {
+                        // Show subtitle button for all video files
+                        if mediaInfo?.hasVideo == true {
+                            SubtitleButton(action: {
+                                showingSubtitleSelection = true
+                            }, size: 14, hasSubtitles: mediaInfo?.hasSubtitles ?? false)
+                            .disabled(mediaInfo?.hasSubtitles != true)
+                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                            .popover(isPresented: $showingSubtitleSelection) {
+                                if let subtitles = mediaInfo?.subtitleStreams {
+                                    SubtitleSelectionView(
+                                        subtitleStreams: subtitles,
+                                        selectedSubtitles: $selectedSubtitles
+                                    )
+                                }
+                            }
+                        }
+                        
                         InfoButton(action: {
                             showingMediaInfo = true
                         }, size: 14)
@@ -73,6 +98,12 @@ struct FileRow: View {
                 }
 
                 RemoveButton(action: onRemove, size: 14)
+            }
+        }
+        .onAppear {
+            // Initialize selected subtitles - by default select all
+            if let subtitles = mediaInfo?.subtitleStreams {
+                selectedSubtitles = Set(subtitles.map { $0.streamIndex })
             }
         }
     }

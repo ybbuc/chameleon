@@ -122,6 +122,28 @@ struct MediaInfoView: View {
                                 }
                             }
                         }
+                        
+                        // Subtitle Streams
+                        ForEach(info.subtitleStreams.indices, id: \.self) { index in
+                            let stream = info.subtitleStreams[index]
+                            InfoSection(title: info.subtitleStreams.count > 1 ? "Subtitle Stream \(index + 1)" : "Subtitle") {
+                                if let codec = stream.codec {
+                                    InfoRow(label: "Codec", value: codec)
+                                }
+                                if let language = stream.language {
+                                    InfoRow(label: "Language", value: language)
+                                }
+                                if let title = stream.title {
+                                    InfoRow(label: "Title", value: title)
+                                }
+                                if let forced = stream.forced {
+                                    InfoRow(label: "Forced", value: forced ? "Yes" : "No")
+                                }
+                                if let isDefault = stream.`default` {
+                                    InfoRow(label: "Default", value: isDefault ? "Yes" : "No")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -260,6 +282,15 @@ struct AudioStreamInfo {
     let title: String?
 }
 
+struct SubtitleStreamInfo {
+    let streamIndex: Int
+    let codec: String?
+    let language: String?
+    let title: String?
+    let forced: Bool?
+    let `default`: Bool?
+}
+
 // Extended media info structure for detailed view
 struct DetailedMediaInfo {
     let format: String
@@ -269,9 +300,11 @@ struct DetailedMediaInfo {
     
     let videoStreams: [VideoStreamInfo]
     let audioStreams: [AudioStreamInfo]
+    let subtitleStreams: [SubtitleStreamInfo]
     
     var hasVideo: Bool { !videoStreams.isEmpty }
     var hasAudio: Bool { !audioStreams.isEmpty }
+    var hasSubtitles: Bool { !subtitleStreams.isEmpty }
     
     // Legacy properties for backward compatibility
     var videoCodec: String? { videoStreams.first?.codec }

@@ -421,6 +421,7 @@ struct MediaFileInfo {
     let formatName: String
     let hasVideo: Bool
     let hasAudio: Bool
+    let hasSubtitles: Bool
     let videoCodec: String?
     let audioCodec: String?
     let duration: TimeInterval?
@@ -429,12 +430,14 @@ struct MediaFileInfo {
     let audioChannels: Int?
     let audioBitRate: Int?
     
-    init(formatName: String, hasVideo: Bool, hasAudio: Bool, videoCodec: String? = nil, 
-         audioCodec: String? = nil, duration: TimeInterval? = nil, audioBitDepth: Int? = nil,
-         audioSampleRate: Int? = nil, audioChannels: Int? = nil, audioBitRate: Int? = nil) {
+    init(formatName: String, hasVideo: Bool, hasAudio: Bool, hasSubtitles: Bool = false,
+         videoCodec: String? = nil, audioCodec: String? = nil, duration: TimeInterval? = nil, 
+         audioBitDepth: Int? = nil, audioSampleRate: Int? = nil, audioChannels: Int? = nil, 
+         audioBitRate: Int? = nil) {
         self.formatName = formatName
         self.hasVideo = hasVideo
         self.hasAudio = hasAudio
+        self.hasSubtitles = hasSubtitles
         self.videoCodec = videoCodec
         self.audioCodec = audioCodec
         self.duration = duration

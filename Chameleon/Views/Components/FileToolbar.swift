@@ -17,6 +17,8 @@ struct FileToolbar: View {
     var onClear: (() -> Void)?
     let mediaInfoCache: [URL: DetailedMediaInfo]
     @State private var showingMediaInfo = false
+    @State private var showingSubtitleSelection = false
+    @State private var selectedSubtitles: Set<Int> = []
 
     private var hasResettableFiles: Bool {
         files.contains { fileState in
@@ -48,6 +50,20 @@ struct FileToolbar: View {
                             isDisabled: true,
                             action: onReset
                         )
+                        
+                        // Show subtitle button for all video files (before info button)
+                        if let mediaInfo = mediaInfoCache[url], mediaInfo.hasVideo {
+                            SubtitleButton(action: {
+                                showingSubtitleSelection = true
+                            }, size: 16, hasSubtitles: mediaInfo.hasSubtitles)
+                            .disabled(!mediaInfo.hasSubtitles)
+                            .popover(isPresented: $showingSubtitleSelection) {
+                                SubtitleSelectionView(
+                                    subtitleStreams: mediaInfo.subtitleStreams,
+                                    selectedSubtitles: $selectedSubtitles
+                                )
+                            }
+                        }
 
                         InfoButton(action: {
                             showingMediaInfo = true
@@ -78,6 +94,20 @@ struct FileToolbar: View {
                         )
 
                     case .converting(let url, _):
+                        // Show subtitle button for all video files (before info button)
+                        if let mediaInfo = mediaInfoCache[url], mediaInfo.hasVideo {
+                            SubtitleButton(action: {
+                                showingSubtitleSelection = true
+                            }, size: 16, hasSubtitles: mediaInfo.hasSubtitles)
+                            .disabled(!mediaInfo.hasSubtitles)
+                            .popover(isPresented: $showingSubtitleSelection) {
+                                SubtitleSelectionView(
+                                    subtitleStreams: mediaInfo.subtitleStreams,
+                                    selectedSubtitles: $selectedSubtitles
+                                )
+                            }
+                        }
+                        
                         InfoButton(action: {
                             showingMediaInfo = true
                         })
@@ -123,6 +153,20 @@ struct FileToolbar: View {
                             isDisabled: false,
                             action: onReset
                         )
+                        
+                        // Show subtitle button for all video files (before info button)
+                        if let mediaInfo = mediaInfoCache[url], mediaInfo.hasVideo {
+                            SubtitleButton(action: {
+                                showingSubtitleSelection = true
+                            }, size: 16, hasSubtitles: mediaInfo.hasSubtitles)
+                            .disabled(!mediaInfo.hasSubtitles)
+                            .popover(isPresented: $showingSubtitleSelection) {
+                                SubtitleSelectionView(
+                                    subtitleStreams: mediaInfo.subtitleStreams,
+                                    selectedSubtitles: $selectedSubtitles
+                                )
+                            }
+                        }
 
                         InfoButton(action: {
                             showingMediaInfo = true
@@ -174,6 +218,14 @@ struct FileToolbar: View {
                 }
                 .padding(.horizontal)
                 .frame(height: 50)
+            }
+        }
+        .onAppear {
+            // Initialize selected subtitles when single file view appears
+            if files.count == 1, let fileState = files.first, let url = fileState.url {
+                if let mediaInfo = mediaInfoCache[url] {
+                    selectedSubtitles = Set(mediaInfo.subtitleStreams.map { $0.streamIndex })
+                }
             }
         }
     }
