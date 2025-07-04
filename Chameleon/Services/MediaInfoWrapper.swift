@@ -188,7 +188,8 @@ class MediaInfoWrapper {
             print("  🔍 Debug - Available audio info:")
             let debugParams = ["Format", "CodecID", "BitRate", "SamplingRate", "BitDepth", 
                              "Resolution", "BitDepth_Detected", "Channels", "ChannelPositions",
-                             "ChannelLayout", "BitRate_Mode", "Compression_Mode"]
+                             "ChannelLayout", "BitRate_Mode", "Compression_Mode", "StreamKind",
+                             "StreamKind/String", "StreamCount"]
             for param in debugParams {
                 if let value = getString(handle: handle, streamKind: .audio, streamNumber: 0, parameter: param) {
                     print("    - \(param): \(value)")
@@ -257,6 +258,132 @@ enum MediaInfoError: LocalizedError {
             return "Failed to initialize MediaInfo instance"
         case .openFailed(let path):
             return "Failed to open file: \(path)"
+        }
+    }
+}
+
+extension MediaInfoWrapper {
+    func getDetailedFileInfo(url: URL) throws -> DetailedMediaInfo {
+        // Create MediaInfo instance
+        guard let handle = mediaInfo_New() else {
+            throw MediaInfoError.initializationFailed
+        }
+        
+        defer {
+            mediaInfo_Delete(handle)
+        }
+        
+        // Open the file
+        let result = url.path.withCString { path in
+            mediaInfo_Open(handle, path)
+        }
+        
+        guard result > 0 else {
+            throw MediaInfoError.openFailed(url.path)
+        }
+        
+        defer {
+            mediaInfo_Close(handle)
+        }
+        
+        // Get file size
+        let fileSize = FileManager.default.fileSize(at: url) ?? 0
+        
+        // Get general info
+        let format = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Format") ?? "Unknown"
+        let overallBitRateString = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "OverallBitRate")
+        let overallBitRate = overallBitRateString.flatMap { Int($0) }.map { $0 / 1000 }
+        
+        // Get duration in seconds
+        let durationMs = getDouble(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Duration")
+        let duration = durationMs.map { $0 / 1000.0 }
+        
+        // Get video stream count
+        let videoStreamCountStr = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "VideoCount")
+        let videoStreamCount = videoStreamCountStr.flatMap { Int($0) } ?? 0
+        
+        // Get all video streams
+        var videoStreams: [VideoStreamInfo] = []
+        for streamIndex in 0..<videoStreamCount {
+            // Check if stream exists by trying to get codec
+            if let codec = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Format") {
+                let width = getInt(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Width")
+                let height = getInt(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Height")
+                let resolution = (width != nil && height != nil) ? "\(width!)x\(height!)" : nil
+                let frameRate = getDouble(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "FrameRate")
+                let bitRateString = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "BitRate")
+                let bitRate = bitRateString.flatMap { Int($0) }.map { $0 / 1000 }
+                let colorSpace = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "ColorSpace")
+                let pixelFormat = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "PixelFormat")
+                let aspectRatio = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "DisplayAspectRatio/String")
+                
+                let streamInfo = VideoStreamInfo(
+                    streamIndex: streamIndex,
+                    codec: codec,
+                    resolution: resolution,
+                    frameRate: frameRate,
+                    bitRate: bitRate,
+                    colorSpace: colorSpace,
+                    pixelFormat: pixelFormat,
+                    aspectRatio: aspectRatio
+                )
+                videoStreams.append(streamInfo)
+            }
+        }
+        
+        // Get audio stream count
+        let audioStreamCountStr = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "AudioCount")
+        let audioStreamCount = audioStreamCountStr.flatMap { Int($0) } ?? 0
+        
+        // Get all audio streams
+        var audioStreams: [AudioStreamInfo] = []
+        for streamIndex in 0..<audioStreamCount {
+            // Check if stream exists by trying to get codec
+            if let codec = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format") {
+                let channels = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Channels")
+                let sampleRate = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "SamplingRate")
+                let bitDepth = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "BitDepth")
+                let bitRateString = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "BitRate")
+                let bitRate = bitRateString.flatMap { Int($0) }.map { $0 / 1000 }
+                let compressionMode = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Compression_Mode")
+                let language = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Language/String")
+                let title = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Title")
+                
+                let streamInfo = AudioStreamInfo(
+                    streamIndex: streamIndex,
+                    codec: codec,
+                    channels: channels,
+                    sampleRate: sampleRate,
+                    bitDepth: bitDepth,
+                    bitRate: bitRate,
+                    compressionMode: compressionMode,
+                    language: language,
+                    title: title
+                )
+                audioStreams.append(streamInfo)
+            }
+        }
+        
+        let detailedInfo = DetailedMediaInfo(
+            format: format,
+            fileSize: fileSize,
+            duration: duration,
+            overallBitRate: overallBitRate,
+            videoStreams: videoStreams,
+            audioStreams: audioStreams
+        )
+        
+        return detailedInfo
+    }
+}
+
+extension FileManager {
+    func fileSize(at url: URL) -> Int64? {
+        do {
+            let attributes = try attributesOfItem(atPath: url.path)
+            return attributes[.size] as? Int64
+        } catch {
+            return nil
         }
     }
 }

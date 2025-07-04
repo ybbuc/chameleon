@@ -15,6 +15,8 @@ struct FileToolbar: View {
     let onSave: (ConvertedFile) -> Void
     let onUpdateOutputService: () -> Void
     var onClear: (() -> Void)?
+    let mediaInfoCache: [URL: DetailedMediaInfo]
+    @State private var showingMediaInfo = false
 
     private var hasResettableFiles: Bool {
         files.contains { fileState in
@@ -47,6 +49,13 @@ struct FileToolbar: View {
                             action: onReset
                         )
 
+                        InfoButton(action: {
+                            showingMediaInfo = true
+                        })
+                        .popover(isPresented: $showingMediaInfo) {
+                            MediaInfoView(url: url, cachedMediaInfo: mediaInfoCache[url])
+                        }
+
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: url)
                         })
@@ -69,6 +78,13 @@ struct FileToolbar: View {
                         )
 
                     case .converting(let url, _):
+                        InfoButton(action: {
+                            showingMediaInfo = true
+                        })
+                        .popover(isPresented: $showingMediaInfo) {
+                            MediaInfoView(url: url, cachedMediaInfo: mediaInfoCache[url])
+                        }
+                        
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
                         })
@@ -79,6 +95,13 @@ struct FileToolbar: View {
                             isDisabled: false,
                             action: onReset
                         )
+
+                        InfoButton(action: {
+                            showingMediaInfo = true
+                        })
+                        .popover(isPresented: $showingMediaInfo) {
+                            MediaInfoView(url: convertedFile.tempURL, cachedMediaInfo: mediaInfoCache[convertedFile.originalURL])
+                        }
 
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: convertedFile.tempURL)
@@ -100,6 +123,13 @@ struct FileToolbar: View {
                             isDisabled: false,
                             action: onReset
                         )
+
+                        InfoButton(action: {
+                            showingMediaInfo = true
+                        })
+                        .popover(isPresented: $showingMediaInfo) {
+                            MediaInfoView(url: url, cachedMediaInfo: mediaInfoCache[url])
+                        }
 
                         FinderButton(action: {
                             NSWorkspace.shared.selectFile(url.path, inFileViewerRootedAtPath: "")
@@ -158,7 +188,8 @@ struct FileToolbar: View {
             onClearConverted: {},
             onSaveAll: {},
             onSave: { _ in },
-            onUpdateOutputService: {}
+            onUpdateOutputService: {},
+            mediaInfoCache: [:]
         )
 
         // Multiple files preview
@@ -175,7 +206,8 @@ struct FileToolbar: View {
             onClearConverted: {},
             onSaveAll: {},
             onSave: { _ in },
-            onUpdateOutputService: {}
+            onUpdateOutputService: {},
+            mediaInfoCache: [:]
         )
     }
     .frame(width: 400)

@@ -46,6 +46,7 @@ struct ConverterView: View {
     @State private var ttsInitError: String?
     @State private var archiveService: ArchiveService?
     @State private var conversionTask: Task<Void, Never>?
+    @State private var mediaInfoCache: [URL: DetailedMediaInfo] = [:]
     @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
     @AppStorage("saveToSourceFolder") private var saveToSourceFolder: Bool = false
@@ -80,6 +81,10 @@ struct ConverterView: View {
                 try? FileManager.default.removeItem(at: convertedFile.tempURL.deletingLastPathComponent())
             }
         }
+        
+        // Also clean up media info cache for removed files
+        let currentURLs = Set(files.compactMap { $0.url })
+        mediaInfoCache = mediaInfoCache.filter { currentURLs.contains($0.key) }
     }
 
     private let completionSound: NSSound? = {
@@ -295,7 +300,8 @@ struct ConverterView: View {
                                         onClear: {
                                             files = []
                                             errorMessage = nil
-                                        }
+                                        },
+                                        mediaInfoCache: mediaInfoCache
                                     )
                                 }
                             }
@@ -326,7 +332,8 @@ struct ConverterView: View {
                                     onClear: {
                                         files = []
                                         errorMessage = nil
-                                    }
+                                    },
+                                    mediaInfoCache: mediaInfoCache
                                 )
                             }
                         }
@@ -751,6 +758,11 @@ struct ConverterView: View {
                             self.errorMessage = nil
                             self.updateOutputService()
                             self.detectInputAudioBitDepth()
+                            
+                            // Cache media info asynchronously
+                            Task {
+                                _ = await self.getMediaInfo(for: url)
+                            }
                             return
                         }
 
@@ -779,12 +791,22 @@ struct ConverterView: View {
                             self.errorMessage = nil
                             self.updateOutputService()
                             self.detectInputAudioBitDepth()
+                            
+                            // Cache media info asynchronously
+                            Task {
+                                _ = await self.getMediaInfo(for: url)
+                            }
                         } else {
                             // Replace existing files with the new incompatible file
                             self.files = [.input(url)]
                             self.errorMessage = nil
                             self.updateOutputService()
                             self.detectInputAudioBitDepth()
+                            
+                            // Cache media info asynchronously
+                            Task {
+                                _ = await self.getMediaInfo(for: url)
+                            }
                         }
                     }
                 }
@@ -837,6 +859,11 @@ struct ConverterView: View {
                     files.append(.input(url))
                     updateOutputService()
                     detectInputAudioBitDepth()
+                    
+                    // Cache media info asynchronously
+                    Task {
+                        _ = await getMediaInfo(for: url)
+                    }
                     continue
                 }
 
@@ -864,6 +891,11 @@ struct ConverterView: View {
                     files.append(.input(url))
                     updateOutputService()
                     detectInputAudioBitDepth()
+                    
+                    // Cache media info asynchronously
+                    Task {
+                        _ = await getMediaInfo(for: url)
+                    }
                 } else {
                     // Replace existing files with the new incompatible file
                     cleanupTempFiles()
@@ -871,6 +903,11 @@ struct ConverterView: View {
                     errorMessage = nil
                     updateOutputService()
                     detectInputAudioBitDepth()
+                    
+                    // Cache media info asynchronously
+                    Task {
+                        _ = await getMediaInfo(for: url)
+                    }
                     break
                 }
             }
@@ -1843,6 +1880,32 @@ struct ConverterView: View {
         return documentFormat != nil || imageFormat != nil || mediaFormat != nil
     }
 
+    private func getMediaInfo(for url: URL) async -> DetailedMediaInfo? {
+        // Check cache first
+        if let cached = mediaInfoCache[url] {
+            return cached
+        }
+        
+        // Try to get detailed media info using MediaInfoLib
+        if let mediaInfoWrapper = try? MediaInfoWrapper() {
+            do {
+                let detailedInfo = try await Task.detached {
+                    try mediaInfoWrapper.getDetailedFileInfo(url: url)
+                }.value
+                
+                // Cache the result
+                await MainActor.run {
+                    mediaInfoCache[url] = detailedInfo
+                }
+                
+                return detailedInfo
+            } catch {
+                print("Failed to get detailed media info: \(error)")
+            }
+        }
+        return nil
+    }
+    
     private func updateOutputService() {
         let compatibleServices = getCompatibleServices()
 

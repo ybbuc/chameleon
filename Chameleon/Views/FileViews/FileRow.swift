@@ -17,6 +17,7 @@ struct FileRow: View {
     let onMoveDown: () -> Void
     let onRemove: () -> Void
     @State private var isHoveringRow = false
+    @State private var showingMediaInfo = false
 
     var body: some View {
         BaseFileRow(
@@ -51,6 +52,14 @@ struct FileRow: View {
                 } else {
                     // Show preview/finder buttons for normal mode
                     if isHoveringRow {
+                        InfoButton(action: {
+                            showingMediaInfo = true
+                        }, size: 14)
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                        .popover(isPresented: $showingMediaInfo) {
+                            MediaInfoView(url: url)
+                        }
+                        
                         PreviewButton(action: {
                             QuickLookManager.shared.previewFile(at: url)
                         }, size: 14)
