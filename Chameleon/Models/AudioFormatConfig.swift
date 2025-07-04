@@ -116,10 +116,12 @@ struct OGGConfig: MediaFormatConfig {
     let description: String? = "Lossy, with quality often better than MP3 at similar bitrates. " +
                                "While compact, it's not as universal as MP3 or AAC."
     let fileExtension = "ogg"
-    let isVideo = false
+    let isVideo = false  // Still primarily an audio format
     let isLossless = false
 
     func codecArguments() -> [String] {
+        // For audio-only files, use Vorbis
+        // Note: When video is present, FFmpegWrapper will add video codec args
         return ["-c:a", "libvorbis"]
     }
 }

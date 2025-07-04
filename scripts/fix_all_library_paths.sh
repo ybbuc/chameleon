@@ -1,16 +1,27 @@
 #!/bin/bash
 
-cd Chameleon/Frameworks
+cd Chameleon
 
 echo "Fixing all library dependency paths..."
 
-# First, run the existing update script to fix known paths
-../../update_library_paths_frameworks.sh
+# Fix FFmpeg to use the bundled SDL2
+if [ -f "ffmpeg" ]; then
+    echo "Fixing FFmpeg SDL2 dependency..."
+    install_name_tool -change /opt/homebrew/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/../Frameworks/libSDL2-2.0.0.dylib ffmpeg
+fi
 
-# Now fix specific libraries with empty paths based on what they should be
+if [ -f "ffprobe" ]; then
+    echo "Fixing FFprobe SDL2 dependency..."
+    install_name_tool -change /opt/homebrew/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/../Frameworks/libSDL2-2.0.0.dylib ffprobe
+fi
+
+cd Frameworks
 
 # For each library, check original dependencies and fix empty paths
-for lib in *.dylib; do
+for lib in *.dylib ffmpeg/*.dylib; do
+    # Skip if file doesn't exist (happens with glob patterns)
+    [ -f "$lib" ] || continue
+    
     echo "Processing $lib..."
     
     # Get the homebrew path for this library if it exists

@@ -1309,13 +1309,39 @@ struct ConverterView: View {
                     }
 
                 case .ffmpeg(let format):
+                    // Special handling for OGG format: detect if input has video
+                    var effectiveVideoOptions: VideoOptions? = nil
+                    var effectiveAudioOptions: AudioOptions? = nil
+                    
+                    if format == .ogg {
+                        // For OGG format, check file extension to determine if it's likely a video file
+                        let videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v", "mpg", "mpeg"]
+                        let inputExtension = inputURL.pathExtension.lowercased()
+                        
+                        if videoExtensions.contains(inputExtension) {
+                            // Input is likely a video file, so pass videoOptions
+                            // Input is likely a video file, so pass videoOptions
+                            effectiveVideoOptions = videoOptions
+                            effectiveAudioOptions = nil
+                        } else {
+                            // Input is likely audio-only or unknown, use normal audio options
+                            // Input is likely audio-only or unknown, use normal audio options
+                            effectiveVideoOptions = nil
+                            effectiveAudioOptions = audioOptions
+                        }
+                    } else {
+                        // For other formats, use the normal logic based on format.isVideo
+                        effectiveVideoOptions = format.isVideo ? videoOptions : nil
+                        effectiveAudioOptions = format.isVideo ? nil : audioOptions
+                    }
+                    
                     try await ffmpegWrapper!.convertFile(
                         inputURL: inputURL,
                         outputURL: tempURL,
                         format: format,
                         quality: format.isVideo ? videoOptions.crfQuality : .medium,
-                        audioOptions: format.isVideo ? nil : audioOptions,
-                        videoOptions: format.isVideo ? videoOptions : nil
+                        audioOptions: effectiveAudioOptions,
+                        videoOptions: effectiveVideoOptions
                     )
 
                     // Single file output for FFmpeg

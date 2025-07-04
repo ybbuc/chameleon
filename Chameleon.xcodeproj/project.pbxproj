@@ -48,222 +48,225 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		C53880242E16F0AA006087F0 /* Exceptions for "Chameleon" folder in "Chameleon" target */ = {
+		85BBD6C82E171D40002F2E52 /* Exceptions for "Chameleon" folder in "Chameleon" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Frameworks/libaom.3.12.1.dylib,
-				Frameworks/libbrotlicommon.1.1.0.dylib,
-				Frameworks/libbrotlidec.1.1.0.dylib,
-				Frameworks/libbrotlienc.1.1.0.dylib,
-				Frameworks/libcairo.2.dylib,
-				Frameworks/libcdt.6.dylib,
-				Frameworks/libcgraph.7.dylib,
-				Frameworks/libde265.0.dylib,
-				Frameworks/libdeflate.0.dylib,
-				Frameworks/libdjvulibre.21.dylib,
-				Frameworks/libfontconfig.1.dylib,
-				Frameworks/libfreetype.6.dylib,
-				Frameworks/libfribidi.0.dylib,
-				"Frameworks/libgio-2.0.0.dylib",
-				"Frameworks/libglib-2.0.0.dylib",
-				"Frameworks/libgmodule-2.0.0.dylib",
-				"Frameworks/libgobject-2.0.0.dylib",
-				Frameworks/libgraphite2.3.2.1.dylib,
-				Frameworks/libgvc.7.dylib,
-				Frameworks/libharfbuzz.0.dylib,
-				Frameworks/libheif.1.19.8.dylib,
-				Frameworks/libhwy.1.2.0.dylib,
-				"Frameworks/libIex-3_3.32.3.3.3.dylib",
-				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib",
-				"Frameworks/libImath-3_1.29.11.0.dylib",
-				Frameworks/libintl.8.dylib,
-				Frameworks/libjasper.7.0.0.dylib,
-				Frameworks/libjpeg.8.3.2.dylib,
-				Frameworks/libjpeg.9.dylib,
-				Frameworks/libjxl_cms.0.11.1.dylib,
-				Frameworks/libjxl_threads.0.11.1.dylib,
-				Frameworks/libjxl.0.11.1.dylib,
-				Frameworks/liblcms2.2.dylib,
-				Frameworks/libltdl.7.dylib,
-				Frameworks/liblzma.5.dylib,
-				Frameworks/libomp.dylib,
-				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib",
-				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib",
-				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib",
-				Frameworks/libopenjp2.2.5.3.dylib,
-				"Frameworks/libpango-1.0.0.dylib",
-				"Frameworks/libpangocairo-1.0.0.dylib",
-				"Frameworks/libpangoft2-1.0.0.dylib",
-				Frameworks/libpathplan.4.dylib,
-				"Frameworks/libpcre2-8.0.dylib",
-				"Frameworks/libpixman-1.0.dylib",
-				Frameworks/libpng16.16.dylib,
-				Frameworks/libraqm.0.dylib,
-				Frameworks/libraw_r.23.dylib,
-				Frameworks/libsharpyuv.0.1.1.dylib,
-				Frameworks/libtiff.6.dylib,
-				Frameworks/libvmaf.3.dylib,
-				Frameworks/libwebp.7.1.10.dylib,
-				Frameworks/libwebpdemux.2.0.16.dylib,
-				Frameworks/libwebpmux.3.1.1.dylib,
-				Frameworks/libX11.6.dylib,
-				Frameworks/libx265.215.dylib,
-				Frameworks/libXau.6.dylib,
-				"Frameworks/libxcb-render.0.0.0.dylib",
-				"Frameworks/libxcb-shm.0.0.0.dylib",
-				Frameworks/libxcb.1.1.0.dylib,
-				Frameworks/libXdmcp.6.dylib,
-				Frameworks/libxdot.4.dylib,
-				Frameworks/libXext.6.dylib,
-				Frameworks/libXrender.1.dylib,
-				Frameworks/libzip.5.5.dylib,
-				Frameworks/libzstd.1.5.7.dylib,
+				"Frameworks/libSDL2-2.0.0.dylib",
+				Frameworks/magick/libaom.3.12.1.dylib,
+				Frameworks/magick/libbrotlicommon.1.1.0.dylib,
+				Frameworks/magick/libbrotlidec.1.1.0.dylib,
+				Frameworks/magick/libbrotlienc.1.1.0.dylib,
+				Frameworks/magick/libcairo.2.dylib,
+				Frameworks/magick/libcdt.6.dylib,
+				Frameworks/magick/libcgraph.7.dylib,
+				Frameworks/magick/libde265.0.dylib,
+				Frameworks/magick/libdeflate.0.dylib,
+				Frameworks/magick/libdjvulibre.21.dylib,
+				Frameworks/magick/libfontconfig.1.dylib,
+				Frameworks/magick/libfreetype.6.dylib,
+				Frameworks/magick/libfribidi.0.dylib,
+				"Frameworks/magick/libgio-2.0.0.dylib",
+				"Frameworks/magick/libglib-2.0.0.dylib",
+				"Frameworks/magick/libgmodule-2.0.0.dylib",
+				"Frameworks/magick/libgobject-2.0.0.dylib",
+				Frameworks/magick/libgraphite2.3.2.1.dylib,
+				Frameworks/magick/libgvc.7.dylib,
+				Frameworks/magick/libharfbuzz.0.dylib,
+				Frameworks/magick/libheif.1.19.8.dylib,
+				Frameworks/magick/libhwy.1.2.0.dylib,
+				"Frameworks/magick/libIex-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libIlmThread-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libImath-3_1.29.11.0.dylib",
+				Frameworks/magick/libintl.8.dylib,
+				Frameworks/magick/libjasper.7.0.0.dylib,
+				Frameworks/magick/libjpeg.8.3.2.dylib,
+				Frameworks/magick/libjpeg.9.dylib,
+				Frameworks/magick/libjxl_cms.0.11.1.dylib,
+				Frameworks/magick/libjxl_threads.0.11.1.dylib,
+				Frameworks/magick/libjxl.0.11.1.dylib,
+				Frameworks/magick/liblcms2.2.dylib,
+				Frameworks/magick/libltdl.7.dylib,
+				Frameworks/magick/liblzma.5.dylib,
+				Frameworks/magick/libomp.dylib,
+				"Frameworks/magick/libOpenEXR-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libOpenEXRCore-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libOpenEXRUtil-3_3.32.3.3.3.dylib",
+				Frameworks/magick/libopenjp2.2.5.3.dylib,
+				"Frameworks/magick/libpango-1.0.0.dylib",
+				"Frameworks/magick/libpangocairo-1.0.0.dylib",
+				"Frameworks/magick/libpangoft2-1.0.0.dylib",
+				Frameworks/magick/libpathplan.4.dylib,
+				"Frameworks/magick/libpcre2-8.0.dylib",
+				"Frameworks/magick/libpixman-1.0.dylib",
+				Frameworks/magick/libpng16.16.dylib,
+				Frameworks/magick/libraqm.0.dylib,
+				Frameworks/magick/libraw_r.23.dylib,
+				Frameworks/magick/libsharpyuv.0.1.1.dylib,
+				Frameworks/magick/libtiff.6.dylib,
+				Frameworks/magick/libvmaf.3.dylib,
+				Frameworks/magick/libwebp.7.1.10.dylib,
+				Frameworks/magick/libwebpdemux.2.0.16.dylib,
+				Frameworks/magick/libwebpmux.3.1.1.dylib,
+				Frameworks/magick/libX11.6.dylib,
+				Frameworks/magick/libx265.215.dylib,
+				Frameworks/magick/libXau.6.dylib,
+				"Frameworks/magick/libxcb-render.0.0.0.dylib",
+				"Frameworks/magick/libxcb-shm.0.0.0.dylib",
+				Frameworks/magick/libxcb.1.1.0.dylib,
+				Frameworks/magick/libXdmcp.6.dylib,
+				Frameworks/magick/libxdot.4.dylib,
+				Frameworks/magick/libXext.6.dylib,
+				Frameworks/magick/libXrender.1.dylib,
+				Frameworks/magick/libzip.5.5.dylib,
+				Frameworks/magick/libzstd.1.5.7.dylib,
 			);
 			target = 85000BC02E0836EB000D312F /* Chameleon */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		C53880F62E16F62A006087F0 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */ = {
+		85BBD6C72E171D35002F2E52 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
-				"Frameworks/libIex-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libImath-3_1.29.11.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
-				Frameworks/libX11.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libXau.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libXdmcp.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libXext.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libXrender.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libaom.3.12.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libbrotlicommon.1.1.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libbrotlidec.1.1.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libbrotlienc.1.1.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libcairo.2.dylib = (CodeSignOnCopy, );
-				Frameworks/libcdt.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libcgraph.7.dylib = (CodeSignOnCopy, );
-				Frameworks/libde265.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libdeflate.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libdjvulibre.21.dylib = (CodeSignOnCopy, );
-				Frameworks/libfontconfig.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libfreetype.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libfribidi.0.dylib = (CodeSignOnCopy, );
-				"Frameworks/libgio-2.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libglib-2.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libgmodule-2.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libgobject-2.0.0.dylib" = (CodeSignOnCopy, );
-				Frameworks/libgraphite2.3.2.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libgvc.7.dylib = (CodeSignOnCopy, );
-				Frameworks/libharfbuzz.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libheif.1.19.8.dylib = (CodeSignOnCopy, );
-				Frameworks/libhwy.1.2.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libintl.8.dylib = (CodeSignOnCopy, );
-				Frameworks/libjasper.7.0.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libjpeg.8.3.2.dylib = (CodeSignOnCopy, );
-				Frameworks/libjpeg.9.dylib = (CodeSignOnCopy, );
-				Frameworks/libjxl.0.11.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libjxl_cms.0.11.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libjxl_threads.0.11.1.dylib = (CodeSignOnCopy, );
-				Frameworks/liblcms2.2.dylib = (CodeSignOnCopy, );
-				Frameworks/libltdl.7.dylib = (CodeSignOnCopy, );
-				Frameworks/liblzma.5.dylib = (CodeSignOnCopy, );
-				Frameworks/libomp.dylib = (CodeSignOnCopy, );
-				Frameworks/libopenjp2.2.5.3.dylib = (CodeSignOnCopy, );
-				"Frameworks/libpango-1.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libpangocairo-1.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libpangoft2-1.0.0.dylib" = (CodeSignOnCopy, );
-				Frameworks/libpathplan.4.dylib = (CodeSignOnCopy, );
-				"Frameworks/libpcre2-8.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libpixman-1.0.dylib" = (CodeSignOnCopy, );
-				Frameworks/libpng16.16.dylib = (CodeSignOnCopy, );
-				Frameworks/libraqm.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libraw_r.23.dylib = (CodeSignOnCopy, );
-				Frameworks/libsharpyuv.0.1.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libtiff.6.dylib = (CodeSignOnCopy, );
-				Frameworks/libvmaf.3.dylib = (CodeSignOnCopy, );
-				Frameworks/libwebp.7.1.10.dylib = (CodeSignOnCopy, );
-				Frameworks/libwebpdemux.2.0.16.dylib = (CodeSignOnCopy, );
-				Frameworks/libwebpmux.3.1.1.dylib = (CodeSignOnCopy, );
-				Frameworks/libx265.215.dylib = (CodeSignOnCopy, );
-				"Frameworks/libxcb-render.0.0.0.dylib" = (CodeSignOnCopy, );
-				"Frameworks/libxcb-shm.0.0.0.dylib" = (CodeSignOnCopy, );
-				Frameworks/libxcb.1.1.0.dylib = (CodeSignOnCopy, );
-				Frameworks/libxdot.4.dylib = (CodeSignOnCopy, );
-				Frameworks/libzip.5.5.dylib = (CodeSignOnCopy, );
-				Frameworks/libzstd.1.5.7.dylib = (CodeSignOnCopy, );
+				"Frameworks/libSDL2-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libIex-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libIlmThread-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libImath-3_1.29.11.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libOpenEXR-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libOpenEXRCore-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libOpenEXRUtil-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
+				Frameworks/magick/libX11.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libXau.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libXdmcp.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libXext.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libXrender.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libaom.3.12.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libbrotlicommon.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libbrotlidec.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libbrotlienc.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libcairo.2.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libcdt.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libcgraph.7.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libde265.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libdeflate.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libdjvulibre.21.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libfontconfig.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libfreetype.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libfribidi.0.dylib = (CodeSignOnCopy, );
+				"Frameworks/magick/libgio-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libglib-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libgmodule-2.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libgobject-2.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/magick/libgraphite2.3.2.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libgvc.7.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libharfbuzz.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libheif.1.19.8.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libhwy.1.2.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libintl.8.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjasper.7.0.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjpeg.8.3.2.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjpeg.9.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjxl.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjxl_cms.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libjxl_threads.0.11.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/liblcms2.2.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libltdl.7.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/liblzma.5.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libomp.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libopenjp2.2.5.3.dylib = (CodeSignOnCopy, );
+				"Frameworks/magick/libpango-1.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libpangocairo-1.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libpangoft2-1.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/magick/libpathplan.4.dylib = (CodeSignOnCopy, );
+				"Frameworks/magick/libpcre2-8.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libpixman-1.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/magick/libpng16.16.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libraqm.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libraw_r.23.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libsharpyuv.0.1.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libtiff.6.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libvmaf.3.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libwebp.7.1.10.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libwebpdemux.2.0.16.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libwebpmux.3.1.1.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libx265.215.dylib = (CodeSignOnCopy, );
+				"Frameworks/magick/libxcb-render.0.0.0.dylib" = (CodeSignOnCopy, );
+				"Frameworks/magick/libxcb-shm.0.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/magick/libxcb.1.1.0.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libxdot.4.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libzip.5.5.dylib = (CodeSignOnCopy, );
+				Frameworks/magick/libzstd.1.5.7.dylib = (CodeSignOnCopy, );
 			};
 			buildPhase = C5387F2B2E16EA68006087F0 /* Copy Frameworks */;
 			membershipExceptions = (
-				Frameworks/libaom.3.12.1.dylib,
-				Frameworks/libbrotlicommon.1.1.0.dylib,
-				Frameworks/libbrotlidec.1.1.0.dylib,
-				Frameworks/libbrotlienc.1.1.0.dylib,
-				Frameworks/libcairo.2.dylib,
-				Frameworks/libcdt.6.dylib,
-				Frameworks/libcgraph.7.dylib,
-				Frameworks/libde265.0.dylib,
-				Frameworks/libdeflate.0.dylib,
-				Frameworks/libdjvulibre.21.dylib,
-				Frameworks/libfontconfig.1.dylib,
-				Frameworks/libfreetype.6.dylib,
-				Frameworks/libfribidi.0.dylib,
-				"Frameworks/libgio-2.0.0.dylib",
-				"Frameworks/libglib-2.0.0.dylib",
-				"Frameworks/libgmodule-2.0.0.dylib",
-				"Frameworks/libgobject-2.0.0.dylib",
-				Frameworks/libgraphite2.3.2.1.dylib,
-				Frameworks/libgvc.7.dylib,
-				Frameworks/libharfbuzz.0.dylib,
-				Frameworks/libheif.1.19.8.dylib,
-				Frameworks/libhwy.1.2.0.dylib,
-				"Frameworks/libIex-3_3.32.3.3.3.dylib",
-				"Frameworks/libIlmThread-3_3.32.3.3.3.dylib",
-				"Frameworks/libImath-3_1.29.11.0.dylib",
-				Frameworks/libintl.8.dylib,
-				Frameworks/libjasper.7.0.0.dylib,
-				Frameworks/libjpeg.8.3.2.dylib,
-				Frameworks/libjpeg.9.dylib,
-				Frameworks/libjxl_cms.0.11.1.dylib,
-				Frameworks/libjxl_threads.0.11.1.dylib,
-				Frameworks/libjxl.0.11.1.dylib,
-				Frameworks/liblcms2.2.dylib,
-				Frameworks/libltdl.7.dylib,
-				Frameworks/liblzma.5.dylib,
-				Frameworks/libomp.dylib,
-				"Frameworks/libOpenEXR-3_3.32.3.3.3.dylib",
-				"Frameworks/libOpenEXRCore-3_3.32.3.3.3.dylib",
-				"Frameworks/libOpenEXRUtil-3_3.32.3.3.3.dylib",
-				Frameworks/libopenjp2.2.5.3.dylib,
-				"Frameworks/libpango-1.0.0.dylib",
-				"Frameworks/libpangocairo-1.0.0.dylib",
-				"Frameworks/libpangoft2-1.0.0.dylib",
-				Frameworks/libpathplan.4.dylib,
-				"Frameworks/libpcre2-8.0.dylib",
-				"Frameworks/libpixman-1.0.dylib",
-				Frameworks/libpng16.16.dylib,
-				Frameworks/libraqm.0.dylib,
-				Frameworks/libraw_r.23.dylib,
-				Frameworks/libsharpyuv.0.1.1.dylib,
-				Frameworks/libtiff.6.dylib,
-				Frameworks/libvmaf.3.dylib,
-				Frameworks/libwebp.7.1.10.dylib,
-				Frameworks/libwebpdemux.2.0.16.dylib,
-				Frameworks/libwebpmux.3.1.1.dylib,
-				Frameworks/libX11.6.dylib,
-				Frameworks/libx265.215.dylib,
-				Frameworks/libXau.6.dylib,
-				"Frameworks/libxcb-render.0.0.0.dylib",
-				"Frameworks/libxcb-shm.0.0.0.dylib",
-				Frameworks/libxcb.1.1.0.dylib,
-				Frameworks/libXdmcp.6.dylib,
-				Frameworks/libxdot.4.dylib,
-				Frameworks/libXext.6.dylib,
-				Frameworks/libXrender.1.dylib,
-				Frameworks/libzip.5.5.dylib,
-				Frameworks/libzstd.1.5.7.dylib,
+				"Frameworks/libSDL2-2.0.0.dylib",
+				Frameworks/magick/libaom.3.12.1.dylib,
+				Frameworks/magick/libbrotlicommon.1.1.0.dylib,
+				Frameworks/magick/libbrotlidec.1.1.0.dylib,
+				Frameworks/magick/libbrotlienc.1.1.0.dylib,
+				Frameworks/magick/libcairo.2.dylib,
+				Frameworks/magick/libcdt.6.dylib,
+				Frameworks/magick/libcgraph.7.dylib,
+				Frameworks/magick/libde265.0.dylib,
+				Frameworks/magick/libdeflate.0.dylib,
+				Frameworks/magick/libdjvulibre.21.dylib,
+				Frameworks/magick/libfontconfig.1.dylib,
+				Frameworks/magick/libfreetype.6.dylib,
+				Frameworks/magick/libfribidi.0.dylib,
+				"Frameworks/magick/libgio-2.0.0.dylib",
+				"Frameworks/magick/libglib-2.0.0.dylib",
+				"Frameworks/magick/libgmodule-2.0.0.dylib",
+				"Frameworks/magick/libgobject-2.0.0.dylib",
+				Frameworks/magick/libgraphite2.3.2.1.dylib,
+				Frameworks/magick/libgvc.7.dylib,
+				Frameworks/magick/libharfbuzz.0.dylib,
+				Frameworks/magick/libheif.1.19.8.dylib,
+				Frameworks/magick/libhwy.1.2.0.dylib,
+				"Frameworks/magick/libIex-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libIlmThread-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libImath-3_1.29.11.0.dylib",
+				Frameworks/magick/libintl.8.dylib,
+				Frameworks/magick/libjasper.7.0.0.dylib,
+				Frameworks/magick/libjpeg.8.3.2.dylib,
+				Frameworks/magick/libjpeg.9.dylib,
+				Frameworks/magick/libjxl_cms.0.11.1.dylib,
+				Frameworks/magick/libjxl_threads.0.11.1.dylib,
+				Frameworks/magick/libjxl.0.11.1.dylib,
+				Frameworks/magick/liblcms2.2.dylib,
+				Frameworks/magick/libltdl.7.dylib,
+				Frameworks/magick/liblzma.5.dylib,
+				Frameworks/magick/libomp.dylib,
+				"Frameworks/magick/libOpenEXR-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libOpenEXRCore-3_3.32.3.3.3.dylib",
+				"Frameworks/magick/libOpenEXRUtil-3_3.32.3.3.3.dylib",
+				Frameworks/magick/libopenjp2.2.5.3.dylib,
+				"Frameworks/magick/libpango-1.0.0.dylib",
+				"Frameworks/magick/libpangocairo-1.0.0.dylib",
+				"Frameworks/magick/libpangoft2-1.0.0.dylib",
+				Frameworks/magick/libpathplan.4.dylib,
+				"Frameworks/magick/libpcre2-8.0.dylib",
+				"Frameworks/magick/libpixman-1.0.dylib",
+				Frameworks/magick/libpng16.16.dylib,
+				Frameworks/magick/libraqm.0.dylib,
+				Frameworks/magick/libraw_r.23.dylib,
+				Frameworks/magick/libsharpyuv.0.1.1.dylib,
+				Frameworks/magick/libtiff.6.dylib,
+				Frameworks/magick/libvmaf.3.dylib,
+				Frameworks/magick/libwebp.7.1.10.dylib,
+				Frameworks/magick/libwebpdemux.2.0.16.dylib,
+				Frameworks/magick/libwebpmux.3.1.1.dylib,
+				Frameworks/magick/libX11.6.dylib,
+				Frameworks/magick/libx265.215.dylib,
+				Frameworks/magick/libXau.6.dylib,
+				"Frameworks/magick/libxcb-render.0.0.0.dylib",
+				"Frameworks/magick/libxcb-shm.0.0.0.dylib",
+				Frameworks/magick/libxcb.1.1.0.dylib,
+				Frameworks/magick/libXdmcp.6.dylib,
+				Frameworks/magick/libxdot.4.dylib,
+				Frameworks/magick/libXext.6.dylib,
+				Frameworks/magick/libXrender.1.dylib,
+				Frameworks/magick/libzip.5.5.dylib,
+				Frameworks/magick/libzstd.1.5.7.dylib,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -272,8 +275,8 @@
 		85000BC32E0836EB000D312F /* Chameleon */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				C53880242E16F0AA006087F0 /* Exceptions for "Chameleon" folder in "Chameleon" target */,
-				C53880F62E16F62A006087F0 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */,
+				85BBD6C82E171D40002F2E52 /* Exceptions for "Chameleon" folder in "Chameleon" target */,
+				85BBD6C72E171D35002F2E52 /* Exceptions for "Chameleon" folder in "Copy Frameworks" phase from "Chameleon" target */,
 			);
 			path = Chameleon;
 			sourceTree = "<group>";
@@ -710,6 +713,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Chameleon/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/test/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/magick",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
@@ -745,6 +752,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Chameleon/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/test/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/Frameworks",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/magick",
+					"$(PROJECT_DIR)/Chameleon/Frameworks/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
