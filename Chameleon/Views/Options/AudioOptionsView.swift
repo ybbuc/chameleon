@@ -190,11 +190,23 @@ struct AudioOptionsView: View {
             if (isInputLossless || isInputVideo) && audioOptions.bitRate == .automatic {
                 audioOptions.bitRate = .kbps128
             }
+            // Store source bitrate if available for automatic matching
+            if let inputBitRate = inputBitRate, !isInputLossless {
+                audioOptions.sourceBitRate = inputBitRate
+            }
         }
         .onChange(of: isInputLossless) { _, newValue in
             // When input lossless status changes, update bit rate if needed
             if newValue && audioOptions.bitRate == .automatic {
                 audioOptions.bitRate = .kbps128
+            }
+        }
+        .onChange(of: inputBitRate) { _, newValue in
+            // Update source bitrate when input changes
+            if let newValue = newValue, !isInputLossless {
+                audioOptions.sourceBitRate = newValue
+            } else {
+                audioOptions.sourceBitRate = nil
             }
         }
         .onChange(of: isInputVideo) { _, newValue in

@@ -84,9 +84,15 @@ class ImageMagickWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         // Wait for completion with cancellation support
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {

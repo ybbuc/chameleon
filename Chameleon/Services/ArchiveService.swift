@@ -7,6 +7,7 @@
 
 import Foundation
 import System
+import Darwin
 
 enum CompressionLevel: String, CaseIterable {
     case fastest = "Fastest"
@@ -77,6 +78,7 @@ enum TarCompressionType {
 }
 
 class ArchiveService {
+    private var currentProcess: Process?
 
     func createArchive(format: ArchiveFormat, from files: [URL], outputURL: URL, separately: Bool = false, verifyAfterCreation: Bool = true, compressionLevel: CompressionLevel = .normal) async throws -> [URL] {
         if separately {
@@ -155,10 +157,24 @@ class ArchiveService {
         process.standardError = errorPipe
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        
+        // Track for cancellation
+        currentProcess = process
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -205,10 +221,24 @@ class ArchiveService {
         process.standardError = errorPipe
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        
+        // Track for cancellation
+        currentProcess = process
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -248,10 +278,24 @@ class ArchiveService {
         process.standardOutput = Pipe()
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        
+        // Track for cancellation
+        currentProcess = process
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -289,10 +333,24 @@ class ArchiveService {
         process.standardOutput = Pipe()
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        
+        // Track for cancellation
+        currentProcess = process
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -317,10 +375,24 @@ class ArchiveService {
         process.standardOutput = Pipe()
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        
+        // Track for cancellation
+        currentProcess = process
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -333,6 +405,17 @@ class ArchiveService {
         }
 
         return true
+    }
+    
+    func cancel() {
+        if let process = currentProcess {
+            // Send SIGINT for graceful shutdown
+            let processID = process.processIdentifier
+            if processID > 0 {
+                kill(processID, SIGINT)
+            }
+            currentProcess = nil
+        }
     }
 }
 

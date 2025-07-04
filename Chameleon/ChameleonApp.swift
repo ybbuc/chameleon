@@ -10,6 +10,11 @@ import SwiftData
 
 @main
 struct ChamelionApp: App {
+    init() {
+        // Initialize ProcessManager to set up termination handlers
+        _ = ProcessManager.shared
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

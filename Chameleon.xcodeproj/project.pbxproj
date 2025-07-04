@@ -51,6 +51,8 @@
 		85BBD6C82E171D40002F2E52 /* Exceptions for "Chameleon" folder in "Chameleon" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Frameworks/libmediainfo.0.dylib,
+				Frameworks/libmediainfo.dylib,
 				"Frameworks/libSDL2-2.0.0.dylib",
 				Frameworks/magick/libaom.3.12.1.dylib,
 				Frameworks/magick/libbrotlicommon.1.1.0.dylib,
@@ -129,6 +131,8 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
 				"Frameworks/libSDL2-2.0.0.dylib" = (CodeSignOnCopy, );
+				Frameworks/libmediainfo.0.dylib = (CodeSignOnCopy, );
+				Frameworks/libmediainfo.dylib = (CodeSignOnCopy, );
 				"Frameworks/magick/libIex-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
 				"Frameworks/magick/libIlmThread-3_3.32.3.3.3.dylib" = (CodeSignOnCopy, );
 				"Frameworks/magick/libImath-3_1.29.11.0.dylib" = (CodeSignOnCopy, );
@@ -199,6 +203,8 @@
 			};
 			buildPhase = C5387F2B2E16EA68006087F0 /* Copy Frameworks */;
 			membershipExceptions = (
+				Frameworks/libmediainfo.0.dylib,
+				Frameworks/libmediainfo.dylib,
 				"Frameworks/libSDL2-2.0.0.dylib",
 				Frameworks/magick/libaom.3.12.1.dylib,
 				Frameworks/magick/libbrotlicommon.1.1.0.dylib,

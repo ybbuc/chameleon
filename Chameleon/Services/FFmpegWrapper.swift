@@ -11,6 +11,7 @@ import Darwin
 class FFmpegWrapper {
     private let ffmpegPath: String
     private var currentProcess: Process?
+    private let mediaInfoWrapper: MediaInfoWrapper?
 
     init() throws {
         // Use only bundled ffmpeg binary
@@ -24,6 +25,16 @@ class FFmpegWrapper {
         
         print("Using bundled FFmpeg at: \(bundlePath)")
         self.ffmpegPath = bundlePath
+        
+        // Initialize MediaInfoWrapper for media analysis
+        do {
+            self.mediaInfoWrapper = try MediaInfoWrapper()
+            print("✅ MediaInfoLib initialized successfully")
+        } catch {
+            print("❌ Failed to initialize MediaInfoLib: \(error)")
+            print("   Error details: \(error.localizedDescription)")
+            self.mediaInfoWrapper = nil
+        }
     }
 
     func convertFile(inputURL: URL, outputURL: URL, format: FFmpegFormat, quality: FFmpegQuality = .medium, audioOptions: AudioOptions? = nil, videoOptions: VideoOptions? = nil) async throws {
@@ -93,9 +104,15 @@ class FFmpegWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         // Wait for completion with cancellation support
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
@@ -232,9 +249,15 @@ class FFmpegWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         // Wait for completion with cancellation support
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
@@ -311,8 +334,14 @@ class FFmpegWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
@@ -354,8 +383,14 @@ class FFmpegWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
@@ -373,146 +408,12 @@ class FFmpegWrapper {
     }
 
     func getFileInfo(url: URL) async throws -> MediaFileInfo {
-        let process = Process()
-
-        // Try bundled ffprobe first, then fall back to ffmpeg with probe capability
-        var ffprobePath: String
-        if let bundleProbePath = Bundle.main.path(forResource: "ffprobe", ofType: nil),
-           FileManager.default.fileExists(atPath: bundleProbePath) {
-            ffprobePath = bundleProbePath
-        } else {
-            // Some ffmpeg builds include probe functionality
-            ffprobePath = ffmpegPath.replacingOccurrences(of: "ffmpeg", with: "ffprobe")
-            
-            // If ffprobe doesn't exist, throw a more helpful error
-            if !FileManager.default.fileExists(atPath: ffprobePath) {
-                throw FFmpegError.conversionFailed("ffprobe not found. Media info analysis is not available.")
-            }
+        // Use MediaInfoLib for media analysis
+        guard let mediaInfoWrapper = mediaInfoWrapper else {
+            throw FFmpegError.conversionFailed("MediaInfoLib not available for media analysis")
         }
         
-        process.executableURL = URL(fileURLWithPath: ffprobePath)
-
-        process.arguments = [
-            "-v", "quiet",
-            "-print_format", "json",
-            "-show_format",
-            "-show_streams",
-            url.path
-        ]
-
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        if process.terminationStatus != 0 {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw FFmpegError.conversionFailed("ffprobe failed: \(errorString)")
-        }
-
-        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-
-        do {
-            let decoder = JSONDecoder()
-            let probeResult = try decoder.decode(FFProbeResult.self, from: outputData)
-            return MediaFileInfo(from: probeResult)
-        } catch {
-            throw FFmpegError.conversionFailed("Failed to parse ffprobe output: \(error)")
-        }
-    }
-}
-
-// Helper type to handle fields that can be either String or Int
-enum StringOrInt: Codable {
-    case string(String)
-    case int(Int)
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let intValue = try? container.decode(Int.self) {
-            self = .int(intValue)
-        } else if let stringValue = try? container.decode(String.self) {
-            self = .string(stringValue)
-        } else {
-            throw DecodingError.typeMismatch(StringOrInt.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected String or Int"))
-        }
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case .string(let value):
-            try container.encode(value)
-        case .int(let value):
-            try container.encode(value)
-        }
-    }
-    
-    var intValue: Int? {
-        switch self {
-        case .int(let value):
-            return value
-        case .string(let value):
-            return Int(value)
-        }
-    }
-}
-
-struct FFProbeResult: Codable {
-    let format: FFProbeFormat
-    let streams: [FFProbeStream]
-}
-
-struct FFProbeFormat: Codable {
-    let filename: String
-    let formatName: String
-    let formatLongName: String?
-    let duration: String?
-    let size: String?
-    let bitRate: String?
-
-    enum CodingKeys: String, CodingKey {
-        case filename
-        case formatName = "format_name"
-        case formatLongName = "format_long_name"
-        case duration
-        case size
-        case bitRate = "bit_rate"
-    }
-}
-
-struct FFProbeStream: Codable {
-    let index: Int
-    let codecName: String?
-    let codecType: String
-    let width: Int?
-    let height: Int?
-    let sampleRate: String?
-    let channels: Int?
-    let channelLayout: String?
-    let duration: String?
-    let bitsPerSample: Int?
-    let bitsPerRawSample: StringOrInt?  // Can be either String or Int
-    let bitRate: String?
-
-    enum CodingKeys: String, CodingKey {
-        case index
-        case codecName = "codec_name"
-        case codecType = "codec_type"
-        case width
-        case height
-        case sampleRate = "sample_rate"
-        case channels
-        case channelLayout = "channel_layout"
-        case duration
-        case bitsPerSample = "bits_per_sample"
-        case bitsPerRawSample = "bits_per_raw_sample"
-        case bitRate = "bit_rate"
+        return try mediaInfoWrapper.getFileInfo(url: url)
     }
 }
 
@@ -527,62 +428,20 @@ struct MediaFileInfo {
     let audioSampleRate: Int?
     let audioChannels: Int?
     let audioBitRate: Int?
-
-    init(from probeResult: FFProbeResult) {
-        self.formatName = probeResult.format.formatName
-
-        let videoStreams = probeResult.streams.filter { $0.codecType == "video" }
-        let audioStreams = probeResult.streams.filter { $0.codecType == "audio" }
-
-        self.hasVideo = !videoStreams.isEmpty
-        self.hasAudio = !audioStreams.isEmpty
-        self.videoCodec = videoStreams.first?.codecName
-        self.audioCodec = audioStreams.first?.codecName
-
-        // Get audio properties from first audio stream
-        if let firstAudioStream = audioStreams.first {
-            // Bit depth: prefer bits_per_raw_sample, fall back to bits_per_sample
-            self.audioBitDepth = firstAudioStream.bitsPerRawSample?.intValue ?? firstAudioStream.bitsPerSample
-
-            // Sample rate
-            if let sampleRateString = firstAudioStream.sampleRate,
-               let sampleRateValue = Int(sampleRateString) {
-                self.audioSampleRate = sampleRateValue
-            } else {
-                self.audioSampleRate = nil
-            }
-
-            // Channels
-            self.audioChannels = firstAudioStream.channels
-        } else {
-            self.audioBitDepth = nil
-            self.audioSampleRate = nil
-            self.audioChannels = nil
-        }
-
-        // Get bit rate from audio stream (not format, which includes video)
-        if let firstAudioStream = audioStreams.first,
-           let bitRateString = firstAudioStream.bitRate,
-           let bitRateValue = Int(bitRateString) {
-            // Convert from bits per second to kilobits per second
-            self.audioBitRate = bitRateValue / 1_000
-        } else if !hasVideo && hasAudio,
-                  let bitRateString = probeResult.format.bitRate,
-                  let bitRateValue = Int(bitRateString) {
-            // For audio-only files, use the format bit rate
-            self.audioBitRate = bitRateValue / 1_000
-        } else {
-            // For video files or when stream bit rate is not available,
-            // we could estimate based on codec, but for now return nil
-            self.audioBitRate = nil
-        }
-
-        if let durationString = probeResult.format.duration,
-           let durationValue = Double(durationString) {
-            self.duration = durationValue
-        } else {
-            self.duration = nil
-        }
+    
+    init(formatName: String, hasVideo: Bool, hasAudio: Bool, videoCodec: String? = nil, 
+         audioCodec: String? = nil, duration: TimeInterval? = nil, audioBitDepth: Int? = nil,
+         audioSampleRate: Int? = nil, audioChannels: Int? = nil, audioBitRate: Int? = nil) {
+        self.formatName = formatName
+        self.hasVideo = hasVideo
+        self.hasAudio = hasAudio
+        self.videoCodec = videoCodec
+        self.audioCodec = audioCodec
+        self.duration = duration
+        self.audioBitDepth = audioBitDepth
+        self.audioSampleRate = audioSampleRate
+        self.audioChannels = audioChannels
+        self.audioBitRate = audioBitRate
     }
 }
 
@@ -672,14 +531,14 @@ enum FFmpegFormat: String, CaseIterable {
         return false
     }
 
-    // Accurate format detection using ffprobe analysis
+    // Accurate format detection using MediaInfoLib analysis
     static func detectFormatAccurate(from url: URL) async -> FFmpegFormat? {
         do {
             let wrapper = try FFmpegWrapper()
             let fileInfo = try await wrapper.getFileInfo(url: url)
-            return FFmpegFormat.fromProbeInfo(fileInfo)
+            return FFmpegFormat.fromMediaInfo(fileInfo)
         } catch {
-            // Fall back to extension-based detection if ffprobe fails
+            // Fall back to extension-based detection if MediaInfo fails
             return detectFormat(from: url)
         }
     }
@@ -728,8 +587,8 @@ enum FFmpegFormat: String, CaseIterable {
         }
     }
 
-    // Map ffprobe format info to FFmpegFormat
-    static func fromProbeInfo(_ info: MediaFileInfo) -> FFmpegFormat? {
+    // Map MediaInfo format info to FFmpegFormat
+    static func fromMediaInfo(_ info: MediaFileInfo) -> FFmpegFormat? {
         let formatNames = info.formatName.lowercased().split(separator: ",")
 
         // Handle container formats that could contain different codecs

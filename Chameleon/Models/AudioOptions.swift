@@ -33,6 +33,19 @@ enum AudioBitRate: CaseIterable {
             return "\(value ?? 0)"
         }
     }
+    
+    func displayName(withSourceBitRate sourceBitRate: Int?) -> String {
+        switch self {
+        case .automatic:
+            if let sourceBitRate = sourceBitRate {
+                return "Automatic (\(sourceBitRate) kbps)"
+            } else {
+                return "Automatic (match source)"
+            }
+        default:
+            return displayName
+        }
+    }
 
     var value: Int? {
         switch self {
@@ -178,6 +191,7 @@ struct AudioOptions {
     var sampleSize: AudioSampleSize = .bits16
     var useVariableBitRate: Bool = false
     var vbrQuality: MP3VBRQuality = .q2  // Default to 190 kbps avg
+    var sourceBitRate: Int? = nil  // Detected source bitrate for automatic matching
 
     func ffmpegArguments(for format: FFmpegFormat? = nil) -> [String] {
         guard let format = format,

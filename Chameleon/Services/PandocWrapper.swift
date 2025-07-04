@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Darwin
 
 class PandocWrapper {
     private let pandocPath: String
@@ -21,6 +22,13 @@ class PandocWrapper {
         process.standardOutput = pipe
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        defer {
+            ProcessManager.shared.unregister(process)
+        }
+        
         process.waitUntilExit()
 
         if process.terminationStatus == 0 {
@@ -71,6 +79,9 @@ class PandocWrapper {
 
         try process.run()
 
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+
         // Write input to stdin
         if let inputData = input.data(using: .utf8) {
             pipe.fileHandleForWriting.write(inputData)
@@ -79,11 +90,18 @@ class PandocWrapper {
 
         // Wait for completion with cancellation support
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -137,14 +155,24 @@ class PandocWrapper {
         process.standardError = errorPipe
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
 
         // Wait for completion with cancellation support
         currentProcess = process
-        defer { currentProcess = nil }
+        defer {
+            currentProcess = nil
+            ProcessManager.shared.unregister(process)
+        }
 
         while process.isRunning {
             if Task.isCancelled {
-                process.terminate()
+                // Send SIGINT for graceful shutdown
+                let processID = process.processIdentifier
+                if processID > 0 {
+                    kill(processID, SIGINT)
+                }
                 throw CancellationError()
             }
             try await Task.sleep(for: .milliseconds(100))
@@ -168,8 +196,14 @@ class PandocWrapper {
     }
 
     func cancel() {
-        currentProcess?.terminate()
-        currentProcess = nil
+        if let process = currentProcess {
+            // Send SIGINT for graceful shutdown
+            let processID = process.processIdentifier
+            if processID > 0 {
+                kill(processID, SIGINT)
+            }
+            currentProcess = nil
+        }
     }
 }
 

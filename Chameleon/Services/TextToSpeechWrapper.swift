@@ -195,6 +195,13 @@ class TextToSpeechWrapper {
         process.standardError = Pipe()
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        defer {
+            ProcessManager.shared.unregister(process)
+        }
+        
         process.waitUntilExit()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -307,6 +314,12 @@ class TextToSpeechWrapper {
 
         do {
             try process.run()
+            
+            // Register with ProcessManager
+            ProcessManager.shared.register(process)
+            defer {
+                ProcessManager.shared.unregister(process)
+            }
 
             // Wait for completion in a cancellable way
             await withCheckedContinuation { continuation in
@@ -354,6 +367,13 @@ class TextToSpeechWrapper {
         process.standardError = Pipe()
 
         try process.run()
+        
+        // Register with ProcessManager
+        ProcessManager.shared.register(process)
+        defer {
+            ProcessManager.shared.unregister(process)
+        }
+        
         process.waitUntilExit()
     }
 }

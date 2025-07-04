@@ -18,15 +18,29 @@ struct AudioProperties {
 }
 
 class AudioPropertyDetector {
+    private let mediaInfoWrapper: MediaInfoWrapper?
     private let ffmpegWrapper: FFmpegWrapper?
 
-    init(ffmpegWrapper: FFmpegWrapper? = nil) {
+    init(mediaInfoWrapper: MediaInfoWrapper? = nil, ffmpegWrapper: FFmpegWrapper? = nil) {
+        self.mediaInfoWrapper = mediaInfoWrapper
         self.ffmpegWrapper = ffmpegWrapper
     }
 
-    /// Detect audio properties using AVFoundation first, falling back to FFmpeg if needed
+    /// Detect audio properties using MediaInfoLib first, then AVFoundation, then FFmpeg as fallback
     func detectProperties(from url: URL) async throws -> AudioProperties {
-        // First try AVFoundation
+        // First try MediaInfoLib if available
+        if let mediaInfoWrapper = mediaInfoWrapper {
+            do {
+                return try detectWithMediaInfo(url: url, wrapper: mediaInfoWrapper)
+            } catch {
+                print("❌ AudioPropertyDetector: MediaInfoLib failed with error: \(error)")
+                // Fall through to next method
+            }
+        } else {
+            print("⚠️ AudioPropertyDetector: MediaInfoLib not available (wrapper initialization failed)")
+        }
+        
+        // Try AVFoundation
         if let properties = await detectWithAVFoundation(url: url) {
             return properties
         }
@@ -39,8 +53,29 @@ class AudioPropertyDetector {
         // No detection method available
         throw AudioDetectionError.noDetectionMethodAvailable
     }
+    
+    private func detectWithMediaInfo(url: URL, wrapper: MediaInfoWrapper) throws -> AudioProperties {
+        print("🎵 AudioPropertyDetector: Using MediaInfoLib for \(url.lastPathComponent)")
+        let mediaInfo = try wrapper.getFileInfo(url: url)
+        
+        // Only return properties if the file has audio
+        guard mediaInfo.hasAudio else {
+            throw AudioDetectionError.noAudioTrackFound
+        }
+        
+        print("✅ AudioPropertyDetector: Successfully detected audio properties with MediaInfoLib")
+        return AudioProperties(
+            sampleRate: mediaInfo.audioSampleRate,
+            channels: mediaInfo.audioChannels,
+            bitDepth: mediaInfo.audioBitDepth,
+            duration: mediaInfo.duration,
+            codec: mediaInfo.audioCodec,
+            bitRate: mediaInfo.audioBitRate
+        )
+    }
 
     private func detectWithAVFoundation(url: URL) async -> AudioProperties? {
+        print("🎵 AudioPropertyDetector: Using AVFoundation for \(url.lastPathComponent)")
         let asset = AVAsset(url: url)
 
         // Check if asset is playable (indicates AVFoundation support)
@@ -107,6 +142,7 @@ class AudioPropertyDetector {
             // Get duration
             let duration = try? await asset.load(.duration).seconds
 
+            print("✅ AudioPropertyDetector: Successfully detected audio properties with AVFoundation")
             return AudioProperties(
                 sampleRate: sampleRate,
                 channels: channels,
@@ -121,8 +157,10 @@ class AudioPropertyDetector {
     }
 
     private func detectWithFFmpeg(url: URL, wrapper: FFmpegWrapper) async throws -> AudioProperties {
+        print("🎵 AudioPropertyDetector: Using FFmpeg for \(url.lastPathComponent)")
         let mediaInfo = try await wrapper.getMediaInfo(url: url)
 
+        print("✅ AudioPropertyDetector: Successfully detected audio properties with FFmpeg")
         return AudioProperties(
             sampleRate: mediaInfo.audioSampleRate,
             channels: mediaInfo.audioChannels,
@@ -166,11 +204,14 @@ class AudioPropertyDetector {
 
 enum AudioDetectionError: LocalizedError {
     case noDetectionMethodAvailable
+    case noAudioTrackFound
 
     var errorDescription: String? {
         switch self {
         case .noDetectionMethodAvailable:
             return "No audio detection method available"
+        case .noAudioTrackFound:
+            return "No audio track found in file"
         }
     }
 }

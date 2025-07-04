@@ -44,6 +44,7 @@ struct ConverterView: View {
     @State private var ocrService: OCRService?
     @State private var ttsWrapper: TextToSpeechWrapper?
     @State private var ttsInitError: String?
+    @State private var archiveService: ArchiveService?
     @State private var conversionTask: Task<Void, Never>?
     @AppStorage("ocrUseLanguageCorrection") private var ocrUseLanguageCorrection: Bool = false
     @AppStorage("ocrSelectedLanguage") private var ocrSelectedLanguage: String = "automatic"
@@ -55,7 +56,9 @@ struct ConverterView: View {
     @State private var inputAudioSampleRate: Int?
     @State private var inputAudioChannels: Int?
     @State private var inputAudioBitRate: Int?
-    private let audioPropertyDetector = AudioPropertyDetector()
+    private let audioPropertyDetector = AudioPropertyDetector(
+        mediaInfoWrapper: try? MediaInfoWrapper()
+    )
 
     // MARK: - Computed Properties
     private var isConvertButtonDisabled: Bool {
@@ -651,6 +654,7 @@ struct ConverterView: View {
         ffmpegWrapper?.cancel()
         ocrService?.cancel()
         ttsWrapper?.cancel()
+        archiveService?.cancel()
 
         // Reset conversion state
         isConverting = false
@@ -954,7 +958,7 @@ struct ConverterView: View {
                     return
                 }
 
-                let archiveService = ArchiveService()
+                archiveService = ArchiveService()
                 let createdArchives: [URL]
 
                 if archiveOptions.archiveSeparately {
@@ -963,7 +967,7 @@ struct ConverterView: View {
                         .appendingPathComponent(UUID().uuidString)
                     try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
 
-                    createdArchives = try await archiveService.createArchive(
+                    createdArchives = try await archiveService!.createArchive(
                         format: format,
                         from: inputURLs,
                         outputURL: tempDirectory.appendingPathComponent("placeholder"),
@@ -978,7 +982,7 @@ struct ConverterView: View {
                         .appendingPathComponent(UUID().uuidString)
                         .appendingPathExtension(format.fileExtension)
 
-                    createdArchives = try await archiveService.createArchive(
+                    createdArchives = try await archiveService!.createArchive(
                         format: format,
                         from: inputURLs,
                         outputURL: tempURL,
@@ -1873,8 +1877,11 @@ struct ConverterView: View {
         // Detect audio properties asynchronously using hybrid approach
         Task {
             do {
-                // Create detector with FFmpeg fallback if available
-                let detector = AudioPropertyDetector(ffmpegWrapper: ffmpegWrapper)
+                // Create detector with MediaInfo and FFmpeg fallback if available
+                let detector = AudioPropertyDetector(
+                    mediaInfoWrapper: try? MediaInfoWrapper(),
+                    ffmpegWrapper: ffmpegWrapper
+                )
                 let properties = try await detector.detectProperties(from: url)
 
                 await MainActor.run {

@@ -70,10 +70,15 @@ extension MediaFormatConfig {
             if supportsVariableBitRate && audioOptions.useVariableBitRate {
                 // Use the vbrQuality value for VBR encoding
                 args.append(contentsOf: ["-q:a", "\(audioOptions.vbrQuality.rawValue)"])
+            } else if audioOptions.bitRate == .automatic {
+                // If automatic is selected with a source bitrate, use it
+                if let sourceBitRate = audioOptions.sourceBitRate {
+                    args.append(contentsOf: ["-b:a", "\(sourceBitRate)k"])
+                }
+                // Otherwise don't specify bit rate and let FFmpeg choose
             } else if let bitRateValue = audioOptions.bitRate.value {
                 args.append(contentsOf: ["-b:a", "\(bitRateValue)k"])
             }
-            // If automatic is selected, we don't specify bit rate and let FFmpeg choose
         }
 
         // Channels (only specify if not automatic)
