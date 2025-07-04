@@ -713,10 +713,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Chameleon/Frameworks",
-					"$(PROJECT_DIR)/Chameleon/test/Frameworks",
-					"$(PROJECT_DIR)/Chameleon/Frameworks/Frameworks",
 					"$(PROJECT_DIR)/Chameleon/Frameworks/magick",
-					"$(PROJECT_DIR)/Chameleon/Frameworks/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
@@ -752,10 +749,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Chameleon/Frameworks",
-					"$(PROJECT_DIR)/Chameleon/test/Frameworks",
-					"$(PROJECT_DIR)/Chameleon/Frameworks/Frameworks",
 					"$(PROJECT_DIR)/Chameleon/Frameworks/magick",
-					"$(PROJECT_DIR)/Chameleon/Frameworks/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.5;
