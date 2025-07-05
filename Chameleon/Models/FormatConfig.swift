@@ -138,7 +138,14 @@ class FormatRegistry {
             .alac: ALACConfig(),
             .ogg: OGGConfig(),
             .wma: WMAConfig(),
-            .aiff: AIFFConfig()
+            .aiff: AIFFConfig(),
+            
+            // Subtitle formats
+            .srt: SRTConfig(),
+            .webvtt: WebVTTConfig(),
+            .ass: ASSConfig(),
+            .ssa: SSAConfig(),
+            .ttml: TTMLConfig()
         ]
     }
 

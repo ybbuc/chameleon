@@ -192,7 +192,10 @@ class MediaInfoWrapper {
             
             // Debug: Try to get all available audio parameters
             print("  🔍 Debug - Available audio info:")
-            let debugParams = ["Format", "CodecID", "BitRate", "SamplingRate", "BitDepth", 
+            let debugParams = ["Format", "Format/String", "Format_Commercial", "Format_Commercial_IfAny",
+                             "Format_Version", "Format_Profile", "Format_Settings", "Format_Info",
+                             "CodecID", "CodecID/String", "CodecID/Info", "CodecID/Hint",
+                             "BitRate", "SamplingRate", "BitDepth", 
                              "Resolution", "BitDepth_Detected", "Channels", "ChannelPositions",
                              "ChannelLayout", "BitRate_Mode", "Compression_Mode", "StreamKind",
                              "StreamKind/String", "StreamCount"]
@@ -334,7 +337,7 @@ extension MediaInfoWrapper {
             if let codec = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Format") {
                 let width = getInt(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Width")
                 let height = getInt(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "Height")
-                let resolution = (width != nil && height != nil) ? "\(width!)x\(height!)" : nil
+                let resolution = (width != nil && height != nil) ? "\(width!)×\(height!)" : nil
                 let frameRate = getDouble(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "FrameRate")
                 let bitRateString = getString(handle: handle, streamKind: .video, streamNumber: streamIndex, parameter: "BitRate")
                 let bitRate = bitRateString.flatMap { Int($0) }.map { $0 / 1000 }
@@ -365,16 +368,23 @@ extension MediaInfoWrapper {
         for streamIndex in 0..<audioStreamCount {
             // Check if stream exists by trying to get codec
             if let codec = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format") {
-                // Check for JOC (Joint Object Coding) in E-AC-3
-                var finalCodec = codec
-                if codec == "E-AC-3" {
+                // Check for commercial/expanded format names first
+                let commercialFormat = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Commercial")
+                    ?? getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Commercial_IfAny")
+                    ?? getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format/String")
+                
+                // Use commercial format if available, otherwise handle special cases
+                var finalCodec = commercialFormat ?? codec
+                
+                // Special handling for E-AC-3 if commercial format doesn't already indicate JOC
+                if codec == "E-AC-3" && !finalCodec.contains("JOC") {
                     // Check Format_Settings_JOC or Format_AdditionalFeatures for JOC
                     let jocSetting = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Settings_JOC")
                     let additionalFeatures = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_AdditionalFeatures")
                     let formatProfile = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Profile")
                     
                     if jocSetting == "Yes" || additionalFeatures?.contains("JOC") == true || formatProfile?.contains("JOC") == true {
-                        finalCodec = "E-AC-3 JOC"
+                        finalCodec = commercialFormat ?? "E-AC-3 JOC"
                     }
                 }
                 
@@ -386,6 +396,14 @@ extension MediaInfoWrapper {
                 let compressionMode = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Compression_Mode")
                 let language = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Language/String")
                 let title = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Title")
+                
+                // Debug output for commercial formats
+                if streamIndex == 0 {
+                    print("  🔍 Debug - Audio stream \(streamIndex) format details:")
+                    print("    - Base Format: \(codec)")
+                    print("    - Commercial Format: \(commercialFormat ?? "nil")")
+                    print("    - Final Codec: \(finalCodec)")
+                }
                 
                 let streamInfo = AudioStreamInfo(
                     streamIndex: streamIndex,

@@ -13,6 +13,8 @@ struct FormatPicker: View {
     let isPandocAvailable: Bool
     let isImageMagickAvailable: Bool
     let isFFmpegAvailable: Bool
+    let hasSubtitles: Bool
+    let nativeSubtitleFormat: String?
 
     private var pdfImageFormats: [(ConversionService, String)] {
         guard inputFileURLs.allSatisfy({ $0.pathExtension.lowercased() == "pdf" }) && isImageMagickAvailable else {
@@ -80,7 +82,9 @@ struct FormatPicker: View {
         compatibleServices.filter { service, _ in
             switch service {
             case .ffmpeg(let format) where !format.isVideo:
-                return true
+                // Exclude subtitle formats from audio section
+                return format != .srt && format != .webvtt && format != .ass && 
+                       format != .ssa && format != .ttml
             case .tts:
                 return true
             default:
@@ -102,6 +106,15 @@ struct FormatPicker: View {
         compatibleServices.filter { service, _ in
             if case .archive = service {
                 return true
+            }
+            return false
+        }
+    }
+    
+    private var subtitleOutputServices: [(ConversionService, String)] {
+        compatibleServices.filter { service, _ in
+            if case .ffmpeg(let format) = service {
+                return format.isSubtitle
             }
             return false
         }
@@ -163,21 +176,49 @@ struct FormatPicker: View {
 
         if !mediaFormats.isEmpty && isFFmpegAvailable {
             // Media conversion with FFmpeg (only if available)
-            let allInputsAreAudio = mediaFormats.allSatisfy { !$0.isVideo }
+            let allInputsAreAudio = mediaFormats.allSatisfy { !$0.isVideo && !$0.isSubtitle }
+            let allInputsAreSubtitles = mediaFormats.allSatisfy { $0.isSubtitle }
             let compatibleMediaFormats: [FFmpegFormat]
 
-            if allInputsAreAudio {
+            if allInputsAreSubtitles {
+                // If all inputs are subtitles, only show subtitle output formats
+                compatibleMediaFormats = [.srt, .webvtt, .ass, .ssa, .ttml]
+            } else if allInputsAreAudio {
                 // If all inputs are audio, only show audio output formats
-                compatibleMediaFormats = FFmpegFormat.allCases.filter { !$0.isVideo }
+                compatibleMediaFormats = FFmpegFormat.allCases.filter { !$0.isVideo && !$0.isSubtitle }
             } else {
-                // If any input is video, show all formats
-                compatibleMediaFormats = FFmpegFormat.allCases
+                // If any input is video, show all formats except subtitle formats
+                compatibleMediaFormats = FFmpegFormat.allCases.filter { format in
+                    // Exclude subtitle formats from regular video/audio conversion
+                    !format.isSubtitle
+                }
             }
 
             compatibleServices.append(contentsOf: compatibleMediaFormats.compactMap { format in
                 guard let config = FormatRegistry.shared.config(for: format) else { return nil }
                 return (.ffmpeg(format), config.displayName)
             })
+            
+            // Add subtitle extraction formats if videos have subtitles
+            // (but not if the inputs are subtitle files themselves)
+            if hasSubtitles && !allInputsAreAudio && !allInputsAreSubtitles {
+                let subtitleFormats: [FFmpegFormat] = [.srt, .webvtt, .ass, .ssa, .ttml]
+                compatibleServices.append(contentsOf: subtitleFormats.compactMap { format in
+                    guard let config = FormatRegistry.shared.config(for: format) else { return nil }
+                    
+                    // Check if this format matches the native subtitle format
+                    let isNativeFormat = nativeSubtitleFormat?.uppercased() == format.rawValue.uppercased() ||
+                                       (nativeSubtitleFormat == "Text" && format == .srt) || // Text usually means SRT
+                                       (nativeSubtitleFormat == "ASS" && format == .ass) ||
+                                       (nativeSubtitleFormat == "SSA" && format == .ssa) ||
+                                       (nativeSubtitleFormat == "WebVTT" && format == .webvtt) ||
+                                       (nativeSubtitleFormat == "VTT" && format == .webvtt) ||
+                                       (nativeSubtitleFormat == "TTML" && format == .ttml)
+                    
+                    let displayName = isNativeFormat ? "\(config.displayName) (Demux)" : config.displayName
+                    return (.ffmpeg(format), displayName)
+                })
+            }
         }
 
         // Add TTS for text files
@@ -216,6 +257,7 @@ struct FormatPicker: View {
                         !imageOutputServices.isEmpty,
                         !audioOutputServices.isEmpty,
                         !videoOutputServices.isEmpty,
+                        !subtitleOutputServices.isEmpty,
                         !archiveOutputServices.isEmpty
                     ].filter { $0 }.count
 
@@ -257,6 +299,14 @@ struct FormatPicker: View {
                                 }
                             }
                         }
+                        
+                        if !subtitleOutputServices.isEmpty {
+                            Section("Subtitle Formats") {
+                                ForEach(subtitleOutputServices, id: \.0) { service, name in
+                                    Text(name).tag(service)
+                                }
+                            }
+                        }
 
                         if !archiveOutputServices.isEmpty {
                             Section("Archive Formats") {
@@ -291,11 +341,13 @@ struct FormatPicker: View {
             }
 
             // Format description
-            Text(getFormatDescription(for: selectedService) ?? "")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: 40, alignment: .topLeading)
+            if !inputFileURLs.isEmpty {
+                Text(getFormatDescription(for: selectedService) ?? "")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: 40, alignment: .topLeading)
+            }
         }
     }
 

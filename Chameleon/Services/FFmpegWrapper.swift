@@ -63,8 +63,23 @@ class FFmpegWrapper {
             "-y" // Overwrite output file
         ]
 
+        // Check if input is a subtitle file
+        let inputFormat = FFmpegFormat.detectFormat(from: inputURL)
+        let isSubtitleInput = inputFormat?.isSubtitle ?? false
+        
+        // Special handling for subtitle conversion
+        if format.isSubtitle {
+            if isSubtitleInput {
+                // Subtitle-to-subtitle conversion
+                arguments.append(contentsOf: format.codecArguments())
+            } else {
+                // Extract subtitles from video
+                arguments.append(contentsOf: ["-map", "0:s:0"]) // Map first subtitle stream
+                arguments.append(contentsOf: format.codecArguments())
+            }
+        }
         // Special handling for OGG format with video input
-        if format == .ogg && videoOptions != nil {
+        else if format == .ogg && videoOptions != nil {
             // OGG with video should use VP8 codec (since Theora encoder is not available)
             // OGG with video should use VP8 codec (since Theora encoder is not available)
             arguments.append(contentsOf: ["-c:v", "libvpx", "-c:a", "libvorbis"])
@@ -407,6 +422,118 @@ class FFmpegWrapper {
         }
     }
 
+    func extractSubtitles(
+        inputURL: URL,
+        outputDirectory: URL,
+        format: FFmpegFormat,
+        subtitleInfo: [SubtitleStreamInfo]
+    ) async throws -> [URL] {
+        var outputURLs: [URL] = []
+        
+        // Extract all subtitles
+        let indicesToExtract = subtitleInfo.map { $0.streamIndex }
+        
+        // Helper function to sanitize filename
+        func sanitizeFilename(_ name: String) -> String {
+            let invalidChars = CharacterSet(charactersIn: "/\\:*?\"<>|")
+            return name.components(separatedBy: invalidChars).joined(separator: "_")
+                .trimmingCharacters(in: .whitespaces)
+                .prefix(50)  // Limit length
+                .trimmingCharacters(in: .whitespaces)
+        }
+        
+        // Generate filenames for each subtitle
+        let baseName = inputURL.deletingPathExtension().lastPathComponent
+        var usedFilenames = Set<String>()
+        
+        for index in indicesToExtract {
+            guard let subtitle = subtitleInfo.first(where: { $0.streamIndex == index }) else {
+                continue
+            }
+            
+            // Build filename components
+            var components: [String] = [baseName]
+            
+            if let language = subtitle.language, !language.isEmpty {
+                components.append(sanitizeFilename(language))
+            }
+            
+            if let title = subtitle.title, !title.isEmpty {
+                components.append(sanitizeFilename(title))
+            }
+            
+            // If no metadata, use track number
+            if components.count == 1 {
+                components.append("Track\(index + 1)")
+            }
+            
+            // Join components and add extension
+            var filename = components.joined(separator: ".")
+            filename += ".\(format.fileExtension)"
+            
+            // Handle duplicates
+            var finalFilename = filename
+            var counter = 2
+            while usedFilenames.contains(finalFilename) {
+                let nameWithoutExt = filename.dropLast(format.fileExtension.count + 1)
+                finalFilename = "\(nameWithoutExt).\(counter).\(format.fileExtension)"
+                counter += 1
+            }
+            usedFilenames.insert(finalFilename)
+            
+            // Extract this subtitle
+            let outputURL = outputDirectory.appendingPathComponent(finalFilename)
+            
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: ffmpegPath)
+            process.arguments = [
+                "-i", inputURL.path,
+                "-map", "0:s:\(index)",
+                "-c:s", getSubtitleCodec(for: format),
+                "-y",
+                outputURL.path
+            ]
+            
+            let errorPipe = Pipe()
+            process.standardError = errorPipe
+            
+            try process.run()
+            
+            // Register with ProcessManager
+            ProcessManager.shared.register(process)
+            
+            currentProcess = process
+            defer {
+                currentProcess = nil
+                ProcessManager.shared.unregister(process)
+            }
+            
+            // Wait for completion
+            while process.isRunning {
+                if Task.isCancelled {
+                    kill(process.processIdentifier, SIGINT)
+                    throw CancellationError()
+                }
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            
+            if process.terminationStatus != 0 {
+                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+                print("Failed to extract subtitle \(index): \(errorString)")
+                continue  // Skip this subtitle but continue with others
+            }
+            
+            outputURLs.append(outputURL)
+        }
+        
+        if outputURLs.isEmpty {
+            throw FFmpegError.conversionFailed("No subtitles were successfully extracted")
+        }
+        
+        return outputURLs
+    }
+    
     func getFileInfo(url: URL) async throws -> MediaFileInfo {
         // Use MediaInfoLib for media analysis
         guard let mediaInfoWrapper = mediaInfoWrapper else {
@@ -414,6 +541,23 @@ class FFmpegWrapper {
         }
         
         return try mediaInfoWrapper.getFileInfo(url: url)
+    }
+    
+    private func getSubtitleCodec(for format: FFmpegFormat) -> String {
+        switch format {
+        case .srt:
+            return "srt"
+        case .webvtt:
+            return "webvtt"
+        case .ass:
+            return "ass"
+        case .ssa:
+            return "ssa"
+        case .ttml:
+            return "ttml"
+        default:
+            return "srt" // fallback
+        }
     }
 }
 
@@ -469,9 +613,30 @@ enum FFmpegFormat: String, CaseIterable {
     case ogg
     case wma
     case aiff
+    
+    // Subtitle formats
+    case srt
+    case webvtt
+    case ass
+    case ssa
+    case ttml
+    // Note: sub (microdvd), sami, and sbv (subviewer) are decode-only in FFmpeg
 
     var displayName: String {
-        return rawValue.uppercased()
+        switch self {
+        case .webvtt:
+            return "WebVTT"
+        case .srt:
+            return "SRT"
+        case .ass:
+            return "ASS"
+        case .ssa:
+            return "SSA"
+        case .ttml:
+            return "TTML"
+        default:
+            return rawValue.uppercased()
+        }
     }
 
     var description: String? {
@@ -585,8 +750,27 @@ enum FFmpegFormat: String, CaseIterable {
             return .wma
         case "aiff", "aif":
             return .aiff
+        case "srt":
+            return .srt
+        case "vtt", "webvtt":
+            return .webvtt
+        case "ass":
+            return .ass
+        case "ssa":
+            return .ssa
+        case "ttml", "dfxp":
+            return .ttml
         default:
             return nil
+        }
+    }
+    
+    var isSubtitle: Bool {
+        switch self {
+        case .srt, .webvtt, .ass, .ssa, .ttml:
+            return true
+        default:
+            return false
         }
     }
 

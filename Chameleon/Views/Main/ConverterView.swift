@@ -74,6 +74,31 @@ struct ConverterView: View {
         return useNativePDFConversion &&
                (format == .png || format == .jpeg || format == .jpg || format == .tiff || format == .tif)
     }
+    
+    private var inputFilesHaveSubtitles: Bool {
+        for fileState in files {
+            if let url = fileState.url,
+               let mediaInfo = mediaInfoCache[url],
+               mediaInfo.hasSubtitles {
+                return true
+            }
+        }
+        return false
+    }
+    
+    private var nativeSubtitleFormat: String? {
+        // Get the first subtitle codec from the first file with subtitles
+        for fileState in files {
+            if let url = fileState.url,
+               let mediaInfo = mediaInfoCache[url],
+               mediaInfo.hasSubtitles,
+               let firstSubtitle = mediaInfo.subtitleStreams.first,
+               let codec = firstSubtitle.codec {
+                return codec
+            }
+        }
+        return nil
+    }
 
     private func cleanupTempFiles() {
         for fileState in files {
@@ -365,7 +390,9 @@ struct ConverterView: View {
                     inputFileURLs: files.compactMap { $0.url },
                     isPandocAvailable: pandocWrapper != nil,
                     isImageMagickAvailable: imageMagickWrapper != nil,
-                    isFFmpegAvailable: ffmpegWrapper != nil
+                    isFFmpegAvailable: ffmpegWrapper != nil,
+                    hasSubtitles: inputFilesHaveSubtitles,
+                    nativeSubtitleFormat: nativeSubtitleFormat
                 )
                     .padding(.top)
                     .disabled(files.isEmpty ||
@@ -1350,61 +1377,140 @@ struct ConverterView: View {
                     }
 
                 case .ffmpeg(let format):
-                    // Special handling for OGG format: detect if input has video
-                    var effectiveVideoOptions: VideoOptions? = nil
-                    var effectiveAudioOptions: AudioOptions? = nil
+                    // Check if input is a subtitle file
+                    let inputFormat = FFmpegFormat.detectFormat(from: inputURL)
+                    let isSubtitleInput = inputFormat?.isSubtitle ?? false
                     
-                    if format == .ogg {
-                        // For OGG format, check file extension to determine if it's likely a video file
-                        let videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v", "mpg", "mpeg"]
-                        let inputExtension = inputURL.pathExtension.lowercased()
+                    // Special handling for subtitle extraction or conversion
+                    if format.isSubtitle && !isSubtitleInput {
+                        // Extract subtitles
+                        let mediaInfo = mediaInfoCache[inputURL]
+                        let subtitleInfo = mediaInfo?.subtitleStreams ?? []
                         
-                        if videoExtensions.contains(inputExtension) {
-                            // Input is likely a video file, so pass videoOptions
-                            // Input is likely a video file, so pass videoOptions
-                            effectiveVideoOptions = videoOptions
-                            effectiveAudioOptions = nil
-                        } else {
-                            // Input is likely audio-only or unknown, use normal audio options
-                            // Input is likely audio-only or unknown, use normal audio options
-                            effectiveVideoOptions = nil
-                            effectiveAudioOptions = audioOptions
+                        // Extract all subtitles
+                        let tempDir = FileManager.default.temporaryDirectory
+                            .appendingPathComponent(UUID().uuidString)
+                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                        
+                        let extractedURLs = try await ffmpegWrapper!.extractSubtitles(
+                            inputURL: inputURL,
+                            outputDirectory: tempDir,
+                            format: format,
+                            subtitleInfo: subtitleInfo
+                        )
+                        
+                        // Handle multiple subtitle outputs
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            if extractedURLs.count == 1 {
+                                // Single subtitle - replace the converting file
+                                let convertedFile = ConvertedFile(
+                                    originalURL: inputURL,
+                                    tempURL: extractedURLs[0],
+                                    fileName: extractedURLs[0].lastPathComponent
+                                )
+                                files[fileIndex] = .converted(convertedFile)
+                            } else {
+                                // Multiple subtitles - similar to multi-page PDF handling
+                                files.remove(at: fileIndex)
+                                for (i, subtitleURL) in extractedURLs.enumerated() {
+                                    let convertedFile = ConvertedFile(
+                                        originalURL: inputURL,
+                                        tempURL: subtitleURL,
+                                        fileName: subtitleURL.lastPathComponent
+                                    )
+                                    files.insert(.converted(convertedFile), at: fileIndex + i)
+                                }
+                            }
+                        }
+                    } else if format.isSubtitle && isSubtitleInput {
+                        // Subtitle-to-subtitle conversion
+                        try await ffmpegWrapper!.convertFile(
+                            inputURL: inputURL,
+                            outputURL: tempURL,
+                            format: format,
+                            quality: .medium,
+                            audioOptions: nil,
+                            videoOptions: nil
+                        )
+                        
+                        // Single file output for subtitle conversion
+                        let baseName = inputURL.deletingPathExtension().lastPathComponent
+                        let fileName = "\(baseName).\(outputService.fileExtension)"
+                        
+                        // Move temp file to a more permanent temp location with proper filename
+                        let finalTempURL = FileManager.default.temporaryDirectory
+                            .appendingPathComponent(UUID().uuidString)
+                            .appendingPathComponent(fileName)
+                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                        
+                        let convertedFile = ConvertedFile(
+                            originalURL: inputURL,
+                            tempURL: finalTempURL,
+                            fileName: fileName
+                        )
+                        
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            files[fileIndex] = .converted(convertedFile)
                         }
                     } else {
-                        // For other formats, use the normal logic based on format.isVideo
-                        effectiveVideoOptions = format.isVideo ? videoOptions : nil
-                        effectiveAudioOptions = format.isVideo ? nil : audioOptions
-                    }
-                    
-                    try await ffmpegWrapper!.convertFile(
-                        inputURL: inputURL,
-                        outputURL: tempURL,
-                        format: format,
-                        quality: format.isVideo ? videoOptions.crfQuality : .medium,
-                        audioOptions: effectiveAudioOptions,
-                        videoOptions: effectiveVideoOptions
-                    )
+                        // Regular video/audio conversion
+                        // Special handling for OGG format: detect if input has video
+                        var effectiveVideoOptions: VideoOptions? = nil
+                        var effectiveAudioOptions: AudioOptions? = nil
+                        
+                        if format == .ogg {
+                            // For OGG format, check file extension to determine if it's likely a video file
+                            let videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v", "mpg", "mpeg"]
+                            let inputExtension = inputURL.pathExtension.lowercased()
+                            
+                            if videoExtensions.contains(inputExtension) {
+                                // Input is likely a video file, so pass videoOptions
+                                // Input is likely a video file, so pass videoOptions
+                                effectiveVideoOptions = videoOptions
+                                effectiveAudioOptions = nil
+                            } else {
+                                // Input is likely audio-only or unknown, use normal audio options
+                                // Input is likely audio-only or unknown, use normal audio options
+                                effectiveVideoOptions = nil
+                                effectiveAudioOptions = audioOptions
+                            }
+                        } else {
+                            // For other formats, use the normal logic based on format.isVideo
+                            effectiveVideoOptions = format.isVideo ? videoOptions : nil
+                            effectiveAudioOptions = format.isVideo ? nil : audioOptions
+                        }
+                        
+                        try await ffmpegWrapper!.convertFile(
+                            inputURL: inputURL,
+                            outputURL: tempURL,
+                            format: format,
+                            quality: format.isVideo ? videoOptions.crfQuality : .medium,
+                            audioOptions: effectiveAudioOptions,
+                            videoOptions: effectiveVideoOptions
+                        )
 
-                    // Single file output for FFmpeg
-                    let baseName = inputURL.deletingPathExtension().lastPathComponent
-                    let fileName = "\(baseName).\(outputService.fileExtension)"
+                        // Single file output for FFmpeg
+                        let baseName = inputURL.deletingPathExtension().lastPathComponent
+                        let fileName = "\(baseName).\(outputService.fileExtension)"
 
-                    // Move temp file to a more permanent temp location with proper filename
-                    let finalTempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathComponent(fileName)
-                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                    try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                        // Move temp file to a more permanent temp location with proper filename
+                        let finalTempURL = FileManager.default.temporaryDirectory
+                            .appendingPathComponent(UUID().uuidString)
+                            .appendingPathComponent(fileName)
+                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
-                    let convertedFile = ConvertedFile(
-                        originalURL: inputURL,
-                        tempURL: finalTempURL,
-                        fileName: fileName
-                    )
+                        let convertedFile = ConvertedFile(
+                            originalURL: inputURL,
+                            tempURL: finalTempURL,
+                            fileName: fileName
+                        )
 
-                    // Replace the converting file with the converted file
-                    if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
-                        files[fileIndex] = .converted(convertedFile)
+                        // Replace the converting file with the converted file
+                        if let fileIndex = files.firstIndex(where: { $0.url == inputURL }) {
+                            files[fileIndex] = .converted(convertedFile)
+                        }
                     }
 
                 case .ocr(let format):
@@ -1880,6 +1986,8 @@ struct ConverterView: View {
         return documentFormat != nil || imageFormat != nil || mediaFormat != nil
     }
 
+    // Helper method to get effective subtitle selection for a URL
+    
     private func getMediaInfo(for url: URL) async -> DetailedMediaInfo? {
         // Check cache first
         if let cached = mediaInfoCache[url] {
@@ -1895,7 +2003,9 @@ struct ConverterView: View {
                 
                 // Cache the result
                 await MainActor.run {
+                    print("Caching media info for \(url.lastPathComponent): \(detailedInfo.subtitleStreams.count) subtitles")
                     mediaInfoCache[url] = detailedInfo
+                    // Don't initialize subtitle selections here - let the binding handle it
                 }
                 
                 return detailedInfo
@@ -2061,12 +2171,24 @@ struct ConverterView: View {
         }
 
         if !mediaFormats.isEmpty {
-            // Media conversion with FFmpeg
-            let compatibleMediaFormats = FFmpegFormat.allCases
-            compatibleServices.append(contentsOf: compatibleMediaFormats.compactMap { format in
-                guard let config = FormatRegistry.shared.config(for: format) else { return nil }
-                return (.ffmpeg(format), config.displayName)
-            })
+            // Check if all inputs are subtitle files
+            let allSubtitles = mediaFormats.allSatisfy { $0.isSubtitle }
+            
+            if allSubtitles {
+                // Subtitle-to-subtitle conversion: only show subtitle output formats
+                let subtitleFormats: [FFmpegFormat] = [.srt, .webvtt, .ass, .ssa, .ttml]
+                compatibleServices.append(contentsOf: subtitleFormats.compactMap { format in
+                    guard let config = FormatRegistry.shared.config(for: format) else { return nil }
+                    return (.ffmpeg(format), config.displayName)
+                })
+            } else {
+                // Regular media conversion with FFmpeg
+                let compatibleMediaFormats = FFmpegFormat.allCases
+                compatibleServices.append(contentsOf: compatibleMediaFormats.compactMap { format in
+                    guard let config = FormatRegistry.shared.config(for: format) else { return nil }
+                    return (.ffmpeg(format), config.displayName)
+                })
+            }
         }
 
         // Add OCR/Text extraction for PDFs and images
@@ -2157,7 +2279,7 @@ struct ConverterView: View {
         // 2. We're converting to an audio format with FFmpeg
         guard !files.isEmpty else { return false }
         if case .ffmpeg(let format) = outputService {
-            return !format.isVideo
+            return !format.isVideo && !isSubtitleFormat(format)
         }
         return false
     }
@@ -2166,9 +2288,10 @@ struct ConverterView: View {
         // Show video options when:
         // 1. We have files loaded AND
         // 2. We're converting to a video format with FFmpeg
+        // 3. BUT NOT when extracting subtitles
         guard !files.isEmpty else { return false }
         if case .ffmpeg(let format) = outputService {
-            return format.isVideo
+            return format.isVideo && !isSubtitleFormat(format)
         }
         return false
     }
@@ -2233,6 +2356,15 @@ struct ConverterView: View {
         }
     }
 
+    private func isSubtitleFormat(_ format: FFmpegFormat) -> Bool {
+        switch format {
+        case .srt, .webvtt, .ass, .ssa, .ttml:
+            return true
+        default:
+            return false
+        }
+    }
+    
     private func iconForFile(fileState: FileState) -> NSImage {
         switch fileState {
         case .input(let url), .converting(let url, _), .error(let url, _):
@@ -2273,7 +2405,8 @@ struct ConverterView: View {
                         files.removeAll { $0.id == fileState.id }
                         updateOutputService()
                     },
-                    mediaInfo: mediaInfoCache[url]
+                    mediaInfo: mediaInfoCache[url],
+                    selectedSubtitles: .constant(Set<Int>())
                 )
             } else {
                 FileRow(
@@ -2287,7 +2420,8 @@ struct ConverterView: View {
                         files.removeAll { $0.id == fileState.id }
                         updateOutputService()
                     },
-                    mediaInfo: mediaInfoCache[url]
+                    mediaInfo: mediaInfoCache[url],
+                    selectedSubtitles: .constant(Set<Int>())
                 )
             }
         case .converting(let url, let fileName):

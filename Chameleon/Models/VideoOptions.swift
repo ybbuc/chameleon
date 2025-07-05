@@ -299,6 +299,28 @@ struct AnimatedGIFOptions {
     var usePalette: Bool = true  // Use palette optimization for better colors
 }
 
+// Subtitle format options
+enum SubtitleFormat: String, CaseIterable {
+    case srt = "srt"
+    case webvtt = "webvtt"
+    case ass = "ass"
+    
+    var displayName: String {
+        switch self {
+        case .srt:
+            return "SRT"
+        case .webvtt:
+            return "WebVTT"
+        case .ass:
+            return "ASS"
+        }
+    }
+    
+    var fileExtension: String {
+        return rawValue
+    }
+}
+
 struct VideoOptions {
     var resolution: VideoResolution = .automatic
     var aspectRatio: VideoAspectRatio = .automatic
@@ -311,6 +333,8 @@ struct VideoOptions {
     var encoder: VideoEncoder = .x264  // Default to x264
     var preset: VideoPreset = .medium  // Default to medium preset
     var gifOptions: AnimatedGIFOptions = AnimatedGIFOptions()  // GIF-specific settings
+    var subtitleFormat: SubtitleFormat = .srt  // Default subtitle format
+    var selectedSubtitleIndices: Set<Int> = []  // Selected subtitle stream indices for extraction
 
     func ffmpegArguments(for format: FFmpegFormat) -> [String] {
         var args: [String] = []
