@@ -665,6 +665,8 @@ struct ConverterView: View {
         }
         .onDisappear {
             cleanupTempFiles()
+            // Clean up any temporary files created during conversion
+            TempFileManager.shared.cleanup()
             // Ensure conversion state is cleared if view disappears
             if isConverting {
                 setConversionState(false)
@@ -716,6 +718,9 @@ struct ConverterView: View {
                 files[i] = .input(url)
             }
         }
+        
+        // Clean up any temporary files
+        TempFileManager.shared.cleanup()
     }
 
     private func initializePandoc() {
@@ -1042,9 +1047,7 @@ struct ConverterView: View {
 
                 if archiveOptions.archiveSeparately {
                     // Create separate archives for each file
-                    let tempDirectory = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                    try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
+                    let tempDirectory = TempFileManager.shared.createTempDirectory()
 
                     createdArchives = try await archiveService!.createArchive(
                         format: format,
@@ -1057,9 +1060,7 @@ struct ConverterView: View {
                     )
                 } else {
                     // Create single archive containing all files
-                    let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathExtension(format.fileExtension)
+                    let tempURL = TempFileManager.shared.createTempFile(extension: format.fileExtension)
 
                     createdArchives = try await archiveService!.createArchive(
                         format: format,
@@ -1080,10 +1081,7 @@ struct ConverterView: View {
                         inputURLs[index] : inputURLs[0]
 
                     // Move to final temp location with proper filename
-                    let finalTempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathComponent(fileName)
-                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                     try FileManager.default.moveItem(at: archiveURL, to: finalTempURL)
 
                     let convertedFile = ConvertedFile(
@@ -1115,12 +1113,14 @@ struct ConverterView: View {
 
                 setConversionState(false)
                 conversionTask = nil
-
+                
                 return // Exit early, we're done
             } catch {
                 // Handle cancellation errors differently
                 if error is CancellationError {
                     print("Archive creation cancelled")
+                    // Clean up temp files on cancellation
+                    TempFileManager.shared.cleanup()
                     return
                 }
 
@@ -1170,9 +1170,7 @@ struct ConverterView: View {
                     return
                 }
 
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString)
-                    .appendingPathExtension("pdf")
+                let tempURL = TempFileManager.shared.createTempFile(extension: "pdf")
 
                 // Combine all PDFs
                 try await PDFKitService.combinePDFs(at: inputURLs, outputURL: tempURL)
@@ -1183,10 +1181,7 @@ struct ConverterView: View {
                     "combined_\(inputURLs.count)_pdfs.pdf"
 
                 // Move to final temp location with proper filename
-                let finalTempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString)
-                    .appendingPathComponent(fileName)
-                try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                 try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                 let convertedFile = ConvertedFile(
@@ -1215,12 +1210,14 @@ struct ConverterView: View {
 
                 setConversionState(false)
                 conversionTask = nil
-
+                
                 return // Exit early, we're done
             } catch {
                 // Handle cancellation errors differently
                 if error is CancellationError {
                     print("PDF combination cancelled")
+                    // Clean up temp files on cancellation
+                    TempFileManager.shared.cleanup()
                     return
                 }
 
@@ -1266,9 +1263,7 @@ struct ConverterView: View {
             conversionProgress.current = index + 1
             currentConversionFile = inputURL.lastPathComponent
             do {
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString)
-                    .appendingPathExtension(outputService.fileExtension)
+                let tempURL = TempFileManager.shared.createTempFile(extension: outputService.fileExtension)
 
                 print("Converting \(inputURL.lastPathComponent) to temporary file: \(tempURL.path)")
 
@@ -1285,10 +1280,7 @@ struct ConverterView: View {
                     let fileName = "\(baseName).\(outputService.fileExtension)"
 
                     // Move temp file to a more permanent temp location with proper filename
-                    let finalTempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathComponent(fileName)
-                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                     let convertedFile = ConvertedFile(
@@ -1306,8 +1298,7 @@ struct ConverterView: View {
                     // Check if we should use native PDF conversion
                     if useNativePDFConversion && inputURL.pathExtension.lowercased() == "pdf" {
                         // Use PDFKit for PDF to image conversion
-                        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                        let tempDir = TempFileManager.shared.createTempDirectory()
 
                         // JPEG always needs a background since it doesn't support transparency
                         let backgroundColor: NSColor = (format == .jpeg || format == .jpg) ? .white :
@@ -1337,13 +1328,7 @@ struct ConverterView: View {
                                 let fileName = "\(baseName).\(format.fileExtension)"
 
                                 // Move to final temp location with proper filename
-                                let finalTempURL = FileManager.default.temporaryDirectory
-                                    .appendingPathComponent(UUID().uuidString)
-                                    .appendingPathComponent(fileName)
-                                try FileManager.default.createDirectory(
-                                    at: finalTempURL.deletingLastPathComponent(),
-                                    withIntermediateDirectories: true
-                                )
+                                let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                                 try FileManager.default.moveItem(at: outputURLs[0], to: finalTempURL)
 
                                 let convertedFile = ConvertedFile(
@@ -1395,9 +1380,7 @@ struct ConverterView: View {
                         let subtitleInfo = mediaInfo?.subtitleStreams ?? []
                         
                         // Extract all subtitles
-                        let tempDir = FileManager.default.temporaryDirectory
-                            .appendingPathComponent(UUID().uuidString)
-                        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                        let tempDir = TempFileManager.shared.createTempDirectory()
                         
                         let extractedURLs = try await ffmpegWrapper!.extractSubtitles(
                             inputURL: inputURL,
@@ -1445,11 +1428,8 @@ struct ConverterView: View {
                         let fileName = "\(baseName).\(outputService.fileExtension)"
                         
                         // Move temp file to a more permanent temp location with proper filename
-                        let finalTempURL = FileManager.default.temporaryDirectory
-                            .appendingPathComponent(UUID().uuidString)
-                            .appendingPathComponent(fileName)
-                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                        try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                        let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
+                            try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
                         
                         let convertedFile = ConvertedFile(
                             originalURL: inputURL,
@@ -1502,11 +1482,8 @@ struct ConverterView: View {
                         let fileName = "\(baseName).\(outputService.fileExtension)"
 
                         // Move temp file to a more permanent temp location with proper filename
-                        let finalTempURL = FileManager.default.temporaryDirectory
-                            .appendingPathComponent(UUID().uuidString)
-                            .appendingPathComponent(fileName)
-                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-                        try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
+                        let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
+                            try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                         let convertedFile = ConvertedFile(
                             originalURL: inputURL,
@@ -1559,10 +1536,7 @@ struct ConverterView: View {
                     let baseName = inputURL.deletingPathExtension().lastPathComponent
                     let fileName = "\(baseName).\(outputService.fileExtension)"
 
-                    let finalTempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathComponent(fileName)
-                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                     try recognizedText.write(to: finalTempURL, atomically: true, encoding: .utf8)
 
                     let convertedFile = ConvertedFile(
@@ -1591,10 +1565,7 @@ struct ConverterView: View {
                     let fileName = "\(baseName).\(outputService.fileExtension)"
 
                     // Move temp file to a more permanent temp location with proper filename
-                    let finalTempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathComponent(fileName)
-                    try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                     try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                     let convertedFile = ConvertedFile(
@@ -1650,14 +1621,8 @@ struct ConverterView: View {
                                 let fileName = "\(baseName)-page\(pageIndex + 1).\(outputService.fileExtension)"
 
                                 // Move to final location with proper filename
-                                let finalTempURL = FileManager.default.temporaryDirectory
-                                    .appendingPathComponent(UUID().uuidString)
-                                    .appendingPathComponent(fileName)
-                                try FileManager.default.createDirectory(
-                                    at: finalTempURL.deletingLastPathComponent(),
-                                    withIntermediateDirectories: true
-                                )
-                                try FileManager.default.moveItem(at: testURL, to: finalTempURL)
+                                let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
+                                            try FileManager.default.moveItem(at: testURL, to: finalTempURL)
 
                                 let convertedFile = ConvertedFile(
                                     originalURL: inputURL,
@@ -1716,10 +1681,7 @@ struct ConverterView: View {
                         let fileName = "\(baseName).\(outputService.fileExtension)"
 
                         // Move to final location with proper filename
-                        let finalTempURL = FileManager.default.temporaryDirectory
-                            .appendingPathComponent(UUID().uuidString)
-                            .appendingPathComponent(fileName)
-                        try FileManager.default.createDirectory(at: finalTempURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        let finalTempURL = TempFileManager.shared.createTempFile(withName: fileName)
                         try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                         let convertedFile = ConvertedFile(
@@ -1740,6 +1702,8 @@ struct ConverterView: View {
                 // Handle cancellation errors differently
                 if error is CancellationError {
                     print("Conversion cancelled for \(inputURL.lastPathComponent)")
+                    // Clean up temp files on cancellation
+                    TempFileManager.shared.cleanup()
                     return
                 }
 
@@ -1806,11 +1770,15 @@ struct ConverterView: View {
                     if panel.runModal() == .OK, let url = panel.url {
                         try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
                         addToHistory(convertedFile: convertedFile, savedURL: url)
+                        // Mark temp file as no longer needing cleanup since it was saved
+                        TempFileManager.shared.untrack(convertedFile.tempURL)
                     }
                 } else {
                     // Copy directly if file doesn't exist
                     try FileManager.default.copyItem(at: convertedFile.tempURL, to: destinationURL)
                     addToHistory(convertedFile: convertedFile, savedURL: destinationURL)
+                    // Mark temp file as no longer needing cleanup since it was saved
+                    TempFileManager.shared.untrack(convertedFile.tempURL)
                 }
             } catch {
                 showError(error.localizedDescription)
@@ -1826,6 +1794,8 @@ struct ConverterView: View {
                     // Copy the temp file to the destination
                     try FileManager.default.copyItem(at: convertedFile.tempURL, to: url)
                     addToHistory(convertedFile: convertedFile, savedURL: url)
+                    // Mark temp file as no longer needing cleanup since it was saved
+                    TempFileManager.shared.untrack(convertedFile.tempURL)
                 } catch {
                     showError(error.localizedDescription)
                 }
