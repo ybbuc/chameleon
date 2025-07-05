@@ -14,7 +14,6 @@ A native macOS desktop application for universal file conversion, supporting doc
 - External dependencies (all optional - features auto-disable if not installed):
   - **Pandoc** (for document formats): `brew install pandoc`
   - **ImageMagick** (for image formats): `brew install imagemagick`
-  - **FFmpeg** (for audio/video formats): `brew install ffmpeg`
   - **LaTeX** (for enhanced PDF support): `brew install --cask basictex`
   - **Ghostscript** (for enhanced PDF support): `brew install ghostscript`
 
@@ -28,9 +27,6 @@ A native macOS desktop application for universal file conversion, supporting doc
    
    # For image conversion (JPEG, PNG, GIF, etc.)
    brew install imagemagick
-   
-   # For audio/video conversion (MP4, MP3, AVI, etc.)
-   brew install ffmpeg
    
    # Optional for enhanced PDF support
    brew install --cask basictex
@@ -74,13 +70,4 @@ Chameleon/
 
 ## Dependency Behavior
 
-Chameleon gracefully handles missing dependencies:
-
-| Tool Missing | Effect |
-|--------------|--------|
-| **Pandoc** | Document formats (MD, HTML, DOCX, etc.) are hidden from format picker |
-| **ImageMagick** | Image conversion options are disabled |
-| **FFmpeg** | Audio/video conversion options are disabled |
-| **LaTeX/Ghostscript** | PDF conversion quality may be reduced |
-
-The app will run with any combination of tools installed - only the supported formats will be available in the interface.
+The app will run with any combination of tools installed—only the supported formats will be available in the interface.
