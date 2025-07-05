@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 class MediaInfoWrapper {
     typealias MediaInfoHandle = OpaquePointer
@@ -292,17 +293,35 @@ extension MediaInfoWrapper {
             mediaInfo_Close(handle)
         }
         
-        // Get file size
+        // Get file size and dates
         let fileSize = FileManager.default.fileSize(at: url) ?? 0
+        let fileDates = FileManager.default.fileDates(at: url)
         
         // Get general info
-        let format = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Format") ?? "Unknown"
+        var format = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Format")
+        
+        // If MediaInfo doesn't recognize the format, get it from the system
+        if format == nil || format?.isEmpty == true {
+            // Use UTType to get the system's description of the file type
+            if let utType = UTType(filenameExtension: url.pathExtension) {
+                format = utType.localizedDescription ?? utType.preferredFilenameExtension
+            }
+        }
+        
+        let finalFormat = format ?? "Unknown"
         let overallBitRateString = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "OverallBitRate")
         let overallBitRate = overallBitRateString.flatMap { Int($0) }.map { $0 / 1000 }
+        let overallBitRateMode = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "OverallBitRate_Mode")
         
         // Get duration in seconds
         let durationMs = getDouble(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Duration")
         let duration = durationMs.map { $0 / 1000.0 }
+        
+        // Get encoding application and writing library
+        let encodingApplication = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Encoded_Application")
+            ?? getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Writing_Application")
+        let writingLibrary = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Encoded_Library")
+            ?? getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "Writing_Library")
         
         // Get video stream count
         let videoStreamCountStr = getString(handle: handle, streamKind: .general, streamNumber: 0, parameter: "VideoCount")
@@ -346,6 +365,19 @@ extension MediaInfoWrapper {
         for streamIndex in 0..<audioStreamCount {
             // Check if stream exists by trying to get codec
             if let codec = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format") {
+                // Check for JOC (Joint Object Coding) in E-AC-3
+                var finalCodec = codec
+                if codec == "E-AC-3" {
+                    // Check Format_Settings_JOC or Format_AdditionalFeatures for JOC
+                    let jocSetting = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Settings_JOC")
+                    let additionalFeatures = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_AdditionalFeatures")
+                    let formatProfile = getString(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Format_Profile")
+                    
+                    if jocSetting == "Yes" || additionalFeatures?.contains("JOC") == true || formatProfile?.contains("JOC") == true {
+                        finalCodec = "E-AC-3 JOC"
+                    }
+                }
+                
                 let channels = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "Channels")
                 let sampleRate = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "SamplingRate")
                 let bitDepth = getInt(handle: handle, streamKind: .audio, streamNumber: streamIndex, parameter: "BitDepth")
@@ -357,7 +389,7 @@ extension MediaInfoWrapper {
                 
                 let streamInfo = AudioStreamInfo(
                     streamIndex: streamIndex,
-                    codec: codec,
+                    codec: finalCodec,
                     channels: channels,
                     sampleRate: sampleRate,
                     bitDepth: bitDepth,
@@ -377,16 +409,54 @@ extension MediaInfoWrapper {
         // Get all subtitle streams
         var subtitleStreams: [SubtitleStreamInfo] = []
         for streamIndex in 0..<textStreamCount {
-            // Check if stream exists by trying to get codec
-            if let codec = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Format") {
+            // Check if stream exists by trying to get format
+            if let format = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Format") {
+                // For text-based subtitles, MediaInfo sometimes reports the encoding as the format
+                let codecID = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "CodecID")
+                let encoding = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Encoding")
+                
+                // Map common codec IDs to friendly names
+                let friendlyCodec: String? = switch codecID {
+                    case "S_TEXT/UTF8": "SRT"
+                    case "S_TEXT/ASS": "ASS"
+                    case "S_TEXT/SSA": "SSA"
+                    case "S_TEXT/WEBVTT": "WebVTT"
+                    case "S_HDMV/PGS": "PGS"
+                    case "S_VOBSUB": "VobSub"
+                    default: nil
+                }
+                
+                // Determine the actual codec
+                let codec = if ["UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "ISO-8859-1", "ASCII"].contains(format) {
+                    friendlyCodec ?? "Text"
+                } else {
+                    format
+                }
+                
                 let language = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Language/String")
                 let title = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Title")
                 let forced = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Forced") == "Yes"
                 let isDefault = getString(handle: handle, streamKind: .text, streamNumber: streamIndex, parameter: "Default") == "Yes"
                 
+                // Determine encoding - if format was an encoding, use it; otherwise use the Encoding parameter
+                let actualEncoding = if ["UTF-8", "UTF-16", "UTF-16BE", "UTF-16LE", "ISO-8859-1", "ASCII"].contains(format) {
+                    format
+                } else {
+                    encoding
+                }
+                
+                // Debug logging
+                print("🔍 Subtitle Stream \(streamIndex):")
+                print("   Format: \(format)")
+                print("   CodecID: \(codecID ?? "nil")")
+                print("   Encoding param: \(encoding ?? "nil")")
+                print("   Final codec: \(codec)")
+                print("   Final encoding: \(actualEncoding ?? "nil")")
+                
                 let streamInfo = SubtitleStreamInfo(
                     streamIndex: streamIndex,
                     codec: codec,
+                    encoding: actualEncoding,
                     language: language,
                     title: title,
                     forced: forced,
@@ -397,10 +467,15 @@ extension MediaInfoWrapper {
         }
         
         let detailedInfo = DetailedMediaInfo(
-            format: format,
+            format: finalFormat,
             fileSize: fileSize,
+            createdDate: fileDates?.created,
+            modifiedDate: fileDates?.modified,
             duration: duration,
             overallBitRate: overallBitRate,
+            overallBitRateMode: overallBitRateMode,
+            encodingApplication: encodingApplication,
+            writingLibrary: writingLibrary,
             videoStreams: videoStreams,
             audioStreams: audioStreams,
             subtitleStreams: subtitleStreams
@@ -415,6 +490,17 @@ extension FileManager {
         do {
             let attributes = try attributesOfItem(atPath: url.path)
             return attributes[.size] as? Int64
+        } catch {
+            return nil
+        }
+    }
+    
+    func fileDates(at url: URL) -> (created: Date?, modified: Date?)? {
+        do {
+            let attributes = try attributesOfItem(atPath: url.path)
+            let created = attributes[.creationDate] as? Date
+            let modified = attributes[.modificationDate] as? Date
+            return (created, modified)
         } catch {
             return nil
         }

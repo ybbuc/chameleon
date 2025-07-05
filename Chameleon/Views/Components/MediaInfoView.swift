@@ -19,13 +19,10 @@ struct MediaInfoView: View {
         self.cachedMediaInfo = cachedMediaInfo
     }
     
+    @State private var selectedTab = "general"
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
-            Text("Media Information")
-                .font(.headline)
-                .padding(.bottom, 4)
-            
             if isLoading {
                 HStack {
                     ProgressView()
@@ -50,100 +47,229 @@ struct MediaInfoView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else if let info = mediaInfo {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // General Information
-                        InfoSection(title: "General") {
+                TabView(selection: $selectedTab) {
+                    // General Tab
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            InfoRow(label: "Filename", value: url.lastPathComponent)
                             InfoRow(label: "Format", value: info.format)
                             InfoRow(label: "File Size", value: formatFileSize(info.fileSize))
+                            if let createdDate = info.createdDate {
+                                InfoRow(label: "Created", value: formatDate(createdDate))
+                            }
+                            if let modifiedDate = info.modifiedDate {
+                                InfoRow(label: "Modified", value: formatDate(modifiedDate))
+                            }
                             if let duration = info.duration {
                                 InfoRow(label: "Duration", value: formatDuration(duration))
                             }
                             if let overallBitRate = info.overallBitRate {
                                 InfoRow(label: "Overall Bit Rate", value: "\(overallBitRate) kbps")
                             }
-                        }
-                        
-                        // Video Streams
-                        ForEach(info.videoStreams.indices, id: \.self) { index in
-                            let stream = info.videoStreams[index]
-                            InfoSection(title: info.videoStreams.count > 1 ? "Video Stream \(index + 1)" : "Video") {
-                                if let codec = stream.codec {
-                                    InfoRow(label: "Codec", value: codec)
-                                }
-                                if let resolution = stream.resolution {
-                                    InfoRow(label: "Resolution", value: resolution)
-                                }
-                                if let fps = stream.frameRate {
-                                    InfoRow(label: "Frame Rate", value: "\(fps) fps")
-                                }
-                                if let bitRate = stream.bitRate {
-                                    InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
-                                }
-                                if let colorSpace = stream.colorSpace {
-                                    InfoRow(label: "Color Space", value: colorSpace)
-                                }
-                                if let pixelFormat = stream.pixelFormat {
-                                    InfoRow(label: "Pixel Format", value: pixelFormat)
-                                }
-                                if let aspectRatio = stream.aspectRatio {
-                                    InfoRow(label: "Aspect Ratio", value: aspectRatio)
-                                }
+                            if let overallBitRateMode = info.overallBitRateMode {
+                                InfoRow(label: "Overall Bit Rate Mode", value: overallBitRateMode)
+                            }
+                            if let encodingApplication = info.encodingApplication {
+                                InfoRow(label: "Encoding Application", value: encodingApplication)
+                            }
+                            if let writingLibrary = info.writingLibrary {
+                                InfoRow(label: "Writing Library", value: writingLibrary)
                             }
                         }
-                        
-                        // Audio Streams
-                        ForEach(info.audioStreams.indices, id: \.self) { index in
-                            let stream = info.audioStreams[index]
-                            InfoSection(title: info.audioStreams.count > 1 ? "Audio Stream \(index + 1)" : "Audio") {
-                                if let codec = stream.codec {
-                                    InfoRow(label: "Codec", value: codec)
-                                }
-                                if let language = stream.language {
-                                    InfoRow(label: "Language", value: language)
-                                }
-                                if let title = stream.title {
-                                    InfoRow(label: "Title", value: title)
-                                }
-                                if let channels = stream.channels {
-                                    InfoRow(label: "Channels", value: channelDescription(channels))
-                                }
-                                if let sampleRate = stream.sampleRate {
-                                    InfoRow(label: "Sample Rate", value: "\(sampleRate) Hz")
-                                }
-                                if let bitDepth = stream.bitDepth {
-                                    InfoRow(label: "Bit Depth", value: "\(bitDepth) bits")
-                                }
-                                if let bitRate = stream.bitRate {
-                                    InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
-                                }
-                                if let compressionMode = stream.compressionMode {
-                                    InfoRow(label: "Compression", value: compressionMode)
+                        .padding()
+                    }
+                    .tabItem {
+                        Text("General")
+                    }
+                    .tag("general")
+                    
+                    // Video Tab
+                    if info.hasVideo {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                ForEach(info.videoStreams.indices, id: \.self) { index in
+                                    let stream = info.videoStreams[index]
+                                    if info.videoStreams.count > 1 {
+                                        InfoSection(title: "Video Stream \(index + 1)") {
+                                            if let codec = stream.codec {
+                                                InfoRow(label: "Codec", value: codec)
+                                            }
+                                            if let resolution = stream.resolution {
+                                                InfoRow(label: "Resolution", value: resolution)
+                                            }
+                                            if let fps = stream.frameRate {
+                                                InfoRow(label: "Frame Rate", value: "\(fps) fps")
+                                            }
+                                            if let bitRate = stream.bitRate {
+                                                InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
+                                            }
+                                            if let colorSpace = stream.colorSpace {
+                                                InfoRow(label: "Color Space", value: colorSpace)
+                                            }
+                                            if let pixelFormat = stream.pixelFormat {
+                                                InfoRow(label: "Pixel Format", value: pixelFormat)
+                                            }
+                                            if let aspectRatio = stream.aspectRatio {
+                                                InfoRow(label: "Aspect Ratio", value: aspectRatio)
+                                            }
+                                        }
+                                    } else {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            if let codec = stream.codec {
+                                                InfoRow(label: "Codec", value: codec)
+                                            }
+                                            if let resolution = stream.resolution {
+                                                InfoRow(label: "Resolution", value: resolution)
+                                            }
+                                            if let fps = stream.frameRate {
+                                                InfoRow(label: "Frame Rate", value: "\(fps) fps")
+                                            }
+                                            if let bitRate = stream.bitRate {
+                                                InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
+                                            }
+                                            if let colorSpace = stream.colorSpace {
+                                                InfoRow(label: "Color Space", value: colorSpace)
+                                            }
+                                            if let pixelFormat = stream.pixelFormat {
+                                                InfoRow(label: "Pixel Format", value: pixelFormat)
+                                            }
+                                            if let aspectRatio = stream.aspectRatio {
+                                                InfoRow(label: "Aspect Ratio", value: aspectRatio)
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                            .padding()
                         }
-                        
-                        // Subtitle Streams
-                        ForEach(info.subtitleStreams.indices, id: \.self) { index in
-                            let stream = info.subtitleStreams[index]
-                            InfoSection(title: info.subtitleStreams.count > 1 ? "Subtitle Stream \(index + 1)" : "Subtitle") {
-                                if let codec = stream.codec {
-                                    InfoRow(label: "Codec", value: codec)
-                                }
-                                if let language = stream.language {
-                                    InfoRow(label: "Language", value: language)
-                                }
-                                if let title = stream.title {
-                                    InfoRow(label: "Title", value: title)
-                                }
-                                if let forced = stream.forced {
-                                    InfoRow(label: "Forced", value: forced ? "Yes" : "No")
-                                }
-                                if let isDefault = stream.`default` {
-                                    InfoRow(label: "Default", value: isDefault ? "Yes" : "No")
+                        .tabItem {
+                            Text("Video")
+                        }
+                        .tag("video")
+                    }
+                    
+                    // Audio Tab
+                    if info.hasAudio {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                ForEach(info.audioStreams.indices, id: \.self) { index in
+                                    let stream = info.audioStreams[index]
+                                    if info.audioStreams.count > 1 {
+                                        InfoSection(title: "Audio Stream \(index + 1)") {
+                                            if let codec = stream.codec {
+                                                InfoRow(label: "Codec", value: formatAudioCodec(codec))
+                                            }
+                                            if let language = stream.language {
+                                                InfoRow(label: "Language", value: language)
+                                            }
+                                            if let title = stream.title {
+                                                InfoRow(label: "Title", value: title)
+                                            }
+                                            if let channels = stream.channels {
+                                                InfoRow(label: "Channels", value: channelDescription(channels))
+                                            }
+                                            if let sampleRate = stream.sampleRate {
+                                                InfoRow(label: "Sample Rate", value: "\(sampleRate) Hz")
+                                            }
+                                            if let bitDepth = stream.bitDepth {
+                                                InfoRow(label: "Bit Depth", value: "\(bitDepth) bits")
+                                            }
+                                            if let bitRate = stream.bitRate {
+                                                InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
+                                            }
+                                            if let compressionMode = stream.compressionMode {
+                                                InfoRow(label: "Compression", value: compressionMode)
+                                            }
+                                        }
+                                    } else {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            if let codec = stream.codec {
+                                                InfoRow(label: "Codec", value: formatAudioCodec(codec))
+                                            }
+                                            if let language = stream.language {
+                                                InfoRow(label: "Language", value: language)
+                                            }
+                                            if let title = stream.title {
+                                                InfoRow(label: "Title", value: title)
+                                            }
+                                            if let channels = stream.channels {
+                                                InfoRow(label: "Channels", value: channelDescription(channels))
+                                            }
+                                            if let sampleRate = stream.sampleRate {
+                                                InfoRow(label: "Sample Rate", value: "\(sampleRate) Hz")
+                                            }
+                                            if let bitDepth = stream.bitDepth {
+                                                InfoRow(label: "Bit Depth", value: "\(bitDepth) bits")
+                                            }
+                                            if let bitRate = stream.bitRate {
+                                                InfoRow(label: "Bit Rate", value: "\(bitRate) kbps")
+                                            }
+                                            if let compressionMode = stream.compressionMode {
+                                                InfoRow(label: "Compression", value: compressionMode)
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                            .padding()
                         }
+                        .tabItem {
+                            Text("Audio")
+                        }
+                        .tag("audio")
+                    }
+                    
+                    // Subtitles Tab
+                    if info.hasSubtitles {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                ForEach(info.subtitleStreams.indices, id: \.self) { index in
+                                    let stream = info.subtitleStreams[index]
+                                    if info.subtitleStreams.count > 1 {
+                                        InfoSection(title: "Subtitle Stream \(index + 1)") {
+                                            if let title = stream.title {
+                                                InfoRow(label: "Title", value: title)
+                                            }
+                                            if let language = stream.language {
+                                                InfoRow(label: "Language", value: language)
+                                            }
+                                            if let encoding = stream.encoding {
+                                                InfoRow(label: "Encoding", value: encoding)
+                                            }
+                                            if let forced = stream.forced {
+                                                InfoRow(label: "Forced", value: forced ? "Yes" : "No")
+                                            }
+                                            if let isDefault = stream.`default` {
+                                                InfoRow(label: "Default", value: isDefault ? "Yes" : "No")
+                                            }
+                                        }
+                                    } else {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            if let title = stream.title {
+                                                InfoRow(label: "Title", value: title)
+                                            }
+                                            if let language = stream.language {
+                                                InfoRow(label: "Language", value: language)
+                                            }
+                                            if let encoding = stream.encoding {
+                                                InfoRow(label: "Encoding", value: encoding)
+                                            }
+                                            if let forced = stream.forced {
+                                                InfoRow(label: "Forced", value: forced ? "Yes" : "No")
+                                            }
+                                            if let isDefault = stream.`default` {
+                                                InfoRow(label: "Default", value: isDefault ? "Yes" : "No")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .padding()
+                        }
+                        .tabItem {
+                            Text("Subtitles")
+                        }
+                        .tag("subtitles")
                     }
                 }
             }
@@ -216,6 +342,25 @@ struct MediaInfoView: View {
         default: return "\(channels)"
         }
     }
+    
+    private func formatAudioCodec(_ codec: String) -> String {
+        switch codec {
+        case "E-AC-3":
+            return "E-AC-3 (Dolby Digital Plus)"
+        case "E-AC-3 JOC":
+            return "E-AC-3 JOC (Dolby Atmos)"
+        default:
+            return codec
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.locale = Locale.current
+        return formatter.string(from: date)
+    }
 }
 
 struct InfoSection<Content: View>: View {
@@ -244,12 +389,10 @@ struct InfoRow: View {
     var body: some View {
         HStack {
             Text(label + ":")
-                .font(.caption)
                 .foregroundColor(.secondary)
-                .frame(minWidth: 100, alignment: .leading)
+                .frame(minWidth: 150, alignment: .trailing)
             
             Text(value)
-                .font(.caption)
                 .foregroundColor(.primary)
                 .textSelection(.enabled)
             
@@ -285,6 +428,7 @@ struct AudioStreamInfo {
 struct SubtitleStreamInfo {
     let streamIndex: Int
     let codec: String?
+    let encoding: String?
     let language: String?
     let title: String?
     let forced: Bool?
@@ -295,8 +439,13 @@ struct SubtitleStreamInfo {
 struct DetailedMediaInfo {
     let format: String
     let fileSize: Int64
+    let createdDate: Date?
+    let modifiedDate: Date?
     let duration: Double?
     let overallBitRate: Int?
+    let overallBitRateMode: String?
+    let encodingApplication: String?
+    let writingLibrary: String?
     
     let videoStreams: [VideoStreamInfo]
     let audioStreams: [AudioStreamInfo]

@@ -74,8 +74,8 @@ struct SubtitleRow: View {
             
             Spacer()
             
-            if let codec = subtitle.codec {
-                Text(codec)
+            if let encoding = subtitle.encoding {
+                Text(encoding)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

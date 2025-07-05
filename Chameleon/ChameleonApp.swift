@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct ChamelionApp: App {
+struct ChameleonApp: App {
     init() {
         // Initialize ProcessManager to set up termination handlers
         _ = ProcessManager.shared
