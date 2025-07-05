@@ -16,7 +16,7 @@ struct ChameleonApp: App {
     }
     
     var body: some Scene {
-        WindowGroup {
+        Window("Chameleon", id: "main") {
             ContentView()
         }
         .modelContainer(for: [ConversionRecord.self])
