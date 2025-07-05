@@ -195,10 +195,12 @@ struct ConverterView: View {
                 }
             case .converted(let convertedFile):
                 // Reset converted files to input state if not seen before
-                let originalURL = convertedFile.originalURL
-                if !seenURLs.contains(originalURL) {
-                    seenURLs.insert(originalURL)
-                    newFiles.append(.input(originalURL))
+                // Handle all original URLs (including merged files)
+                for originalURL in convertedFile.allOriginalURLs {
+                    if !seenURLs.contains(originalURL) {
+                        seenURLs.insert(originalURL)
+                        newFiles.append(.input(originalURL))
+                    }
                 }
             case .error(let url, _):
                 // Reset error files to input state if not seen before
@@ -1179,7 +1181,7 @@ struct ConverterView: View {
                 try FileManager.default.moveItem(at: tempURL, to: finalTempURL)
 
                 let convertedFile = ConvertedFile(
-                    originalURL: inputURLs[0], // Use first file as original
+                    originalURLs: inputURLs, // Store all original URLs
                     tempURL: finalTempURL,
                     fileName: fileName
                 )
