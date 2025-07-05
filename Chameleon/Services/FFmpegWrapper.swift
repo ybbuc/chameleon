@@ -10,7 +10,8 @@ import Darwin
 
 class FFmpegWrapper {
     private let ffmpegPath: String
-    private var currentProcess: Process?
+    private var activeProcesses = Set<Process>()
+    private let processQueue = DispatchQueue(label: "com.chameleon.ffmpeg", attributes: .concurrent)
     private let mediaInfoWrapper: MediaInfoWrapper?
 
     init() throws {
@@ -118,42 +119,9 @@ class FFmpegWrapper {
         process.standardOutput = outputPipe
 
         try process.run()
-
-        // Register with ProcessManager
-        ProcessManager.shared.register(process)
-
-        // Wait for completion with cancellation support
-        currentProcess = process
-        defer {
-            currentProcess = nil
-            ProcessManager.shared.unregister(process)
-        }
-
-        while process.isRunning {
-            if Task.isCancelled {
-                // Send SIGINT to FFmpeg for graceful shutdown
-                let processID = process.processIdentifier
-                if processID > 0 {
-                    kill(processID, SIGINT)
-                }
-
-                // Give FFmpeg a moment to clean up
-                for _ in 0..<10 { // Wait up to 1 second
-                    if !process.isRunning {
-                        break
-                    }
-                    try await Task.sleep(for: .milliseconds(100))
-                }
-
-                // Force terminate if still running
-                if process.isRunning {
-                    process.terminate()
-                }
-
-                throw CancellationError()
-            }
-            try await Task.sleep(for: .milliseconds(100))
-        }
+        
+        // Use centralized process runner
+        try await runFFmpegProcess(process)
 
         // Always read the output, even on success
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -185,15 +153,78 @@ class FFmpegWrapper {
         }
     }
 
+    private func registerProcess(_ process: Process) {
+        _ = processQueue.sync(flags: .barrier) {
+            self.activeProcesses.insert(process)
+        }
+    }
+    
+    private func unregisterProcess(_ process: Process) {
+        _ = processQueue.sync(flags: .barrier) {
+            self.activeProcesses.remove(process)
+        }
+    }
+    
     func cancel() {
-        if let process = currentProcess {
-            // FFmpeg handles SIGINT gracefully and will clean up properly
+        let processesToCancel = processQueue.sync(flags: .barrier) { () -> [Process] in
+            let processes = Array(activeProcesses)
+            return processes
+        }
+        
+        // Kill processes outside the queue to avoid deadlock
+        for process in processesToCancel {
             let processID = process.processIdentifier
             if processID > 0 {
-                // Send SIGINT (Ctrl+C) which FFmpeg handles gracefully
-                kill(processID, SIGINT)
+                // Kill the process group to get any child processes
+                killpg(processID, SIGKILL)
+                // Also kill the individual process to be sure
+                kill(processID, SIGKILL)
             }
-            currentProcess = nil
+        }
+        
+        // Clear the set after cancelling all
+        processQueue.sync(flags: .barrier) {
+            activeProcesses.removeAll()
+        }
+    }
+    
+    // Centralized FFmpeg process execution with proper cancellation handling
+    private func runFFmpegProcess(_ process: Process) async throws {
+        let processID = process.processIdentifier
+        
+        // Register with both our tracking and ProcessManager
+        ProcessManager.shared.register(process)
+        registerProcess(process)
+        
+        // Monitor for cancellation while process runs
+        var cancelled = false
+        while process.isRunning {
+            if Task.isCancelled {
+                cancelled = true
+                break
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        
+        // If cancelled, kill the process
+        if cancelled && processID > 0 {
+            kill(processID, SIGKILL)
+            // Also kill the process group to get any child processes
+            killpg(processID, SIGKILL)
+            // Give it a moment to die
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        
+        // Wait for process to finish
+        process.waitUntilExit()
+        
+        // Now unregister
+        unregisterProcess(process)
+        ProcessManager.shared.unregister(process)
+        
+        // Throw if we were cancelled
+        if cancelled {
+            throw CancellationError()
         }
     }
 
@@ -264,43 +295,8 @@ class FFmpegWrapper {
 
         try process.run()
 
-        // Register with ProcessManager
-        ProcessManager.shared.register(process)
-
-        // Wait for completion with cancellation support
-        currentProcess = process
-        defer {
-            currentProcess = nil
-            ProcessManager.shared.unregister(process)
-        }
-
-        while process.isRunning {
-            if Task.isCancelled {
-                // Send SIGINT to FFmpeg for graceful shutdown
-                let processID = process.processIdentifier
-                if processID > 0 {
-                    kill(processID, SIGINT)
-                }
-
-                // Give FFmpeg a moment to clean up
-                for _ in 0..<10 { // Wait up to 1 second
-                    if !process.isRunning {
-                        break
-                    }
-                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                }
-
-                // Force terminate if still running
-                if process.isRunning {
-                    process.terminate()
-                    process.waitUntilExit()
-                }
-
-                throw CancellationError()
-            }
-
-            try await Task.sleep(nanoseconds: 100_000_000) // Check every 100ms
-        }
+        // Use centralized process runner
+        try await runFFmpegProcess(process)
 
         // Check if process exited successfully
         if process.terminationStatus != 0 {
@@ -349,22 +345,8 @@ class FFmpegWrapper {
 
         try process.run()
 
-        // Register with ProcessManager
-        ProcessManager.shared.register(process)
-
-        currentProcess = process
-        defer {
-            currentProcess = nil
-            ProcessManager.shared.unregister(process)
-        }
-
-        while process.isRunning {
-            if Task.isCancelled {
-                kill(process.processIdentifier, SIGINT)
-                throw CancellationError()
-            }
-            try await Task.sleep(nanoseconds: 100_000_000)
-        }
+        // Use centralized process runner
+        try await runFFmpegProcess(process)
 
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -398,22 +380,8 @@ class FFmpegWrapper {
 
         try process.run()
 
-        // Register with ProcessManager
-        ProcessManager.shared.register(process)
-
-        currentProcess = process
-        defer {
-            currentProcess = nil
-            ProcessManager.shared.unregister(process)
-        }
-
-        while process.isRunning {
-            if Task.isCancelled {
-                kill(process.processIdentifier, SIGINT)
-                throw CancellationError()
-            }
-            try await Task.sleep(nanoseconds: 100_000_000)
-        }
+        // Use centralized process runner
+        try await runFFmpegProcess(process)
 
         if process.terminationStatus != 0 {
             let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
@@ -499,23 +467,8 @@ class FFmpegWrapper {
             
             try process.run()
             
-            // Register with ProcessManager
-            ProcessManager.shared.register(process)
-            
-            currentProcess = process
-            defer {
-                currentProcess = nil
-                ProcessManager.shared.unregister(process)
-            }
-            
-            // Wait for completion
-            while process.isRunning {
-                if Task.isCancelled {
-                    kill(process.processIdentifier, SIGINT)
-                    throw CancellationError()
-                }
-                try await Task.sleep(nanoseconds: 100_000_000)
-            }
+            // Use centralized process runner
+            try await runFFmpegProcess(process)
             
             if process.terminationStatus != 0 {
                 let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()

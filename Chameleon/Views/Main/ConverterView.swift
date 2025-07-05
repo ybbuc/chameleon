@@ -169,6 +169,17 @@ struct ConverterView: View {
         }
     }
 
+    // Helper to update conversion state
+    private func setConversionState(_ converting: Bool) {
+        isConverting = converting
+        ConversionStateManager.shared.setConverting(converting)
+        
+        if !converting {
+            currentConversionFile = ""
+            conversionProgress = (current: 0, total: 0)
+        }
+    }
+
     // Function to reset all files back to input state
     private func resetFilesToInput() {
         // Clean up temp files for converted files
@@ -654,6 +665,10 @@ struct ConverterView: View {
         }
         .onDisappear {
             cleanupTempFiles()
+            // Ensure conversion state is cleared if view disappears
+            if isConverting {
+                setConversionState(false)
+            }
         }
         .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") {
@@ -693,9 +708,7 @@ struct ConverterView: View {
         archiveService?.cancel()
 
         // Reset conversion state
-        isConverting = false
-        currentConversionFile = ""
-        conversionProgress = (current: 0, total: 0)
+        setConversionState(false)
 
         // Reset any converting files back to input state
         for i in files.indices {
@@ -1005,7 +1018,7 @@ struct ConverterView: View {
             // Special handling for creating archives
             print("Creating \(format.displayName) with \(inputURLs.count) files")
 
-            isConverting = true
+            setConversionState(true)
             errorMessage = nil
             conversionProgress = (current: 1, total: 1)
             currentConversionFile = "Creating archive..."
@@ -1100,9 +1113,7 @@ struct ConverterView: View {
                     completionSound?.play()
                 }
 
-                isConverting = false
-                currentConversionFile = ""
-                conversionProgress = (current: 0, total: 0)
+                setConversionState(false)
                 conversionTask = nil
 
                 return // Exit early, we're done
@@ -1127,9 +1138,7 @@ struct ConverterView: View {
                     failureSound?.play()
                 }
 
-                isConverting = false
-                currentConversionFile = ""
-                conversionProgress = (current: 0, total: 0)
+                setConversionState(false)
                 conversionTask = nil
 
                 return
@@ -1142,7 +1151,7 @@ struct ConverterView: View {
             // Special handling for merging PDFs
             print("Merging \(inputURLs.count) PDFs into one")
 
-            isConverting = true
+            setConversionState(true)
             errorMessage = nil
             conversionProgress = (current: 1, total: 1)
             currentConversionFile = "Merging PDFs..."
@@ -1204,9 +1213,7 @@ struct ConverterView: View {
             }
                 }
 
-                isConverting = false
-                currentConversionFile = ""
-                conversionProgress = (current: 0, total: 0)
+                setConversionState(false)
                 conversionTask = nil
 
                 return // Exit early, we're done
@@ -1231,9 +1238,7 @@ struct ConverterView: View {
                     failureSound?.play()
                 }
 
-                isConverting = false
-                currentConversionFile = ""
-                conversionProgress = (current: 0, total: 0)
+                setConversionState(false)
                 conversionTask = nil
 
                 return
@@ -1243,7 +1248,7 @@ struct ConverterView: View {
         let serviceDescription = getServiceDescription(outputService)
         print("Starting batch conversion of \(inputURLs.count) files to \(serviceDescription)")
 
-        isConverting = true
+        setConversionState(true)
         errorMessage = nil
         conversionProgress = (current: 0, total: inputURLs.count)
 
@@ -1779,9 +1784,7 @@ struct ConverterView: View {
             }
         }
 
-        isConverting = false
-        currentConversionFile = ""
-        conversionProgress = (current: 0, total: 0)
+        setConversionState(false)
         conversionTask = nil
     }
 

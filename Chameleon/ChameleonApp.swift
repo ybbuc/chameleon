@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct ChameleonApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    
     init() {
         // Initialize ProcessManager to set up termination handlers
         _ = ProcessManager.shared
