@@ -311,59 +311,21 @@ class ArchiveService {
     }
 
     private func verifyTarArchive(at url: URL, compressionType: TarCompressionType) async throws -> Bool {
+        // For all tar archives, use tar itself to verify
+        let compressionFlag: String
         switch compressionType {
         case .gzip:
-            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/gzip")
+            compressionFlag = "-tzf"
         case .bzip2:
-            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/bzip2")
+            compressionFlag = "-tjf"
         case .xz:
-            return try await verifyCompressionIntegrity(at: url, tool: "/usr/bin/xz")
+            compressionFlag = "-tJf"
         case .none:
-            return try await verifyTarContents(at: url, compressionFlag: "-tf")
+            compressionFlag = "-tf"
         }
+        return try await verifyTarContents(at: url, compressionFlag: compressionFlag)
     }
 
-    private func verifyCompressionIntegrity(at url: URL, tool: String) async throws -> Bool {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: tool)
-        process.arguments = ["-t", url.path]
-
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-        process.standardOutput = Pipe()
-
-        try process.run()
-        
-        // Register with ProcessManager
-        ProcessManager.shared.register(process)
-        
-        // Track for cancellation
-        currentProcess = process
-        defer {
-            currentProcess = nil
-            ProcessManager.shared.unregister(process)
-        }
-
-        while process.isRunning {
-            if Task.isCancelled {
-                // Send SIGINT for graceful shutdown
-                let processID = process.processIdentifier
-                if processID > 0 {
-                    kill(processID, SIGINT)
-                }
-                throw CancellationError()
-            }
-            try await Task.sleep(for: .milliseconds(100))
-        }
-
-        if process.terminationStatus != 0 {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            let errorString = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-            throw ArchiveError.compressionVerificationFailed(errorString)
-        }
-
-        return true
-    }
 
     private func verifyTarContents(at url: URL, compressionFlag: String) async throws -> Bool {
         let process = Process()
